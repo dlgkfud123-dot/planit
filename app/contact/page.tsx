@@ -1,0 +1,2 @@
+import ServiceLayout from "../../components/service/ServiceLayout";
+export default function ContactPage(){return <ServiceLayout eyebrow="CONTACT" title="PLANIT에 의견을 들려주세요"><p>현재 데모 버전은 실제 문의 전송 서버를 연결하지 않았습니다. 문의 채널이 준비되기 전까지 서비스 개선 의견은 프로젝트 관리자에게 전달해주세요.</p><h2>문의 시 포함하면 좋은 내용</h2><p>사용한 도시, 여행 기간, 문제가 발생한 화면, 재현 순서를 함께 남기면 더 빠르게 확인할 수 있습니다.</p><h2>운영 안내</h2><p>예약, 결제, 현지 운영시간 문의는 각 장소나 교통기관의 공식 채널을 이용해주세요.</p></ServiceLayout>}

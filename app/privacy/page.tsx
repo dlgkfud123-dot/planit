@@ -1,0 +1,2 @@
+import ServiceLayout from "../../components/service/ServiceLayout";
+export default function PrivacyPage(){return <ServiceLayout eyebrow="PRIVACY" title="개인정보 처리방침"><p>시행일: 2026년 7월 22일</p><h2>저장되는 정보</h2><p>현재 버전의 여행 일정과 설정은 사용자의 브라우저 로컬 저장소에 저장됩니다. PLANIT 서버로 전송하거나 별도 계정과 결합하지 않습니다.</p><h2>공유 링크</h2><p>공유 링크에는 일정 정보가 포함될 수 있습니다. 링크를 전달받은 사람은 해당 일정을 확인할 수 있으므로 공개 범위를 직접 관리해주세요.</p><h2>삭제 방법</h2><p>‘저장한 여행’ 화면에서 개별 일정을 삭제할 수 있으며, 브라우저 사이트 데이터 삭제를 통해 자동 저장 초안도 제거할 수 있습니다.</p></ServiceLayout>}

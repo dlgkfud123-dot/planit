@@ -1,0 +1,2 @@
+import ServiceLayout from "../../components/service/ServiceLayout";
+export default function AboutPage(){return <ServiceLayout eyebrow="ABOUT PLANIT" title="여행의 초안을 더 가볍게"><h2>PLANIT이 하는 일</h2><p>PLANIT은 목적지와 여행 조건을 바탕으로 실제 장소와 이동 동선을 조합해 일정 초안을 만드는 여행 계획 서비스입니다.</p><h2>사람이 완성하는 일정</h2><p>AI가 만든 결과는 출발점입니다. 장소 순서를 바꾸고, 다른 DAY로 옮기고, 취향에 맞는 장소를 더하면서 자신의 여행으로 다듬을 수 있습니다.</p><h2>정보 안내</h2><p>비용, 운영시간, 이동시간은 정적 데이터에 기반한 추정 정보입니다. 예약이나 방문 전에는 각 장소와 교통수단의 최신 공식 안내를 확인해주세요.</p></ServiceLayout>}
