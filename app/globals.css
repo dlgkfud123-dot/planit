@@ -25,7 +25,24 @@
 .mapSearchPanel{width:min(620px,calc(100% - 48px))}
 .mapSearchPanel h1 span{display:block;white-space:nowrap}
 .mapSearchBox{width:min(490px,100%)}
-@media(max-width:700px){.mapSearchPanel{width:calc(100% - 32px)}.mapSearchPanel h1 span{display:block;white-space:nowrap}.mapSearchBox{width:100%}}
+.mobileSearchTrigger{display:none!important}
+@media(max-width:700px){
+.mapSearchPanel{width:calc(100% - 32px)}
+.mapSearchPanel h1 span{display:block;white-space:nowrap}
+.mapSearchBox{width:100%}
+.mobileSearchTrigger{display:block!important;margin-bottom:6px}
+.mobileSearchTrigger button{width:100%;height:48px;padding:0 16px;display:flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,.95);border-radius:24px;background:rgba(255,255,255,.94);box-shadow:0 10px 28px rgba(48,77,111,.16);backdrop-filter:blur(16px);color:#102746;font-size:13px;font-weight:750;text-align:left;transition:background-color .2s ease,box-shadow .2s ease}
+.mobileSearchTrigger button span{font-size:18px;color:#386cff}
+.mobileSearchTrigger button b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mobileSearchTrigger button i{font-size:10px;color:#647b92;font-style:normal}
+.mapSearchPanel.mobileCollapsed .searchPanelContent{display:none!important}
+.mapSearchPanel.mobileExpanded .searchPanelContent{display:block!important;animation:mobilePanelFadeIn .22s ease both}
+}
+@media(min-width:701px){
+.searchPanelContent{display:block!important;opacity:1!important;visibility:visible!important}
+}
+@keyframes mobilePanelFadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.mapSearchPanel.mobileExpanded .searchPanelContent{animation:none!important}}
 
 /* Leaflet and image metadata must not alter landmark thumbnail dimensions. */
 .travelMap .landmarkPreview>img{display:block!important;width:100%!important;min-width:100%!important;max-width:100%!important;height:68px!important;min-height:68px!important;max-height:68px!important;aspect-ratio:116/68!important;object-fit:cover!important;object-position:center!important;border-radius:9px}

@@ -16,6 +16,7 @@ type Props = {
   hoveredCity: string | null;
   selected: TravelCity | null;
   showRoute: boolean;
+  searchExpanded?: boolean;
   onCountrySelect: (country: string) => void;
   onSelect: (city: TravelCity) => void;
   onCityHover: (city: string | null) => void;
@@ -52,7 +53,24 @@ function countryMarkup(country: string, cities: TravelCity[]) {
   return `<div class="countryMarker"><div class="countryPreview"><img src="${first.image}" alt="${country} 여행 풍경" onerror="this.parentElement.classList.add('imageUnavailable');this.remove()"/><strong>${country}</strong><small>여행지 ${cities.length}곳</small></div><span></span><b>${country}</b></div>`;
 }
 
-export default function MapCanvas({ cities, focusedCountry, citiesVisible, hoveredCity, selected, showRoute, onCountrySelect, onSelect, onCityHover, onMoveComplete }: Props) {
+function getSearchBarHeight(): number {
+  if (typeof window === "undefined") return 0;
+  if (!window.matchMedia("(max-width: 700px)").matches) return 0;
+  const panel = document.querySelector(".mapSearchPanel");
+  if (!panel) return 0;
+  const rect = panel.getBoundingClientRect();
+  return rect.height > 0 ? rect.height : 0;
+}
+
+function getOffsetCenter(map: LeafletMap, lat: number, lon: number, zoom: number, topOffsetPx: number): [number, number] {
+  if (topOffsetPx <= 0) return [lat, lon];
+  const targetPoint = map.project([lat, lon], zoom);
+  const offsetCenterPoint = targetPoint.add([0, -topOffsetPx / 2 - 12]);
+  const offsetLatLng = map.unproject(offsetCenterPoint, zoom);
+  return [offsetLatLng.lat, offsetLatLng.lng];
+}
+
+export default function MapCanvas({ cities, focusedCountry, citiesVisible, hoveredCity, selected, showRoute, searchExpanded, onCountrySelect, onSelect, onCityHover, onMoveComplete }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const markersRef = useRef<LeafletMarker[]>([]);
@@ -73,6 +91,23 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
     selectedRef.current = selected;
     hoveredRef.current = hoveredCity;
   }, [onSelect, onCountrySelect, onCityHover, onMoveComplete, selected, hoveredCity]);
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    map.invalidateSize({ pan: false });
+    const isMobile = window.matchMedia("(max-width: 700px)").matches;
+    if (isMobile) {
+      const searchBarH = getSearchBarHeight();
+      if (selectedRef.current) {
+        const targetZoom = 5.25;
+        const targetCenter = searchBarH > 0
+          ? getOffsetCenter(map, selectedRef.current.lat, selectedRef.current.lon, targetZoom, searchBarH)
+          : [selectedRef.current.lat, selectedRef.current.lon] as [number, number];
+        map.flyTo(targetCenter, targetZoom, { animate: true, duration: 0.6 });
+      }
+    }
+  }, [searchExpanded, mapReady]);
 
   useEffect(() => {
     let disposed = false;
@@ -97,12 +132,15 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
         map!.panInsideBounds(bounds, { animate: false });
       };
       keep();
-      map.on("zoomend resize", keep);
+      map.on("zoomend resize orientationchange", keep);
       let dragLat = map.getCenter().lat;
       map.on("dragstart", () => { dragLat = map!.getCenter().lat; });
       map.on("drag", () => {
-        const center = map!.getCenter();
-        map!.setView([dragLat, center.lng], map!.getZoom(), { animate: false });
+        const isMobile = window.matchMedia("(max-width: 700px)").matches;
+        if (!isMobile) {
+          const center = map!.getCenter();
+          map!.setView([dragLat, center.lng], map!.getZoom(), { animate: false });
+        }
       });
       L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { subdomains: "abcd" }).addTo(map);
       mapRef.current = map;
@@ -120,7 +158,10 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
   useEffect(() => {
     if (!mapReady) return;
     let cancelled = false;
-    void import("leaflet").then(({ default: L }) => {
+    Promise.all([
+      import("leaflet"),
+      import("leaflet.markercluster"),
+    ]).then(([{ default: L }]) => {
       const map = mapRef.current;
       if (!map || cancelled) return;
       const mobile = window.matchMedia("(max-width: 700px)").matches;
@@ -128,24 +169,71 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
       markersRef.current = [];
       routeRef.current?.remove();
       routeRef.current = null;
+
       if (focusedCountry) {
         const list = cities.filter((city) => city.country === focusedCountry);
         const view = countryViews[focusedCountry] || [list[0]?.lat || 20, list[0]?.lon || 0, 5];
         const targetZoom = mobile ? Math.min(view[2], 4.7) : view[2];
+
         if (citiesVisible) {
-          markersRef.current = list.map((city) => L.marker([city.lat, city.lon], {
-            icon: L.divIcon({
-              className: "cityMarkerShell",
-              html: cityMarkup(city, selectedRef.current?.en === city.en || hoveredRef.current === city.en),
-              iconSize: [104, 42], iconAnchor: [52, 21],
-            }),
-          }).addTo(map).on("click", () => selectRef.current(city)).on("mouseover", () => hoverRef.current(city.en)).on("mouseout", () => hoverRef.current(null)));
+          const clusterGroup = L.markerClusterGroup({
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true,
+            spiderfyOnMaxZoom: true,
+            maxClusterRadius: (zoom) => (zoom <= 5 ? 48 : 32),
+            iconCreateFunction: (cluster) => {
+              const count = cluster.getChildCount();
+              return L.divIcon({
+                className: "planClusterShell",
+                html: `<button class="planClusterMarker" aria-label="여행지 ${count}개 그룹"><span>${count}</span></button>`,
+                iconSize: [44, 44],
+                iconAnchor: [22, 22],
+              });
+            },
+          });
+
+          clusterGroup.on("clusterclick", (a) => {
+            if (window.matchMedia("(max-width: 700px)").matches) {
+              const searchBarH = getSearchBarHeight();
+              if (searchBarH > 0) {
+                const clusterBounds = a.layer.getBounds();
+                const zoom = map.getBoundsZoom(clusterBounds);
+                const center = clusterBounds.getCenter();
+                const offsetCenter = getOffsetCenter(map, center.lat, center.lng, Math.min(zoom, map.getMaxZoom()), searchBarH);
+                map.flyTo(offsetCenter, Math.min(zoom, map.getMaxZoom()), { duration: 0.8 });
+              }
+            }
+          });
+
+          markersRef.current = list.map((city) => {
+            const marker = L.marker([city.lat, city.lon], {
+              icon: L.divIcon({
+                className: "cityMarkerShell",
+                html: cityMarkup(city, selectedRef.current?.en === city.en || hoveredRef.current === city.en),
+                iconSize: [104, 42], iconAnchor: [52, 21],
+              }),
+            })
+              .on("click", () => selectRef.current(city))
+              .on("mouseover", () => hoverRef.current(city.en))
+              .on("mouseout", () => hoverRef.current(null));
+
+            clusterGroup.addLayer(marker);
+            return marker;
+          });
+
+          map.addLayer(clusterGroup);
         } else {
           markersRef.current = [L.marker([view[0], view[1]], {
             icon: L.divIcon({ className: "countryMarkerShell", html: countryMarkup(focusedCountry, list), iconSize: [112, 46], iconAnchor: [56, 23] }),
           }).addTo(map)];
         }
-        if (!selectedRef.current) map.flyTo([view[0], view[1]], targetZoom, { duration: 1.05 });
+        if (!selectedRef.current) {
+          const searchBarH = getSearchBarHeight();
+          const targetCenter = mobile && searchBarH > 0
+            ? getOffsetCenter(map, view[0], view[1], targetZoom, searchBarH)
+            : [view[0], view[1]] as [number, number];
+          map.flyTo(targetCenter, targetZoom, { duration: 1.05 });
+        }
       } else {
         const groups = Object.entries(cities.reduce<Record<string, TravelCity[]>>((all, city) => {
           (all[city.country] ??= []).push(city);
@@ -188,7 +276,13 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
     if (!map) return;
     const onMoveEnd = () => moveRef.current();
     map.once("moveend", onMoveEnd);
-    map.flyTo([selected.lat, selected.lon], window.matchMedia("(max-width: 700px)").matches ? 5.25 : 6.2, { animate: true, duration: 1.1 });
+    const isMobile = window.matchMedia("(max-width: 700px)").matches;
+    const targetZoom = isMobile ? 5.25 : 6.2;
+    const searchBarH = getSearchBarHeight();
+    const targetCenter = isMobile && searchBarH > 0
+      ? getOffsetCenter(map, selected.lat, selected.lon, targetZoom, searchBarH)
+      : [selected.lat, selected.lon] as [number, number];
+    map.flyTo(targetCenter, targetZoom, { animate: true, duration: 1.1 });
     return () => { map.off("moveend", onMoveEnd); };
   }, [selected, citiesVisible, mapReady]);
 
