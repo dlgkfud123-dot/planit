@@ -35,15 +35,6 @@ const localBindingConfig = {
     : [],
 };
 
-const securityHeaders = {
-  "X-Content-Type-Options": "nosniff",
-  "X-Frame-Options": "DENY",
-  "Referrer-Policy": "strict-origin-when-cross-origin",
-  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-  "Content-Security-Policy":
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co https://*.tile.openstreetmap.org https://unpkg.com https://cdnjs.cloudflare.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.tile.openstreetmap.org; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';",
-};
-
 export default defineConfig(async () => {
   // Keep Wrangler and Miniflare state project-local. These are non-secret tool
   // settings; application environment belongs in ignored `.env*` files.
@@ -58,11 +49,6 @@ export default defineConfig(async () => {
         sites(),
         nitro({
           preset: (process.env.NITRO_PRESET || "vercel").trim(),
-          routeRules: {
-            "/**": {
-              headers: securityHeaders,
-            },
-          },
         }),
       ],
     };
