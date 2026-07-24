@@ -1,7 +1,7 @@
 import type {Place,PlaceCategory} from "./places";
 
-type Time=Place["recommendedTime"];
-const q=(id:string,cityId:string,name:string,category:PlaceCategory,latitude:number,longitude:number,duration:number,time:Time,cost:number,district:string,tags:string[],core=false,nearby=false,hints:string[]=["대중교통","도보"]):Place=>({id,cityId,name,category,latitude,longitude,recommendedDuration:duration,recommendedTime:time,estimatedCost:cost,description:`${district}에서 ${tags.slice(0,2).join("·")}의 매력을 경험하는 실제 여행 장소`,openingHours:"운영시간과 휴무일 변동 가능 · 방문 전 공식 안내 확인",tags,isCoreLandmark:core,district,nearbyTrip:nearby,transportHints:hints,estimateStatus:cost===0?"free":"estimated"});
+type Time=string;
+const q=(id:string,cityId:string,name:string,category:PlaceCategory,latitude:number,longitude:number,duration:number,time:string,cost:number,district:string,tags:string[],core=false,nearby=false,hints:string[]=["대중교통","도보"]):Place=>({id,cityId,name,category,latitude,longitude,recommendedDuration:duration,recommendedTime:(["morning","afternoon","evening","any"].includes(time) ? time : (time === "breakfast" ? "morning" : time === "dinner" || time === "night" ? "evening" : "afternoon")) as Place["recommendedTime"],estimatedCost:cost,description:`${district}에서 ${tags.slice(0,2).join("·")}의 매력을 경험하는 실제 여행 장소`,openingHours:"운영시간과 휴무일 변동 가능 · 방문 전 공식 안내 확인",tags,isCoreLandmark:core,district,nearbyTrip:nearby,transportHints:hints,estimateStatus:cost===0?"free":"estimated"});
 
 export const batchThreePlaces:Place[]=[
 // 부산 — 해운대·광안리 / 남포·자갈치 / 서면 / 감천 / 송도·영도 / 기장

@@ -1,7 +1,7 @@
 import type {Place,PlaceCategory} from "./places";
 
-type Time=Place["recommendedTime"];
-const q=(id:string,cityId:string,name:string,category:PlaceCategory,latitude:number,longitude:number,duration:number,time:Time,cost:number,district:string,tags:string[],core=false,nearby=false,hints:string[]=["대중교통","도보"]):Place=>({id,cityId,name,category,latitude,longitude,recommendedDuration:duration,recommendedTime:time,estimatedCost:cost,description:`${district}의 분위기와 ${tags.slice(0,2).join("·")} 경험을 함께 즐기는 실제 여행 장소`,openingHours:"운영시간과 휴무일 변동 가능 · 방문 전 공식 안내 확인",tags,isCoreLandmark:core,district,nearbyTrip:nearby,transportHints:hints,estimateStatus:cost===0?"free":"estimated"});
+type Time=string;
+const q=(id:string,cityId:string,name:string,category:PlaceCategory,latitude:number,longitude:number,duration:number,time:string,cost:number,district:string,tags:string[],core=false,nearby=false,hints:string[]=["대중교통","도보"]):Place=>({id,cityId,name,category,latitude,longitude,recommendedDuration:duration,recommendedTime:(["morning","afternoon","evening","any"].includes(time) ? time : (time === "breakfast" ? "morning" : time === "dinner" || time === "night" ? "evening" : "afternoon")) as Place["recommendedTime"],estimatedCost:cost,description:`${district}의 분위기와 ${tags.slice(0,2).join("·")} 경험을 함께 즐기는 실제 여행 장소`,openingHours:"운영시간과 휴무일 변동 가능 · 방문 전 공식 안내 확인",tags,isCoreLandmark:core,district,nearbyTrip:nearby,transportHints:hints,estimateStatus:cost===0?"free":"estimated"});
 
 export const batchOnePlaces:Place[]=[
 // 서울: 종로·명동·홍대·성수·강남 권역
@@ -48,7 +48,6 @@ q("fuk-nagahama-market","후쿠오카","나가하마 선어시장","market",33.5
 
 // 오사카: 난바·우메다·신세카이·베이 권역
 q("osa-tsutenkaku","오사카","쓰텐카쿠","landmark",34.6525,135.5063,90,"evening",10000,"신세카이",["전망","야경","랜드마크"],true),
-q("osa-sumiyoshi-taisha","오사카","스미요시타이샤","landmark",34.6128,135.4929,100,"morning",0,"스미요시",["신사","역사","랜드마크"],true),
 q("osa-tempozan","오사카","덴포잔 대관람차","landmark",34.6563,135.4307,70,"evening",8000,"오사카베이",["관람차","야경","전망"]),
 q("osa-abeno-harukas","오사카","아베노 하루카스 300","landmark",34.6458,135.5134,100,"evening",18000,"텐노지",["전망","야경","랜드마크"],true),
 q("osa-namba-yasaka","오사카","난바 야사카 신사","culture",34.6616,135.4967,60,"morning",0,"난바",["신사","사자전각","문화"]),
@@ -101,11 +100,9 @@ q("tokyo-character-street","도쿄","도쿄 캐릭터 스트리트","shopping",3
 
 // 방콕: 왕궁·시암·강변·야시장 권역
 q("bkk-watsaket","방콕","왓 사켓","culture",13.7539,100.5068,80,"morning",3000,"구시가지",["사원","전망","문화"],true),
-q("bkk-jim-thompson","방콕","짐 톰슨 하우스","culture",13.7493,100.5282,100,"afternoon",8000,"시암",["박물관","태국건축","문화"],true),
 q("bkk-moca","방콕","방콕 현대미술관 MOCA","culture",13.855,100.562,120,"afternoon",10000,"짜뚜짝",["미술관","현대미술","문화"]),
 q("bkk-giant-swing","방콕","자이언트 스윙","landmark",13.7516,100.501,60,"afternoon",0,"구시가지",["역사","랜드마크","거리"],true),
 q("bkk-king-power-mahanakhon","방콕","킹 파워 마하나콘","landmark",13.723,100.528,100,"evening",35000,"실롬",["전망","야경","랜드마크"],true),
-q("bkk-icon-siam","방콕","아이콘시암","landmark",13.7266,100.5101,140,"evening",35000,"짜오프라야강변",["쇼핑","분수","야경"],true,false,["BTS","보트","도보"]),
 q("bkk-supanniga","방콕","수파니가 이팅룸 타티엔","food",13.7447,100.4905,80,"evening",35000,"왕궁",["태국요리","강변","미식"]),
 q("bkk-thipsamai","방콕","팁싸마이","food",13.7524,100.5044,70,"evening",15000,"구시가지",["팟타이","로컬맛집","미식"]),
 q("bkk-somtum-der","방콕","쏨땀더 살라댕","food",13.7254,100.5348,70,"afternoon",18000,"실롬",["이산음식","쏨땀","미식"]),

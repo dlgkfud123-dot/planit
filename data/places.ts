@@ -89,6 +89,30 @@ import {batchThreePlaces} from "./placesBatch3";
 import {batchFourPlaces} from "./placesBatch4";
 import {batchFivePlaces} from "./placesBatch5";
 import {batchSixPlaces} from "./placesBatch6";
-export const places:Place[]=[...basePlaces,...batchOnePlaces,...batchTwoPlaces,...batchThreePlaces,...batchFourPlaces,...batchFivePlaces,...batchSixPlaces];
+import {batchSevenPlaces} from "./placesBatch7";
+import {batchEightPlaces} from "./placesBatch8";
+import {batchNinePlaces} from "./placesBatch9";
+import {batchTenPlaces} from "./placesBatch10";
+import {batchElevenPlaces} from "./placesBatch11";
+import {batchTwelvePlaces} from "./placesBatch12";
+import {batchThirteenPlaces} from "./placesBatch13";
+import {batchFourteenPlaces} from "./placesBatch14";
+import {batchFifteenPlaces} from "./placesBatch15";
+import {batchSixteenPlaces} from "./placesBatch16";
+import {batchSeventeenPlaces} from "./placesBatch17";
+import {batchEighteenPlaces} from "./placesBatch18";
+import {batchNineteenPlaces} from "./placesBatch19";
+import {batchTwentyPlaces} from "./placesBatch20";
+import {batchTwentyOnePlaces} from "./placesBatch21";
+import {batchTwentyTwoPlaces} from "./placesBatch22";
+import {batchTwentyThreePlaces} from "./placesBatch23";
+import {batchTwentyFourPlaces} from "./placesBatch24";
+import {batchTwentyFivePlaces} from "./placesBatch25";
+import {batchTwentySixPlaces} from "./placesBatch26";
+export const places:Place[]=[...basePlaces,...batchOnePlaces,...batchTwoPlaces,...batchThreePlaces,...batchFourPlaces,...batchFivePlaces,...batchSixPlaces,...batchSevenPlaces,...batchEightPlaces,...batchNinePlaces,...batchTenPlaces,...batchElevenPlaces,...batchTwelvePlaces,...batchThirteenPlaces,...batchFourteenPlaces,...batchFifteenPlaces,...batchSixteenPlaces,...batchSeventeenPlaces,...batchEighteenPlaces,...batchNineteenPlaces,...batchTwentyPlaces,...batchTwentyOnePlaces,...batchTwentyTwoPlaces,...batchTwentyThreePlaces,...batchTwentyFourPlaces,...batchTwentyFivePlaces,...batchTwentySixPlaces];
 export const placesByCity=(cityId:string)=>places.filter(place=>place.cityId===cityId);
 export const supportedCityIds=[...new Set(places.map(place=>place.cityId))];
+
+
+
+

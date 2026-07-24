@@ -16,6 +16,7 @@ type Props = {
   hoveredCity: string | null;
   selected: TravelCity | null;
   showRoute: boolean;
+  searchExpanded?: boolean;
   onCountrySelect: (country: string) => void;
   onSelect: (city: TravelCity) => void;
   onCityHover: (city: string | null) => void;
@@ -24,11 +25,11 @@ type Props = {
 type WorldView = { center: [number, number]; zoom: number; minZoom: number };
 
 function getWorldView(): WorldView {
-  const width = window.innerWidth;
+  const width = typeof window !== "undefined" ? window.innerWidth : 1200;
   if (width <= 700) return { center: [12, 18], zoom: 1.2, minZoom: 1.15 };
   if (width <= 900) return { center: [8, 25], zoom: 2.12, minZoom: 1.9 };
-  if (width <= 1100) return { center: [18, 25], zoom: 2.5, minZoom: 2 };
-  return { center: [30, 30], zoom: 2.78, minZoom: 2 };
+  if (width <= 1200) return { center: [18, 25], zoom: 2.3, minZoom: 1.9 };
+  return { center: [25, 20], zoom: 2.2, minZoom: 1.8 };
 }
 
 const countryViews: Record<string, [number, number, number]> = {
@@ -43,16 +44,17 @@ const countryViews: Record<string, [number, number, number]> = {
   러시아: [58, 82, 3],
 };
 
-function cityMarkup(city: TravelCity, active: boolean) {
-  return `<div class="cityMarker${active ? " active" : ""}"><div class="landmarkPreview"><img src="${city.image}" alt="${city.name} 랜드마크" onerror="this.parentElement.classList.add('imageUnavailable');this.remove()"/><strong>${city.name}</strong><small>${city.country}</small></div><span></span><b>${city.en}</b></div>`;
+function cityMarkup(city: TravelCity, active: boolean, index: number) {
+  return `<div class="cityMarker${active ? " active" : ""}" style="animation-delay: ${index * 60}ms"><span></span><b>${city.name}</b></div>`;
 }
 
-function countryMarkup(country: string, cities: TravelCity[]) {
-  const first = cities[0];
-  return `<div class="countryMarker"><div class="countryPreview"><img src="${first.image}" alt="${country} 여행 풍경" onerror="this.parentElement.classList.add('imageUnavailable');this.remove()"/><strong>${country}</strong><small>여행지 ${cities.length}곳</small></div><span></span><b>${country}</b></div>`;
+function countryMarkup(country: string, cities: TravelCity[], index: number, isSelected: boolean, hasSelection: boolean) {
+  const activeClass = isSelected ? " active" : "";
+  const fadedClass = hasSelection && !isSelected ? " faded" : "";
+  return `<div class="countryMarker${activeClass}${fadedClass}" style="animation-delay: ${index * 60}ms"><span></span><b>${country}</b></div>`;
 }
 
-export default function MapCanvas({ cities, focusedCountry, citiesVisible, hoveredCity, selected, showRoute, onCountrySelect, onSelect, onCityHover, onMoveComplete }: Props) {
+export default function MapCanvas({ cities, focusedCountry, citiesVisible, hoveredCity, selected, showRoute, searchExpanded, onCountrySelect, onSelect, onCityHover, onMoveComplete }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const markersRef = useRef<LeafletMarker[]>([]);
@@ -63,6 +65,8 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
   const moveRef = useRef(onMoveComplete);
   const selectedRef = useRef(selected);
   const hoveredRef = useRef(hoveredCity);
+  const hasUserInteractedRef = useRef(false);
+  const hasAppliedInitialBoundsRef = useRef(false);
   const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
@@ -80,30 +84,26 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
     void import("leaflet").then(({ default: L }) => {
       if (disposed || !containerRef.current) return;
       const worldView = getWorldView();
-      const mobile = window.matchMedia("(max-width: 700px)").matches;
-      const bounds = L.latLngBounds([[-85.0511, -100000], [85.0511, 100000]]);
+      const bounds = L.latLngBounds([[-85.0511, -180], [85.0511, 180]]);
       map = L.map(containerRef.current, {
         center: worldView.center, zoom: worldView.zoom, minZoom: worldView.minZoom,
         maxZoom: 9, zoomSnap: 0.1, zoomControl: false, attributionControl: false,
         worldCopyJump: true, maxBounds: bounds, maxBoundsViscosity: 1, tap: true,
       });
+
+      map.on("zoomstart movestart dragstart", () => {
+        hasUserInteractedRef.current = true;
+      });
+
       const keep = () => {
         const responsiveView = getWorldView();
-        const z = mobile
-          ? Math.max(responsiveView.minZoom, Math.log2(map!.getSize().x / 256) + 0.12)
-          : Math.max(responsiveView.minZoom, Math.log2(map!.getSize().y / 256) + 0.22);
+        const z = responsiveView.minZoom;
         map!.setMinZoom(z);
-        if (map!.getZoom() < z) map!.setZoom(z, { animate: false });
         map!.panInsideBounds(bounds, { animate: false });
       };
       keep();
       map.on("zoomend resize", keep);
-      let dragLat = map.getCenter().lat;
-      map.on("dragstart", () => { dragLat = map!.getCenter().lat; });
-      map.on("drag", () => {
-        const center = map!.getCenter();
-        map!.setView([dragLat, center.lng], map!.getZoom(), { animate: false });
-      });
+
       L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { subdomains: "abcd" }).addTo(map);
       mapRef.current = map;
       setMapReady(true);
@@ -116,6 +116,50 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
       mapRef.current = null;
     };
   }, []);
+
+  /* ResizeObserver to handle container width changes and invalidate Leaflet size smoothly */
+  useEffect(() => {
+    if (!mapReady || !containerRef.current) return;
+    const container = containerRef.current;
+    const observer = new ResizeObserver(() => {
+      const map = mapRef.current;
+      if (map) {
+        map.invalidateSize();
+        void import("leaflet").then(({ default: L }) => {
+          if (!hasUserInteractedRef.current && !hasAppliedInitialBoundsRef.current && !focusedCountry) {
+            const worldBounds = L.latLngBounds(L.latLng(-55, -175), L.latLng(75, 180));
+            map.fitBounds(worldBounds, { padding: [16, 16], animate: false });
+            hasAppliedInitialBoundsRef.current = true;
+          } else {
+            const bounds = L.latLngBounds([[-85.0511, -180], [85.0511, 180]]);
+            map.panInsideBounds(bounds, { animate: false });
+          }
+        });
+      }
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [mapReady, focusedCountry]);
+
+  /* Ambient organic camera drift when idle on home map */
+  useEffect(() => {
+    if (!mapReady || focusedCountry || selected) return;
+    let frameId: number;
+    let lastTime = performance.now();
+    const step = (now: number) => {
+      const map = mapRef.current;
+      if (map && !focusedCountry && !selected && !hasUserInteractedRef.current) {
+        const dt = now - lastTime;
+        if (dt > 50) {
+          map.panBy([0.28, 0], { animate: false });
+          lastTime = now;
+        }
+      }
+      frameId = requestAnimationFrame(step);
+    };
+    frameId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frameId);
+  }, [mapReady, focusedCountry, selected]);
 
   useEffect(() => {
     if (!mapReady) return;
@@ -133,32 +177,37 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
         const view = countryViews[focusedCountry] || [list[0]?.lat || 20, list[0]?.lon || 0, 5];
         const targetZoom = mobile ? Math.min(view[2], 4.7) : view[2];
         if (citiesVisible) {
-          markersRef.current = list.map((city) => L.marker([city.lat, city.lon], {
+          markersRef.current = list.map((city, idx) => L.marker([city.lat, city.lon], {
             icon: L.divIcon({
               className: "cityMarkerShell",
-              html: cityMarkup(city, selectedRef.current?.en === city.en || hoveredRef.current === city.en),
+              html: cityMarkup(city, selectedRef.current?.en === city.en || hoveredRef.current === city.en, idx),
               iconSize: [104, 42], iconAnchor: [52, 21],
             }),
           }).addTo(map).on("click", () => selectRef.current(city)).on("mouseover", () => hoverRef.current(city.en)).on("mouseout", () => hoverRef.current(null)));
         } else {
           markersRef.current = [L.marker([view[0], view[1]], {
-            icon: L.divIcon({ className: "countryMarkerShell", html: countryMarkup(focusedCountry, list), iconSize: [112, 46], iconAnchor: [56, 23] }),
+            icon: L.divIcon({ className: "countryMarkerShell", html: countryMarkup(focusedCountry, list, 0, true, true), iconSize: [112, 46], iconAnchor: [56, 23] }),
           }).addTo(map)];
         }
-        if (!selectedRef.current) map.flyTo([view[0], view[1]], targetZoom, { duration: 1.05 });
+        if (!selectedRef.current) map.flyTo([view[0], view[1]], targetZoom, { duration: 1.3, easeLinearity: 0.2 });
       } else {
         const groups = Object.entries(cities.reduce<Record<string, TravelCity[]>>((all, city) => {
           (all[city.country] ??= []).push(city);
           return all;
         }, {}));
-        markersRef.current = groups.map(([country, list]) => {
+        markersRef.current = groups.map(([country, list], idx) => {
           const view = countryViews[country] || [list[0].lat, list[0].lon, 4];
+          const isSelected = focusedCountry === country;
+          const hasSelection = Boolean(focusedCountry);
           return L.marker([view[0], view[1]], {
-            icon: L.divIcon({ className: "countryMarkerShell", html: countryMarkup(country, list), iconSize: [112, 46], iconAnchor: [56, 23] }),
+            icon: L.divIcon({ className: "countryMarkerShell", html: countryMarkup(country, list, idx, isSelected, hasSelection), iconSize: [112, 46], iconAnchor: [56, 23] }),
           }).addTo(map).on("click", () => countryRef.current(country));
         });
-        const worldView = getWorldView();
-        map.flyTo(worldView.center, Math.max(map.getMinZoom(), worldView.zoom), { duration: 1 });
+        if (!hasAppliedInitialBoundsRef.current && !hasUserInteractedRef.current) {
+          const worldBounds = L.latLngBounds(L.latLng(-55, -175), L.latLng(75, 180));
+          map.fitBounds(worldBounds, { padding: [16, 16], animate: false });
+          hasAppliedInitialBoundsRef.current = true;
+        }
       }
     });
     return () => { cancelled = true; };
@@ -174,7 +223,7 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
         const city = countryCities[index];
         if (city) marker.setIcon(L.divIcon({
           className: "cityMarkerShell",
-          html: cityMarkup(city, selected?.en === city.en || hoveredCity === city.en),
+          html: cityMarkup(city, selected?.en === city.en || hoveredCity === city.en, index),
           iconSize: [104, 42], iconAnchor: [52, 21],
         }));
       });
@@ -188,7 +237,7 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
     if (!map) return;
     const onMoveEnd = () => moveRef.current();
     map.once("moveend", onMoveEnd);
-    map.flyTo([selected.lat, selected.lon], window.matchMedia("(max-width: 700px)").matches ? 5.25 : 6.2, { animate: true, duration: 1.1 });
+    map.flyTo([selected.lat, selected.lon], window.matchMedia("(max-width: 700px)").matches ? 5.25 : 6.2, { animate: true, duration: 1.35, easeLinearity: 0.18 });
     return () => { map.off("moveend", onMoveEnd); };
   }, [selected, citiesVisible, mapReady]);
 

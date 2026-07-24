@@ -1,26 +1,349 @@
 "use client";
-import {useCallback,useEffect,useMemo,useRef,useState} from "react";
-import Image from "next/image";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import MapCanvas from "./MapCanvas";
-import {cities,type TravelCity} from "../../data/cities";
-import {supportedCityIds} from "../../data/places";
-import {cityLines,countryLines} from "../../data/countries";
-export {cities} from "../../data/cities";
-const supportedCityNames=new Set(supportedCityIds);
-const availableCities=cities.filter(city=>supportedCityNames.has(city.name));
-function TravelImage({src,alt,width,height}:{src:string;alt:string;width:number;height:number}){const[failed,setFailed]=useState(false);if(failed)return <span className="cityPhotoFallback" role="img" aria-label={`${alt} 이미지 준비 중`}><small>PLANIT</small><strong>{alt.replace(" 여행 풍경","")}</strong></span>;return <Image src={src} alt={alt} width={width} height={height} unoptimized onError={()=>setFailed(true)}/>}
-const citySeason=(city:TravelCity)=>Math.abs(city.lat)<18?"11월 — 3월":city.lat<0?"10월 — 4월":city.lat>48?"5월 — 9월":"4월 — 10월";
-export default function InteractiveMapIntro(){
- const[query,setQuery]=useState(""),[focusedCountry,setFocusedCountry]=useState<string|null>(null),[citiesVisible,setCitiesVisible]=useState(false),[hoveredCity,setHoveredCity]=useState<string|null>(null),[selected,setSelected]=useState<TravelCity|null>(null),[stage,setStage]=useState(0);const transitionTimer=useRef<number|null>(null),stageTimers=useRef<number[]>([]);const[nights,setNights]=useState(4),[people,setPeople]=useState(2),[style,setStyle]=useState("자연 · 도시"),[budget,setBudget]=useState(120);
- const suggestions=useMemo(()=>{const term=query.trim().toLowerCase();if(!term||selected?.name===query||focusedCountry===query)return[];const countries=[...new Set(availableCities.map(c=>c.country))].filter(c=>c.toLowerCase().includes(term)).map(name=>({type:"country" as const,name}));const cityResults=availableCities.filter(c=>`${c.name} ${c.en}`.toLowerCase().includes(term)).map(city=>({type:"city" as const,city}));return[...countries,...cityResults].slice(0,6)},[query,selected,focusedCountry]);
- const clearTransition=useCallback(()=>{if(transitionTimer.current!==null){window.clearTimeout(transitionTimer.current);transitionTimer.current=null}},[]);const clearStageTimers=useCallback(()=>{stageTimers.current.forEach(timer=>window.clearTimeout(timer));stageTimers.current=[]},[]);const clearTimers=useCallback(()=>{clearTransition();clearStageTimers()},[clearTransition,clearStageTimers]);useEffect(()=>()=>clearTimers(),[clearTimers]);
- const chooseCountry=useCallback((country:string)=>{if(focusedCountry===country&&citiesVisible)return;clearTimers();setFocusedCountry(country);setCitiesVisible(false);setHoveredCity(null);setSelected(null);setQuery(country);setStage(0);transitionTimer.current=window.setTimeout(()=>{setCitiesVisible(true);transitionTimer.current=null},1050)},[focusedCountry,citiesVisible,clearTimers]);
- const choose=useCallback((city:TravelCity)=>{clearTimers();const finish=()=>{setFocusedCountry(city.country);setCitiesVisible(true);setHoveredCity(city.en);setSelected(city);setQuery(city.name);setStage(1)};if(focusedCountry!==city.country||!citiesVisible){setFocusedCountry(city.country);setCitiesVisible(false);setSelected(null);setQuery(city.country);setStage(0);transitionTimer.current=window.setTimeout(()=>{finish();transitionTimer.current=null},900)}else finish()},[focusedCountry,citiesVisible,clearTimers]);
- const moved=useCallback(()=>{clearStageTimers();setStage(3);stageTimers.current=[window.setTimeout(()=>setStage(4),180),window.setTimeout(()=>{setStage(5);stageTimers.current=[]},560)]},[clearStageTimers]);const reset=(value="",toWorld=false)=>{clearTimers();setQuery(value);setSelected(null);setHoveredCity(null);setStage(0);if(toWorld){setFocusedCountry(null);setCitiesVisible(false)}};const countryCities=useMemo(()=>focusedCountry?availableCities.filter(c=>c.country===focusedCountry):[],[focusedCountry]);const moodCity=selected||countryCities.find(c=>c.en===hoveredCity)||countryCities[0];const goPlanner=()=>{if(!selected||stage<5)return;const p=new URLSearchParams({destination:selected.name,duration:`${nights}박 ${nights+1}일`,people:`${people}명`,style,budget:`${budget}만원`});window.location.href=`/planner?${p}`};
- return <main className={`mapExperience ${focusedCountry?"isExploring":""} ${citiesVisible?"citiesReady":""} ${selected?"isSelected":""}`}><MapCanvas cities={availableCities} focusedCountry={focusedCountry} citiesVisible={citiesVisible} hoveredCity={hoveredCity} selected={selected} showRoute={stage>=3} onCountrySelect={chooseCountry} onSelect={choose} onCityHover={setHoveredCity} onMoveComplete={moved}/><header className="mapHeader"><Link href="/" className="mapBrand" aria-label="PLANIT 홈">PLANIT <i>✦</i></Link><nav className="homeServiceNav"><Link href="/trips">내 여행</Link><Link href="/about">PLANIT 소개</Link></nav></header>
- <section className="mapSearchPanel"><h1><span>{focusedCountry?`${focusedCountry}에서 어디로`:"다음 여행은 어디로"}</span><span>떠날까요?</span></h1><div className="mapSearchBox"><span aria-hidden="true">⌕</span><input value={query} aria-label="목적지 검색" placeholder="국가 또는 도시를 검색하세요" onChange={e=>reset(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&suggestions[0]){const s=suggestions[0];if(s.type==="country")chooseCountry(s.name);else choose(s.city)}}}/>{query&&<button type="button" onClick={()=>reset("",true)} aria-label="검색어 지우기">×</button>}</div>{suggestions.length>0&&<ul className="mapSuggestions">{suggestions.map(s=><li key={s.type==="country"?`country-${s.name}`:s.city.en}><button type="button" onClick={()=>{if(s.type==="country")chooseCountry(s.name);else choose(s.city)}}><span>●</span><b>{s.type==="country"?s.name:s.city.name}</b><small>{s.type==="country"?`국가 · 여행지 ${availableCities.filter(c=>c.country===s.name).length}곳`:`${s.city.en} · ${s.city.country}`}</small></button></li>)}</ul>}{focusedCountry&&<button className="backToWorld" type="button" onClick={()=>reset("",true)}>← 세계지도</button>}</section>
- {focusedCountry&&moodCity&&<aside className={`countryMood ${citiesVisible?"settled":"entering"} ${selected?"citySelected":""}`}><TravelImage key={moodCity.image} src={moodCity.image} alt={`${selected?moodCity.name:focusedCountry} 여행 풍경`} width={520} height={320}/><div><small>{selected?"SELECTED CITY":"DISCOVER"}</small><strong>{selected?moodCity.name:focusedCountry}</strong><p>{selected?(cityLines[moodCity.name]||`${moodCity.name}에서 나만의 여행을 시작해보세요`):(countryLines[focusedCountry]||`${focusedCountry}의 다채로운 도시와 풍경을 만나보세요`)}</p></div></aside>}
- {focusedCountry&&citiesVisible&&!selected&&<section className="cityDiscovery" aria-label={`${focusedCountry} 대표 도시`}><div className="cityDiscoveryHeading"><span>어떤 도시가 마음에 드나요?</span><small>{countryCities.length}개의 여행지</small></div><div className="cityCardTrack">{countryCities.map(city=><article className={`cityChoiceCard ${hoveredCity===city.en?"active":""}`} onMouseEnter={()=>setHoveredCity(city.en)} onMouseLeave={()=>setHoveredCity(null)} key={city.en}><TravelImage src={city.image} alt={`${city.name} 여행 풍경`} width={280} height={164}/><div><small>{city.country}</small><strong>{city.name}</strong><p>{cityLines[city.name]||"도시의 일상과 대표 풍경을 함께 만나는 여행"}</p><span>추천 시기 · {citySeason(city)}</span><button type="button" onClick={()=>choose(city)}>이 도시 선택 →</button></div></article>)}</div></section>}
- {selected&&stage>=4&&<aside className="destinationPanel ready"><div className="destinationEyebrow">DESTINATION</div><h2>{selected.name}<small>{selected.en}</small></h2><p>{selected.country}</p><div className="readyState"><i/>READY TO PLAN</div><div className="tripControls"><label><span>여행 기간</span><div className="numberField"><input aria-label="숙박 일수" type="number" min="1" max="60" value={nights} onChange={e=>setNights(Math.max(1,Number(e.target.value)||1))}/><em>박 {nights+1}일</em></div></label><label><span>여행 인원</span><div className="numberField"><input aria-label="여행 인원" type="number" min="1" max="100" value={people} onChange={e=>setPeople(Math.max(1,Number(e.target.value)||1))}/><em>명</em></div></label><label><span>여행 스타일</span><select value={style} onChange={e=>setStyle(e.target.value)}><option>자연 · 도시</option><option>휴양 · 미식</option><option>문화 · 예술</option><option>액티비티</option><option>쇼핑 · 트렌드</option><option>가족 여행</option></select></label><label><span>예상 예산</span><div className="numberField"><input aria-label="예상 예산" type="number" min="10" max="10000" step="10" value={budget} onChange={e=>setBudget(Math.max(10,Number(e.target.value)||10))}/><em>만원</em></div></label></div><button type="button" className={`plannerLaunch ${stage>=5?"enabled":""}`} disabled={stage<5} onClick={goPlanner}>AI 여행 일정 만들기 <span>→</span></button></aside>}{!selected&&<div className="mapHint">{focusedCountry?"도시 핀을 선택해 여행을 시작해보세요":"국가 핀을 선택해 여행지를 둘러보세요"}</div>}</main>
+import { cities, type TravelCity } from "../../data/cities";
+import { supportedCityIds } from "../../data/places";
+
+export { cities } from "../../data/cities";
+
+const supportedCityNames = new Set(supportedCityIds);
+const availableCities = cities.filter((city) => supportedCityNames.has(city.name));
+
+const countryFlags: Record<string, string> = {
+  대한민국: "🇰🇷", 일본: "🇯🇵", 태국: "🇹🇭", 베트남: "🇻🇳", 대만: "🇹🇼",
+  싱가포르: "🇸🇬", 인도네시아: "🇮🇩", 중국: "🇨🇳", 몽골: "🇲🇳", 아랍에미리트: "🇦🇪",
+  프랑스: "🇫🇷", 영국: "🇬🇧", 이탈리아: "🇮🇹", 스위스: "🇨🇭", 스페인: "🇪🇸",
+  네덜란드: "🇳🇱", 튀르키예: "🇹🇷", 러시아: "🇷🇺", 미국: "🇺🇸", 캐나다: "🇨🇦",
+  브라질: "🇧🇷", 호주: "🇦🇺", 뉴질랜드: "🇳🇿", 이집트: "🇪🇬", 남아프리카공화국: "🇿🇦"
+};
+
+const continentGroups: { continent: string; countries: string[] }[] = [
+  {
+    continent: "아시아",
+    countries: ["대한민국", "일본", "태국", "베트남", "대만", "싱가포르", "인도네시아", "중국", "몽골", "아랍에미리트"]
+  },
+  {
+    continent: "유럽",
+    countries: ["프랑스", "영국", "이탈리아", "스위스", "스페인", "네덜란드", "튀르키예", "러시아"]
+  },
+  {
+    continent: "북아메리카",
+    countries: ["미국", "캐나다"]
+  },
+  {
+    continent: "남아메리카",
+    countries: ["브라질"]
+  },
+  {
+    continent: "오세아니아",
+    countries: ["호주", "뉴질랜드"]
+  },
+  {
+    continent: "아프리카",
+    countries: ["이집트", "남아프리카공화국"]
+  }
+];
+
+export default function InteractiveMapIntro() {
+  const [selectedCountry, setSelectedCountry] = useState<string>("");
+  const [selectedCityName, setSelectedCityName] = useState<string>("");
+
+  const [focusedCountry, setFocusedCountry] = useState<string | null>(null);
+  const [citiesVisible, setCitiesVisible] = useState(false);
+  const [hoveredCity, setHoveredCity] = useState<string | null>(null);
+
+  const [isCountryOpen, setIsCountryOpen] = useState(false);
+  const [isCityOpen, setIsCityOpen] = useState(false);
+
+  const countryDropdownRef = useRef<HTMLDivElement>(null);
+  const cityDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (countryDropdownRef.current && !countryDropdownRef.current.contains(e.target as Node)) {
+        setIsCountryOpen(false);
+      }
+      if (cityDropdownRef.current && !cityDropdownRef.current.contains(e.target as Node)) {
+        setIsCityOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsCountryOpen(false);
+        setIsCityOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  const countryCities = useMemo(() => {
+    if (!selectedCountry) return [];
+    return availableCities.filter((c) => c.country === selectedCountry);
+  }, [selectedCountry]);
+
+  const selectedCity = useMemo(() => {
+    if (!selectedCityName) return null;
+    return availableCities.find((c) => c.name === selectedCityName) || null;
+  }, [selectedCityName]);
+
+  const countryCount = useMemo(() => new Set(availableCities.map((c) => c.country)).size, []);
+  const cityCount = availableCities.length;
+
+  // Handle Country dropdown change
+  const handleCountryChange = (country: string) => {
+    setSelectedCountry(country);
+    setSelectedCityName(""); // Clear city selection when country changes
+    setIsCountryOpen(false);
+    setIsCityOpen(false);
+    if (country) {
+      setFocusedCountry(country);
+      setCitiesVisible(true);
+    } else {
+      setFocusedCountry(null);
+      setCitiesVisible(false);
+    }
+  };
+
+  // Handle City dropdown change
+  const handleCityChange = (cityName: string) => {
+    setSelectedCityName(cityName);
+    setIsCityOpen(false);
+    if (cityName) {
+      const cityObj = availableCities.find((c) => c.name === cityName);
+      if (cityObj) {
+        setSelectedCountry(cityObj.country);
+        setFocusedCountry(cityObj.country);
+        setCitiesVisible(true);
+      }
+    }
+  };
+
+  // Synchronize map marker clicks
+  const handleMapCitySelect = (city: TravelCity) => {
+    setSelectedCountry(city.country);
+    setSelectedCityName(city.name);
+    setFocusedCountry(city.country);
+    setCitiesVisible(true);
+  };
+
+  const handleMapCountrySelect = (country: string) => {
+    handleCountryChange(country);
+  };
+
+  const goPlanner = () => {
+    if (!selectedCountry || !selectedCityName) return;
+    const p = new URLSearchParams({
+      destination: selectedCityName,
+      duration: "4박 5일",
+      people: "2명",
+      style: "자연 · 도시",
+      budget: "120만원",
+    });
+    window.location.href = `/planner?${p}`;
+  };
+
+  return (
+    <main className="landingWrapper">
+      <header className="mapHeader">
+        <div className="headerContainer">
+          <Link href="/" className="mapBrand" aria-label="PLANIT 홈">
+            PLANIT <i>✦</i>
+          </Link>
+          <nav className="homeServiceNav">
+            <Link href="/trips" className="navPill">내 여행</Link>
+            <Link href="/about" className="navPill active">PLANIT 소개</Link>
+          </nav>
+        </div>
+      </header>
+
+      <div className="landingMainContent">
+        <section className="heroHeaderSection">
+        <div className="heroBadge">
+          <span>✨</span> AI 여행 플래너
+        </div>
+        <h1 className="heroTitle">
+          AI가 설계하는 나만의 완벽한 여행
+        </h1>
+        <p className="heroSubtitle">
+          국가와 도시를 선택하고, AI가 최고의 여행 일정을 만들어드려요.
+        </p>
+        <div className="heroTagline">
+          From destination to your itinerary, in seconds.
+        </div>
+
+        <div className="heroValueIndicators">
+          <div className="valueIndicatorItem">
+            <div className="valueIconCircle blue">🌐</div>
+            <div className="valueTextGroup">
+              <strong className="valueTitle">{countryCount}+ 국가</strong>
+              <span className="valueDesc">전 세계 여행지</span>
+            </div>
+          </div>
+          <div className="valueDivider" />
+          <div className="valueIndicatorItem">
+            <div className="valueIconCircle purple">✨</div>
+            <div className="valueTextGroup">
+              <strong className="valueTitle">AI 맞춤 설계</strong>
+              <span className="valueDesc">나만의 여행 일정</span>
+            </div>
+          </div>
+          <div className="valueDivider" />
+          <div className="valueIndicatorItem">
+            <div className="valueIconCircle blue">🕒</div>
+            <div className="valueTextGroup">
+              <strong className="valueTitle">몇 초 만에 완성</strong>
+              <span className="valueDesc">빠르고 간편하게</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="plannerGridSection">
+        <div className="heroSelectCard">
+          <div className="selectFormGroup countryGroup">
+            <label id="countrySelectLabel">국가 선택</label>
+            <div className="customSelectWrapper" ref={countryDropdownRef}>
+              <button
+                type="button"
+                aria-labelledby="countrySelectLabel"
+                aria-haspopup="listbox"
+                aria-expanded={isCountryOpen}
+                className={`customSelectTrigger ${isCountryOpen ? "open" : ""}`}
+                onClick={() => {
+                  setIsCityOpen(false);
+                  setIsCountryOpen((prev) => !prev);
+                }}
+              >
+                <span className="selectIcon">
+                  {selectedCountry ? countryFlags[selectedCountry] || "🌐" : "🌍"}
+                </span>
+                <span className="selectValue">
+                  {selectedCountry ? selectedCountry : "여행할 국가를 선택하세요"}
+                </span>
+                <i className="selectArrow">{isCountryOpen ? "▲" : "▼"}</i>
+              </button>
+
+              {isCountryOpen && (
+                <div className="customDropdownPanel" role="listbox" aria-labelledby="countrySelectLabel">
+                  {continentGroups.map((group) => {
+                    const groupCountries = group.countries.filter((c) =>
+                      availableCities.some((ac) => ac.country === c)
+                    );
+                    if (groupCountries.length === 0) return null;
+                    return (
+                      <div key={group.continent} className="continentGroup">
+                        <div className="continentHeader">•• {group.continent}</div>
+                        {groupCountries.map((country) => (
+                          <button
+                            key={country}
+                            type="button"
+                            role="option"
+                            aria-selected={selectedCountry === country}
+                            className={`countryOption ${selectedCountry === country ? "selected" : ""}`}
+                            onClick={() => handleCountryChange(country)}
+                          >
+                            <span className="countryFlag">{countryFlags[country] || "🌐"}</span>
+                            <span className="countryName">{country}</span>
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="selectFormGroup cityGroup">
+            <label id="citySelectLabel">도시 선택</label>
+            <div className="customSelectWrapper" ref={cityDropdownRef}>
+              <button
+                type="button"
+                id="citySelect"
+                aria-labelledby="citySelectLabel"
+                aria-haspopup="listbox"
+                aria-expanded={isCityOpen}
+                disabled={!selectedCountry}
+                className={`customSelectTrigger ${!selectedCountry ? "disabled" : ""} ${isCityOpen ? "open" : ""}`}
+                onClick={() => {
+                  if (selectedCountry) {
+                    setIsCountryOpen(false);
+                    setIsCityOpen((prev) => !prev);
+                  }
+                }}
+              >
+                <span className="selectValue">
+                  {!selectedCountry
+                    ? "먼저 국가를 선택하세요"
+                    : selectedCityName
+                    ? selectedCityName
+                    : "도시를 선택하세요"}
+                </span>
+                <i className="selectArrow">{isCityOpen ? "▲" : "▼"}</i>
+              </button>
+
+              {isCityOpen && selectedCountry && (
+                <div className="customDropdownPanel" role="listbox" aria-labelledby="citySelectLabel">
+                  {countryCities.map((city) => (
+                    <button
+                      key={city.en}
+                      type="button"
+                      role="option"
+                      aria-selected={selectedCityName === city.name}
+                      className={`countryOption ${selectedCityName === city.name ? "selected" : ""}`}
+                      onClick={() => handleCityChange(city.name)}
+                    >
+                      <span className="countryName">{city.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="heroCtaButton"
+            disabled={!selectedCountry || !selectedCityName}
+            onClick={goPlanner}
+          >
+            ✨ 여행 일정 만들기
+          </button>
+        </div>
+
+        <div className="heroRightMap">
+          <MapCanvas
+            cities={availableCities}
+            focusedCountry={focusedCountry}
+            citiesVisible={citiesVisible}
+            hoveredCity={hoveredCity}
+            selected={selectedCity}
+            showRoute={!!selectedCity}
+            onCountrySelect={handleMapCountrySelect}
+            onSelect={handleMapCitySelect}
+            onCityHover={setHoveredCity}
+            onMoveComplete={() => {}}
+          />
+        </div>
+      </section>
+      </div>
+
+      <footer className="landingFooter">
+        <div className="footerLinks">
+          <Link href="/about">이용약관</Link>
+          <Link href="/privacy">개인정보처리방침</Link>
+          <Link href="/contact">고객센터</Link>
+        </div>
+        <div className="footerCopyright">
+          © 2026 PLANIT. All rights reserved.
+        </div>
+      </footer>
+    </main>
+  );
 }
