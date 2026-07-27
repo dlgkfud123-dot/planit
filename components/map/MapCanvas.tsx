@@ -26,7 +26,8 @@ type WorldView = { center: [number, number]; zoom: number; minZoom: number };
 
 function getWorldView(): WorldView {
   const width = typeof window !== "undefined" ? window.innerWidth : 1200;
-  if (width <= 700) return { center: [12, 18], zoom: 1.2, minZoom: 1.15 };
+  if (width <= 480) return { center: [18, 0], zoom: 0.35, minZoom: 0.25 };
+  if (width <= 700) return { center: [18, 10], zoom: 0.75, minZoom: 0.5 };
   if (width <= 900) return { center: [8, 25], zoom: 2.12, minZoom: 1.9 };
   if (width <= 1200) return { center: [18, 25], zoom: 2.3, minZoom: 1.9 };
   return { center: [25, 20], zoom: 2.2, minZoom: 1.8 };
@@ -128,8 +129,9 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
         map.invalidateSize();
         void import("leaflet").then(({ default: L }) => {
           if (!hasUserInteractedRef.current && !hasAppliedInitialBoundsRef.current && !focusedCountry) {
-            const worldBounds = L.latLngBounds(L.latLng(-55, -175), L.latLng(75, 180));
-            map.fitBounds(worldBounds, { padding: [16, 16], animate: false });
+            const isMobile = window.innerWidth <= 640;
+            const worldBounds = L.latLngBounds(L.latLng(-60, -170), L.latLng(75, 175));
+            map.fitBounds(worldBounds, { padding: isMobile ? [4, 4] : [16, 16], animate: false });
             hasAppliedInitialBoundsRef.current = true;
           } else {
             const bounds = L.latLngBounds([[-85.0511, -180], [85.0511, 180]]);
