@@ -2,9 +2,15 @@
 
 import { DragEvent, FormEvent, useCallback, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
-import PlannerMap from "./PlannerMap";
+import dynamic from "next/dynamic";
 import {generateItinerary,refreshDay,type GeneratedDay,type GeneratedStop} from "../../utils/itineraryGenerator";
-import {placesByCity,supportedCityIds,type Place} from "../../data/places";
+import {supportedCityIds} from "../../data/cities";
+import {placesByCity,type Place} from "../../data/places";
+
+const PlannerMap = dynamic(() => import("./PlannerMap"), {
+  ssr: false,
+  loading: () => <div className="realPlannerMap" style={{ width: "100%", height: "100%", background: "#f8fafc" }} />
+});
 import {decodeSharedTrip,downloadText,encodeSharedTrip,readDraft,writeDraft,type TripSnapshot} from "../../utils/tripStorage";
 import {usePlannerState,usePlannerUiState} from "./usePlannerState";
 import {useTripPersistence} from "./useTripPersistence";

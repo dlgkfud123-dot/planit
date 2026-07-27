@@ -1,9 +1,13 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import MapCanvas from "./MapCanvas";
-import { cities, type TravelCity } from "../../data/cities";
-import { supportedCityIds } from "../../data/places";
+import dynamic from "next/dynamic";
+import { cities, supportedCityIds, type TravelCity } from "../../data/cities";
+
+const MapCanvas = dynamic(() => import("./MapCanvas"), {
+  ssr: false,
+  loading: () => <div className="travelMap" style={{ width: "100%", height: "100%", background: "#f8fafc", borderRadius: "20px" }} />
+});
 
 export { cities } from "../../data/cities";
 
@@ -164,45 +168,45 @@ export default function InteractiveMapIntro() {
 
       <div className="landingMainContent">
         <section className="heroHeaderSection">
-        <div className="heroBadge">
-          <span>✨</span> AI 여행 플래너
-        </div>
-        <h1 className="heroTitle">
-          AI가 설계하는 나만의 완벽한 여행
-        </h1>
-        <p className="heroSubtitle">
-          국가와 도시를 선택하고, AI가 최고의 여행 일정을 만들어드려요.
-        </p>
-        <div className="heroTagline">
-          From destination to your itinerary, in seconds.
-        </div>
+          <div className="heroBadge">
+            <span>✦</span> Intelligent Itinerary Builder
+          </div>
+          <h1 className="heroTitle">
+            AI가 설계하는 나만의 완벽한 여행
+          </h1>
+          <p className="heroSubtitle">
+            국가와 도시를 선택하면 AI가 이동 동선까지 자연스러운 일정을 만듭니다.
+          </p>
+          <div className="heroTagline">
+            PERFECT ITINERARY IN SECONDS
+          </div>
 
-        <div className="heroValueIndicators">
-          <div className="valueIndicatorItem">
-            <div className="valueIconCircle blue">🌐</div>
-            <div className="valueTextGroup">
-              <strong className="valueTitle">{countryCount}+ 국가</strong>
-              <span className="valueDesc">전 세계 여행지</span>
+          <div className="heroValueIndicators">
+            <div className="valueIndicatorItem">
+              <div className="valueIconCircle">🌐</div>
+              <div className="valueTextGroup">
+                <strong className="valueTitle">{countryCount}+ 국가</strong>
+                <span className="valueDesc">전 세계 엄선된 여행지</span>
+              </div>
+            </div>
+            <div className="valueDivider" />
+            <div className="valueIndicatorItem">
+              <div className="valueIconCircle">✦</div>
+              <div className="valueTextGroup">
+                <strong className="valueTitle">AI 맞춤 설계</strong>
+                <span className="valueDesc">동선 최적화 일정</span>
+              </div>
+            </div>
+            <div className="valueDivider" />
+            <div className="valueIndicatorItem">
+              <div className="valueIconCircle">⚡</div>
+              <div className="valueTextGroup">
+                <strong className="valueTitle">실시간 자동 구성</strong>
+                <span className="valueDesc">수정 및 저장 가능</span>
+              </div>
             </div>
           </div>
-          <div className="valueDivider" />
-          <div className="valueIndicatorItem">
-            <div className="valueIconCircle purple">✨</div>
-            <div className="valueTextGroup">
-              <strong className="valueTitle">AI 맞춤 설계</strong>
-              <span className="valueDesc">나만의 여행 일정</span>
-            </div>
-          </div>
-          <div className="valueDivider" />
-          <div className="valueIndicatorItem">
-            <div className="valueIconCircle blue">🕒</div>
-            <div className="valueTextGroup">
-              <strong className="valueTitle">몇 초 만에 완성</strong>
-              <span className="valueDesc">빠르고 간편하게</span>
-            </div>
-          </div>
-        </div>
-      </section>
+        </section>
 
       <section className="plannerGridSection">
         <div className="heroSelectCard">
@@ -313,7 +317,7 @@ export default function InteractiveMapIntro() {
             disabled={!selectedCountry || !selectedCityName}
             onClick={goPlanner}
           >
-            ✨ 여행 일정 만들기
+            ✦ 여행 일정 만들기
           </button>
         </div>
 

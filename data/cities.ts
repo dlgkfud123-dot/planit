@@ -21,3 +21,5 @@ for(const city of cities){
   if(verifiedImage) city.image=verifiedImage;
 }
 export const cityByName=Object.fromEntries(cities.map(city=>[city.name,city]));
+export const supportedCityIds=cities.map(city=>city.name);
+
