@@ -1417,7 +1417,7 @@ html, body {
   }
 }
 
-/* Leaflet Map Tile Seam & Border Removal Fix */
+/* Leaflet Map Seamless Background Matching & Tile Seam Removal */
 .leaflet-tile,
 .leaflet-tile-container img,
 .leaflet-container img.leaflet-tile {
@@ -1428,21 +1428,17 @@ html, body {
   padding: 0 !important;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
 }
 
-/* 1px overlap expansion to eliminate subpixel seam gaps */
-.leaflet-container .leaflet-tile {
-  width: 257px !important;
-  height: 257px !important;
-}
-
-/* Eliminate transform scale & filters on tile panes */
-.realPlannerMap .leaflet-tile-pane,
-.travelMap .leaflet-tile-pane,
+/* Match container background to map ocean color (#d8e0e8) so subpixel tile rendering gaps blend invisibly */
+.heroRightMap,
+.travelMap,
+.leaflet-container,
 .leaflet-tile-pane,
-.leaflet-container {
+.leaflet-tile-container,
+.plannerMapColumn,
+.realPlannerMap {
+  background-color: #d8e0e8 !important;
   filter: none !important;
 }
 
