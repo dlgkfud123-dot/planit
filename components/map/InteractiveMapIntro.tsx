@@ -207,21 +207,21 @@ export default function InteractiveMapIntro() {
             <div className="valueIndicatorItem">
               <div className="valueTextGroup">
                 <strong className="valueTitle">{countryCount}+ 국가</strong>
-                <span className="valueDesc">전 세계 엄선된 여행지</span>
+                <span className="valueDesc">전 세계 여행지</span>
               </div>
             </div>
             <div className="valueDivider" />
             <div className="valueIndicatorItem">
               <div className="valueTextGroup">
                 <strong className="valueTitle">AI 맞춤 설계</strong>
-                <span className="valueDesc">동선 최적화 일정</span>
+                <span className="valueDesc">취향 기반 일정 생성</span>
               </div>
             </div>
             <div className="valueDivider" />
             <div className="valueIndicatorItem">
               <div className="valueTextGroup">
                 <strong className="valueTitle">실시간 자동 구성</strong>
-                <span className="valueDesc">수정 및 저장 가능</span>
+                <span className="valueDesc">자유로운 일정 편집</span>
               </div>
             </div>
           </div>
