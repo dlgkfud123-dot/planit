@@ -730,45 +730,89 @@ html, body {
 
   /* Planner Header & Nav */
   .workspaceHeader {
-    height: 60px;
-    padding: 0 14px;
+    height: 48px !important;
+    padding: 0 10px !important;
   }
+  .workspaceHeader > div {
+    gap: 4px !important;
+  }
+  .workspaceHeader > div a,
+  .workspaceHeader > div button {
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    font-size: 11px !important;
+    padding: 4px 7px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    line-height: 20px !important;
+    border-radius: 8px !important;
+    flex-shrink: 0 !important;
+  }
+
   .mobilePlannerNav {
     position: sticky;
-    top: 60px;
+    top: 48px;
     z-index: 900;
-    height: 44px;
-    padding: 4px;
+    height: 40px;
+    padding: 3px;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     background: #e9f0f4;
     border-bottom: 1px solid #dce5eb;
   }
   .mobilePlannerNav button {
-    height: 36px;
-    min-height: 36px;
-    border-radius: 8px;
-    font-size: 12px;
+    height: 34px;
+    min-height: 34px;
+    border-radius: 7px;
+    font-size: 11.5px;
     font-weight: 700;
   }
 
-  /* Service Actions Scrollable Bar */
+  /* Service Actions & Status Badge Layout */
   .serviceActions {
-    display: flex!important;
-    gap: 6px!important;
-    overflow-x: auto!important;
-    padding: 2px 2px 8px!important;
-    -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x proximity;
-    justify-content: flex-start!important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+    margin: 6px 0 10px !important;
   }
-  .serviceActions button, .serviceActions a {
-    white-space: nowrap!important;
-    min-height: 42px!important;
-    padding: 8px 12px!important;
-    font-size: 12px!important;
-    scroll-snap-align: start!important;
-    flex-shrink: 0!important;
+
+  .saveIndicator {
+    font-size: 11px !important;
+    padding: 3px 8px !important;
+    border-radius: 10px !important;
+    background: #eef7ee !important;
+    color: #2b7a36 !important;
+    font-weight: 600 !important;
+    display: inline-block !important;
+  }
+
+  .actionButtonsGroup {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    padding: 2px 2px 6px !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .actionButtonsGroup::-webkit-scrollbar {
+    display: none;
+  }
+
+  .actionButtonsGroup button,
+  .actionButtonsGroup a {
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    min-height: 34px !important;
+    height: 34px !important;
+    padding: 6px 11px !important;
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+    flex-shrink: 0 !important;
+    border-radius: 9px !important;
   }
 
   /* Timeline List Cards */
