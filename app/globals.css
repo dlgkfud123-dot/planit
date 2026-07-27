@@ -78,46 +78,46 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 32px;
+  gap: 36px;
   padding: 0 12px;
+  margin-top: 4px;
 }
 .valueIndicatorItem {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  text-align: left;
-}
-.valueIconCircle {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 15px;
-  flex-shrink: 0;
-  background: #f8fafc;
-  color: #316bff;
-  border: 1px solid #e2e8f0;
+  justify-content: center;
+  text-align: center;
+  min-width: 130px;
 }
 .valueTextGroup {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 .valueTitle {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 750;
   color: #0f172a;
-  line-height: 1.25;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+  text-align: center;
 }
 .valueDesc {
-  font-size: 11.5px;
+  font-size: 12px;
   color: #64748b;
-  margin-top: 2px;
+  margin-top: 4px;
+  line-height: 1.4;
+  font-weight: 450;
+  text-align: center;
+  word-break: keep-all;
 }
 .valueDivider {
   width: 1px;
-  height: 24px;
+  height: 28px;
   background: #e2e8f0;
+  flex-shrink: 0;
 }
 
 /* Main Planner Grid */
@@ -338,8 +338,12 @@
 .headerContainer{padding:0}
 .heroHeaderSection{margin:14px auto 20px;padding:0 16px}
 .heroTitle{font-size:30px;letter-spacing:-1.2px}
-.heroValueIndicators{flex-wrap:wrap;gap:16px 20px}
-.valueDivider{display:none}
+.heroValueIndicators{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:center!important;gap:12px 16px!important;width:100%!important}
+.valueIndicatorItem{flex:1 1 0px!important;min-width:0!important;align-items:center!important;text-align:center!important}
+.valueTextGroup{align-items:center!important;text-align:center!important}
+.valueTitle{font-size:13.5px!important;text-align:center!important}
+.valueDesc{font-size:10.5px!important;text-align:center!important}
+.valueDivider{display:block!important;height:24px!important;background:#e2e8f0!important;flex-shrink:0!important}
 .plannerGridSection{grid-template-columns:1fr;padding:0;gap:20px}
 .heroRightMap{height:380px}
 .landingFooter{margin:28px auto 20px}
@@ -676,21 +680,20 @@ html, body {
     margin-bottom: 12px;
   }
   .heroValueIndicators {
-    gap: 10px 14px;
+    gap: 8px 12px !important;
+    justify-content: center !important;
   }
   .valueIndicatorItem {
-    gap: 8px;
-  }
-  .valueIconCircle {
-    width: 34px;
-    height: 34px;
-    font-size: 14px;
+    align-items: center !important;
+    text-align: center !important;
   }
   .valueTitle {
-    font-size: 12.5px;
+    font-size: 12.5px !important;
+    text-align: center !important;
   }
   .valueDesc {
-    font-size: 10px;
+    font-size: 10px !important;
+    text-align: center !important;
   }
 
   /* Dropdown option styling for touch */
