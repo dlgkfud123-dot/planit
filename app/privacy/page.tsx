@@ -43,10 +43,9 @@ export default function PrivacyPage() {
             {/* Card 1: 수집 항목 */}
             <div className="policyCard">
               <div className="policyCardHeader">
-                <span className="policyIcon">📋</span>
                 <div>
+                  <span className="policyTag">Required &amp; Optional Data</span>
                   <h3>1. 수집하는 개인정보 항목</h3>
-                  <span className="policyTag">Required & Optional Data</span>
                 </div>
               </div>
               <p className="policyDesc">
@@ -64,10 +63,9 @@ export default function PrivacyPage() {
             {/* Card 2: 이용 목적 */}
             <div className="policyCard">
               <div className="policyCardHeader">
-                <span className="policyIcon">🎯</span>
                 <div>
-                  <h3>2. 개인정보 이용 목적</h3>
                   <span className="policyTag">Purpose of Use</span>
+                  <h3>2. 개인정보 이용 목적</h3>
                 </div>
               </div>
               <p className="policyDesc">
@@ -83,10 +81,9 @@ export default function PrivacyPage() {
             {/* Card 3: 데이터 저장 및 보안 */}
             <div className="policyCard">
               <div className="policyCardHeader">
-                <span className="policyIcon">🔒</span>
                 <div>
+                  <span className="policyTag">Infrastructure &amp; Security</span>
                   <h3>3. 데이터 저장 및 보안 관리</h3>
-                  <span className="policyTag">Infrastructure & Security</span>
                 </div>
               </div>
               <p className="policyDesc">
@@ -102,10 +99,9 @@ export default function PrivacyPage() {
             {/* Card 4: 제3자 제공 및 판매 금지 */}
             <div className="policyCard">
               <div className="policyCardHeader">
-                <span className="policyIcon">🛡️</span>
                 <div>
+                  <span className="policyTag">Third-Party &amp; Sale Prohibition</span>
                   <h3>4. 개인정보의 제3자 제공 및 판매 금지</h3>
-                  <span className="policyTag">Third-Party & Sale Prohibition</span>
                 </div>
               </div>
               <p className="policyDesc">
@@ -129,7 +125,7 @@ export default function PrivacyPage() {
                 개인정보 처리방침에 관한 질문이나 데이터 삭제 요청은 아래 문의 채널로 연락주시면 즉시 조치해드립니다.
               </p>
               <div className="contactEmailPill">
-                ✉️ <strong>문의 이메일:</strong> privacy@planit.app / support@planit.app
+                <strong>문의 이메일:</strong> privacy@planit.app / support@planit.app
               </div>
             </div>
           </div>

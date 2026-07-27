@@ -43,10 +43,9 @@ export default function TermsPage() {
             {/* Card 1: 서비스 목적 */}
             <div className="policyCard">
               <div className="policyCardHeader">
-                <span className="policyIcon">📌</span>
                 <div>
-                  <h3>1. 서비스의 목적 및 개요</h3>
                   <span className="policyTag">Service Purpose</span>
+                  <h3>1. 서비스의 목적 및 개요</h3>
                 </div>
               </div>
               <p className="policyDesc">
@@ -58,10 +57,9 @@ export default function TermsPage() {
             {/* Card 2: 사용자 책임 */}
             <div className="policyCard">
               <div className="policyCardHeader">
-                <span className="policyIcon">👤</span>
                 <div>
-                  <h3>2. 사용자의 의무 및 책임</h3>
                   <span className="policyTag">User Responsibilities</span>
+                  <h3>2. 사용자의 의무 및 책임</h3>
                 </div>
               </div>
               <p className="policyDesc">
@@ -73,10 +71,9 @@ export default function TermsPage() {
             {/* Card 3: 여행 정보 참고용 안내 */}
             <div className="policyCard">
               <div className="policyCardHeader">
-                <span className="policyIcon">⚠️</span>
                 <div>
-                  <h3>3. 여행 정보의 참고용 성격 고지</h3>
                   <span className="policyTag">Information Disclaimer</span>
+                  <h3>3. 여행 정보의 참고용 성격 고지</h3>
                 </div>
               </div>
               <p className="policyDesc">
@@ -92,10 +89,9 @@ export default function TermsPage() {
             {/* Card 4: 예약 서비스 미제공 */}
             <div className="policyCard">
               <div className="policyCardHeader">
-                <span className="policyIcon">🎫</span>
                 <div>
-                  <h3>4. 결제 및 예약 서비스 미제공</h3>
                   <span className="policyTag">No Booking Services</span>
+                  <h3>4. 결제 및 예약 서비스 미제공</h3>
                 </div>
               </div>
               <p className="policyDesc">
@@ -110,10 +106,9 @@ export default function TermsPage() {
             {/* Card 5: 서비스 변경 및 중단 */}
             <div className="policyCard">
               <div className="policyCardHeader">
-                <span className="policyIcon">⚡</span>
                 <div>
-                  <h3>5. 서비스의 변경 및 업데이트</h3>
                   <span className="policyTag">Service Updates</span>
+                  <h3>5. 서비스의 변경 및 업데이트</h3>
                 </div>
               </div>
               <p className="policyDesc">
@@ -133,7 +128,7 @@ export default function TermsPage() {
                 본 이용약관에 대해 문의 사항이나 개선 의견이 있으신 경우 언제든 고객지원 팀으로 연락주시기 바랍니다.
               </p>
               <div className="contactEmailPill">
-                ✉️ <strong>문의 이메일:</strong> support@planit.app
+                <strong>문의 이메일:</strong> support@planit.app
               </div>
             </div>
           </div>

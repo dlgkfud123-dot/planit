@@ -2489,16 +2489,12 @@ html, body {
 
 .policyCardHeader {
   display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.policyIcon {
-  font-size: 32px;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .policyCardHeader h3 {
-  margin: 0;
+  margin: 4px 0 0;
   font-size: 19px;
   font-weight: 800;
   color: #0f172a;
