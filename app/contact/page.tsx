@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import AccountActions from "../../components/auth/AccountActions";
+import Footer from "../../components/layout/Footer";
 
 export default function ContactPage() {
   const [selectedCategory, setSelectedCategory] = useState("bug");
@@ -212,6 +213,8 @@ export default function ContactPage() {
           </div>
         </section>
       </div>
+
+      <Footer />
     </main>
   );
 }

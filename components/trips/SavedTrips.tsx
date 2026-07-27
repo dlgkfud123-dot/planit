@@ -6,6 +6,7 @@ import { readDraft, readSavedTrips, type TripSnapshot } from "../../utils/tripSt
 import { useTripPersistence } from "../planner/useTripPersistence";
 import { useAuth } from "../auth/AuthProvider";
 import AccountActions from "../auth/AccountActions";
+import Footer from "../layout/Footer";
 import { cityByName } from "../../data/cities";
 
 function formatTimeAgo(dateString: string) {
@@ -339,6 +340,8 @@ export default function SavedTrips() {
           )}
         </section>
       </div>
+
+      <Footer />
     </main>
   );
 }

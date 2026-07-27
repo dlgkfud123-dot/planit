@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import Footer from "../layout/Footer";
 import dynamic from "next/dynamic";
 import { cities, supportedCityIds, type TravelCity } from "../../data/cities";
 
@@ -338,16 +339,7 @@ export default function InteractiveMapIntro() {
       </section>
       </div>
 
-      <footer className="landingFooter">
-        <div className="footerLinks">
-          <Link href="/about">이용약관</Link>
-          <Link href="/privacy">개인정보처리방침</Link>
-          <Link href="/contact">고객센터</Link>
-        </div>
-        <div className="footerCopyright">
-          © 2026 PLANIT. All rights reserved.
-        </div>
-      </footer>
+      <Footer />
     </main>
   );
 }

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import AccountActions from "../../components/auth/AccountActions";
+import Footer from "../../components/layout/Footer";
 
 export default function AboutPage() {
   return (
@@ -178,6 +179,8 @@ export default function AboutPage() {
           </div>
         </section>
       </div>
+
+      <Footer />
     </main>
   );
 }

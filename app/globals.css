@@ -2068,4 +2068,284 @@ html, body {
   }
 }
 
+/* Global Shared Footer Component */
+.globalFooter {
+  width: 100%;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  padding: 64px 32px 48px;
+  margin-top: auto;
+}
+
+.footerContainer {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  gap: 48px;
+}
+
+.footerBrandCol {
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.footerLogo {
+  font-size: 22px;
+  font-weight: 900;
+  color: #0f172a;
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+
+.footerLogo i {
+  font-style: normal;
+  color: #316bff;
+  margin-left: 2px;
+}
+
+.footerTagline {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.footerCopyright {
+  margin-top: 12px;
+  font-size: 12.5px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.footerNavGrid {
+  display: flex;
+  gap: 64px;
+}
+
+.footerNavCol {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.footerNavCol strong {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.footerNavCol a {
+  font-size: 13.5px;
+  color: #475569;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footerNavCol a:hover {
+  color: #316bff;
+}
+
+/* Privacy & Terms Policy Styling */
+.privacyWrapper, .termsWrapper {
+  min-height: 100vh;
+  min-height: 100svh;
+  background: #f8fafc;
+  color: #0f172a;
+  display: flex;
+  flex-direction: column;
+}
+
+.privacyHeaderContainer, .termsHeaderContainer {
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.privacyNav, .termsNav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.privacyNav a, .termsNav a {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  color: #475569;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.privacyNav a:hover, .termsNav a:hover {
+  color: #316bff;
+  border-color: #316bff;
+}
+
+.privacyContent, .termsContent {
+  flex: 1 1 auto;
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 40px 32px 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.privacyHero, .termsHero {
+  text-align: center;
+  max-width: 840px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.privacyHeroTitle, .termsHeroTitle {
+  margin: 12px 0 16px;
+  font-size: clamp(32px, 4vw, 44px);
+  font-weight: 850;
+  line-height: 1.25;
+  color: #0f172a;
+  letter-spacing: -0.025em;
+}
+
+.privacyHeroSubtitle, .termsHeroSubtitle {
+  margin: 0;
+  font-size: 15.5px;
+  color: #475569;
+  line-height: 1.65;
+  font-weight: 450;
+  word-break: keep-all;
+}
+
+.lastUpdated {
+  margin-top: 14px;
+  font-size: 12.5px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.policyGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.policyCard {
+  padding: 32px 36px;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.policyCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.policyIcon {
+  font-size: 32px;
+}
+
+.policyCardHeader h3 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.policyTag {
+  font-size: 11px;
+  font-weight: 750;
+  color: #316bff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.policyDesc {
+  margin: 0;
+  font-size: 14.5px;
+  color: #334155;
+  line-height: 1.65;
+}
+
+.policyList {
+  margin: 4px 0 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.privacyContactSection {
+  margin-top: 12px;
+}
+
+.privacyContactBox {
+  padding: 32px 36px;
+  border-radius: 20px;
+  background: #f0f6ff;
+  border: 1px solid #c7d9ff;
+}
+
+.contactBoxContent h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #1e3a8a;
+}
+
+.contactBoxContent p {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: #3b82f6;
+  line-height: 1.6;
+}
+
+.contactEmailPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .footerContainer {
+    flex-direction: column;
+    gap: 36px;
+  }
+  .footerNavGrid {
+    flex-direction: column;
+    gap: 28px;
+  }
+}
+
 
