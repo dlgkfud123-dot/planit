@@ -131,6 +131,7 @@ export default function PlannerMap({ stops, allDays, activeDay, activeIndex, onS
       );
       L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { subdomains: "abcd" }).addTo(map);
       mapRef.current = map;
+      map.invalidateSize({ pan: false });
       setMapReady(true);
       observer = new ResizeObserver((entries) => {
         const size = entries[0]?.contentRect;

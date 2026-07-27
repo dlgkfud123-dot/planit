@@ -106,6 +106,7 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
 
       L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { subdomains: "abcd" }).addTo(map);
       mapRef.current = map;
+      map.invalidateSize();
       setMapReady(true);
     });
     return () => {
