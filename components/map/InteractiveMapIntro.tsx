@@ -10,6 +10,10 @@ const MapCanvas = dynamic(() => import("./MapCanvas"), {
   loading: () => <div className="travelMap" style={{ width: "100%", height: "100%", background: "#f8fafc", borderRadius: "20px" }} />
 });
 
+const BrandOpeningIntro = dynamic(() => import("../intro/BrandOpeningIntro"), {
+  ssr: false,
+});
+
 export { cities } from "../../data/cities";
 
 const supportedCityNames = new Set(supportedCityIds);
@@ -51,6 +55,20 @@ const continentGroups: { continent: string; countries: string[] }[] = [
 ];
 
 export default function InteractiveMapIntro() {
+  const [showIntro, setShowIntro] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const navEntries = performance.getEntriesByType("navigation");
+    const isReload = navEntries.length > 0 && (navEntries[0] as PerformanceNavigationTiming).type === "reload";
+    const hasSeenSession = sessionStorage.getItem("planit_intro_seen_session");
+
+    if (!hasSeenSession || isReload) {
+      sessionStorage.setItem("planit_intro_seen_session", "true");
+      setShowIntro(true);
+    }
+  }, []);
+
   const [selectedCountry, setSelectedCountry] = useState<string>("");
   const [selectedCityName, setSelectedCityName] = useState<string>("");
 
@@ -155,6 +173,9 @@ export default function InteractiveMapIntro() {
 
   return (
     <main className="landingWrapper">
+      {showIntro && (
+        <BrandOpeningIntro onComplete={() => setShowIntro(false)} />
+      )}
       <header className="mapHeader">
         <div className="headerContainer">
           <Link href="/" className="mapBrand" aria-label="PLANIT 홈">
