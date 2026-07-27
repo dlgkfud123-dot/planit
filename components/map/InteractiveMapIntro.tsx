@@ -205,7 +205,6 @@ export default function InteractiveMapIntro() {
 
           <div className="heroValueIndicators">
             <div className="valueIndicatorItem">
-              <div className="valueIconCircle">🌐</div>
               <div className="valueTextGroup">
                 <strong className="valueTitle">{countryCount}+ 국가</strong>
                 <span className="valueDesc">전 세계 엄선된 여행지</span>
@@ -213,7 +212,6 @@ export default function InteractiveMapIntro() {
             </div>
             <div className="valueDivider" />
             <div className="valueIndicatorItem">
-              <div className="valueIconCircle">✦</div>
               <div className="valueTextGroup">
                 <strong className="valueTitle">AI 맞춤 설계</strong>
                 <span className="valueDesc">동선 최적화 일정</span>
@@ -221,7 +219,6 @@ export default function InteractiveMapIntro() {
             </div>
             <div className="valueDivider" />
             <div className="valueIndicatorItem">
-              <div className="valueIconCircle">⚡</div>
               <div className="valueTextGroup">
                 <strong className="valueTitle">실시간 자동 구성</strong>
                 <span className="valueDesc">수정 및 저장 가능</span>
@@ -246,9 +243,6 @@ export default function InteractiveMapIntro() {
                   setIsCountryOpen((prev) => !prev);
                 }}
               >
-                <span className="selectIcon">
-                  {selectedCountry ? countryFlags[selectedCountry] || "🌐" : "🌍"}
-                </span>
                 <span className="selectValue">
                   {selectedCountry ? selectedCountry : "여행할 국가를 선택하세요"}
                 </span>
@@ -274,7 +268,6 @@ export default function InteractiveMapIntro() {
                             className={`countryOption ${selectedCountry === country ? "selected" : ""}`}
                             onClick={() => handleCountryChange(country)}
                           >
-                            <span className="countryFlag">{countryFlags[country] || "🌐"}</span>
                             <span className="countryName">{country}</span>
                           </button>
                         ))}
