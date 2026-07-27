@@ -116,14 +116,16 @@ export default function SavedTrips() {
   return (
     <main className="servicePage myJourneysWrapper">
       <header className="serviceHeader myJourneysHeader">
-        <Link href="/" className="workspaceBrand">
-          PLANIT <i>✦</i>
-        </Link>
-        <nav>
-          <Link href="/">새 여행</Link>
-          <Link href="/about">서비스 소개</Link>
-          <AccountActions />
-        </nav>
+        <div className="myJourneysHeaderContainer">
+          <Link href="/" className="workspaceBrand">
+            PLANIT <i>✦</i>
+          </Link>
+          <nav className="myJourneysNav">
+            <Link href="/">새 여행</Link>
+            <Link href="/about">서비스 소개</Link>
+            <AccountActions />
+          </nav>
+        </div>
       </header>
 
       <div className="myJourneysContent">
