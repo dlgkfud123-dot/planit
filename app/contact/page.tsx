@@ -14,10 +14,10 @@ export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
 
   const categories = [
-    { id: "bug", icon: "🐛", title: "버그 제보", desc: "오류나 화면 렌더링 문제" },
-    { id: "feature", icon: "💡", title: "기능 제안", desc: "추가되었으면 하는 서비스 아이디어" },
-    { id: "partnership", icon: "🤝", title: "제휴 및 협력", desc: "장소 데이터 및 비즈니스 문의" },
-    { id: "general", icon: "💬", title: "일반 문의", desc: "기타 서비스 이용 관련 질문" },
+    { id: "bug", title: "버그 제보", desc: "오류나 화면 렌더링 문제" },
+    { id: "feature", title: "기능 제안", desc: "추가되었으면 하는 서비스 아이디어" },
+    { id: "partnership", title: "제휴 및 협력", desc: "장소 데이터 및 비즈니스 문의" },
+    { id: "general", title: "일반 문의", desc: "기타 서비스 이용 관련 질문" },
   ];
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -49,9 +49,7 @@ export default function ContactPage() {
       <div className="contactContent">
         {/* Hero */}
         <section className="contactHero">
-          <div className="heroBadge">
-            <span>✦</span> HELP & SUPPORT
-          </div>
+          <div className="heroBadge">HELP &amp; SUPPORT</div>
           <h1 className="contactHeroTitle">무엇을 도와드릴까요?</h1>
           <p className="contactHeroSubtitle">
             PLANIT 서비스 이용 중 궁금한 점이 있거나 개선 의견이 있으시다면
@@ -69,7 +67,6 @@ export default function ContactPage() {
                 className={`categoryCard ${selectedCategory === cat.id ? "active" : ""}`}
                 onClick={() => setSelectedCategory(cat.id)}
               >
-                <span className="categoryIcon">{cat.icon}</span>
                 <strong className="categoryTitle">{cat.title}</strong>
                 <span className="categoryDesc">{cat.desc}</span>
               </button>
@@ -89,11 +86,10 @@ export default function ContactPage() {
 
               {submitted ? (
                 <div className="demoSuccessBox">
-                  <span className="successIcon">🎉</span>
-                  <h4>소중한 의견이 등록되었습니다!</h4>
+                  <h4>소중한 의견이 등록되었습니다</h4>
                   <p>
                     (데모 안내: 현재 실제 이메일 전송 서버가 연결되어 있지 않은 데모 환경입니다.
-                    소중한 feedback은 감사히 반영하겠습니다.)
+                    소중한 피드백은 감사히 반영하겠습니다.)
                   </p>
                   <button
                     type="button"
@@ -153,7 +149,7 @@ export default function ContactPage() {
                   </label>
 
                   <div className="demoNoticePill">
-                    ℹ️ 실제 전송 서버 미연결 데모 안내문구가 접수 후 표시됩니다.
+                    실제 전송 서버 미연결 데모 안내문구가 접수 후 표시됩니다.
                   </div>
 
                   <button type="submit" className="submitContactButton">
@@ -163,16 +159,15 @@ export default function ContactPage() {
               )}
             </div>
 
-            {/* Right: Direct Channels */}
+            {/* Right: 4 Direct Channels */}
             <div className="channelCard">
               <h3>공식 연락 채널</h3>
               <p className="channelDesc">
-                급한 기술 문의나 오픈소스 프로젝트 관련 사항은 아래 채널을 이용하실 수 있습니다.
+                서비스 이용 및 기능 문의는 아래 공식 채널을 이용하실 수 있습니다.
               </p>
 
               <div className="channelList">
                 <div className="channelItem">
-                  <span className="channelIcon">✉️</span>
                   <div>
                     <strong>공식 이메일</strong>
                     <span>support@planit.app</span>
@@ -180,30 +175,29 @@ export default function ContactPage() {
                 </div>
 
                 <div className="channelItem">
-                  <span className="channelIcon">🐙</span>
                   <div>
-                    <strong>GitHub Repository</strong>
-                    <a
-                      href="https://github.com/dlgkfud123-dot/planit"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      github.com/dlgkfud123-dot/planit
-                    </a>
+                    <strong>평균 답변 시간</strong>
+                    <span>24~48시간</span>
                   </div>
                 </div>
 
                 <div className="channelItem">
-                  <span className="channelIcon">🕒</span>
                   <div>
                     <strong>운영 시간</strong>
                     <span>평일 10:00 ~ 18:00 (KST)</span>
                   </div>
                 </div>
+
+                <div className="channelItem">
+                  <div>
+                    <strong>자주 묻는 질문</strong>
+                    <span>FAQ &amp; 가이드 센터</span>
+                  </div>
+                </div>
               </div>
 
               <div className="faqBox">
-                <strong>💡 자주 묻는 질문</strong>
+                <strong>현지 정보 확인 안내</strong>
                 <p>
                   운영시간, 입장권 예약 등 현지 장소 정보는 각 장소의 공식 웹사이트를 통해
                   최신 정보를 확인하시는 것을 권장합니다.

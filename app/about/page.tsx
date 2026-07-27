@@ -28,9 +28,7 @@ export default function AboutPage() {
       <div className="aboutContent">
         {/* 1. Hero Section */}
         <section className="aboutHero">
-          <div className="heroBadge">
-            <span>✦</span> INTELLIGENT TRAVEL ARCHITECTURE
-          </div>
+          <div className="heroBadge">INTELLIGENT TRAVEL ARCHITECTURE</div>
           <h1 className="aboutHeroTitle">
             여행의 시작을 가장 가볍고 <br className="desktopOnlyBreak" />
             스마트하게 설계합니다
@@ -45,7 +43,7 @@ export default function AboutPage() {
         <section className="aboutBrandSection">
           <div className="brandGrid">
             <div className="brandCard">
-              <span className="brandCardIcon">🚀</span>
+              <span className="cardCategoryTag">PHILOSOPHY</span>
               <h3>초안은 AI가, 완성은 당신이</h3>
               <p>
                 복잡한 블로그 탐색과 지도 핑퐁 없이, AI가 목적지에 맞는 검증된 동선과
@@ -53,7 +51,7 @@ export default function AboutPage() {
               </p>
             </div>
             <div className="brandCard">
-              <span className="brandCardIcon">🗺️</span>
+              <span className="cardCategoryTag">ENGINE</span>
               <h3>실제 이동 경로에 기반한 최적화</h3>
               <p>
                 단순 직선 거리가 아닌 도보, 대중교통, 차량 이동 시간을 계산하여 무리 없는
@@ -71,7 +69,7 @@ export default function AboutPage() {
           </div>
           <div className="featuresGrid">
             <div className="featureCardItem">
-              <div className="featureIcon">📍</div>
+              <span className="featureNum">01</span>
               <h4>2,500+ 엄선 장소 큐레이션</h4>
               <p>
                 전 세계 주요 25개국 100여 개 도시의 대표 명소, 맛집, 카페, 숙소 정보를
@@ -79,7 +77,7 @@ export default function AboutPage() {
               </p>
             </div>
             <div className="featureCardItem">
-              <div className="featureIcon">🛣️</div>
+              <span className="featureNum">02</span>
               <h4>실시간 도로 경로 계산</h4>
               <p>
                 OpenRouteService API를 연동하여 실제 도로 네트워크 기반의 이동 경로와
@@ -87,7 +85,7 @@ export default function AboutPage() {
               </p>
             </div>
             <div className="featureCardItem">
-              <div className="featureIcon">✏️</div>
+              <span className="featureNum">03</span>
               <h4>자유로운 드래그 앤 드롭 편집</h4>
               <p>
                 DAY 순서 변경, 장소 추가 및 삭제, 시간 조정까지 직관적인 UI로 손쉽게
@@ -95,7 +93,7 @@ export default function AboutPage() {
               </p>
             </div>
             <div className="featureCardItem">
-              <div className="featureIcon">☁️</div>
+              <span className="featureNum">04</span>
               <h4>모든 기기 클라우드 자동 동기화</h4>
               <p>
                 Supabase 데이터베이스 연동으로 PC에서 계획한 일정을 스마트폰과 태블릿에서
@@ -115,7 +113,7 @@ export default function AboutPage() {
             <div className="workflowStep">
               <div className="stepNumber">01</div>
               <div className="stepContent">
-                <h4>목적지 & 여행 조건 선택</h4>
+                <h4>목적지 &amp; 여행 조건 선택</h4>
                 <p>여행할 국가와 도시, 시작일/종료일, 예산, 동행자 및 여행 스타일을 선택합니다.</p>
               </div>
             </div>
@@ -123,7 +121,7 @@ export default function AboutPage() {
             <div className="workflowStep">
               <div className="stepNumber">02</div>
               <div className="stepContent">
-                <h4>AI 동선 배치 & 경로 산출</h4>
+                <h4>AI 동선 배치 &amp; 경로 산출</h4>
                 <p>위도/경도 기반 장소 핑 및 OpenRouteService 알고리즘으로 동선을 최적화합니다.</p>
               </div>
             </div>
@@ -139,7 +137,7 @@ export default function AboutPage() {
             <div className="workflowStep">
               <div className="stepNumber">04</div>
               <div className="stepContent">
-                <h4>나만의 커스텀 다듬기 & 클라우드 저장</h4>
+                <h4>나만의 커스텀 다듬기 &amp; 클라우드 저장</h4>
                 <p>필요한 장소를 자유롭게 편집한 후 내 여행 보관함에 저장하거나 공유합니다.</p>
               </div>
             </div>

@@ -1828,8 +1828,18 @@ html, body {
   font-size: 32px;
 }
 
+.cardCategoryTag {
+  font-size: 11px;
+  font-weight: 800;
+  color: #316bff;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  display: inline-block;
+}
+
 .brandCard h3 {
-  margin: 0;
+  margin: 0 0 8px;
   font-size: 20px;
   font-weight: 750;
   color: #0f172a;
@@ -1878,7 +1888,7 @@ html, body {
   box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
@@ -1887,14 +1897,12 @@ html, body {
   border-color: #316bff;
 }
 
-.featureIcon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: #edf4fe;
-  display: grid;
-  place-items: center;
-  font-size: 22px;
+.featureNum {
+  font-size: 13px;
+  font-weight: 800;
+  color: #316bff;
+  letter-spacing: 1px;
+  margin-bottom: 2px;
 }
 
 .featureCardItem h4 {
@@ -2234,21 +2242,22 @@ html, body {
 .channelItem {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 16px;
+  padding: 16px 20px;
   border-radius: 14px;
   background: #f8fafc;
-  border: 1px solid #f1f5f9;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
 }
 
-.channelIcon {
-  font-size: 24px;
+.channelItem:hover {
+  border-color: #cbd5e1;
+  background: #ffffff;
 }
 
 .channelItem div {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .channelItem strong {
