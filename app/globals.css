@@ -2316,33 +2316,37 @@ html, body {
   }
 }
 
-/* Minimal Ultra-Thin Apple-Style Shared Footer */
+/* Minimal Seamless Inline Legal Footer */
 .globalFooter {
   width: 100%;
-  background: #ffffff;
-  border-top: 1px solid #e2e8f0;
-  padding: 16px 32px;
+  background: transparent !important;
+  border-top: none !important;
+  padding: 16px 20px 24px;
   margin-top: auto;
 }
 
 .landingWrapper .globalFooter {
-  margin-top: 24px;
-  padding: 16px 32px;
+  margin-top: 12px;
+  padding: 10px 20px 20px;
 }
 
 .footerContainer {
   max-width: 1280px;
   margin: 0 auto;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
-  gap: 24px;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
 }
 
 .footerLinks {
   display: flex;
   align-items: center;
-  gap: 24px;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
 .footerLinks a {
@@ -2357,10 +2361,16 @@ html, body {
   color: #316bff;
 }
 
+.footerDot {
+  font-size: 12px;
+  color: #cbd5e1;
+  user-select: none;
+}
+
 .footerCopyright {
   font-size: 11.5px;
   color: #94a3b8;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 /* Privacy & Terms Policy Styling */
