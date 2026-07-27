@@ -1463,4 +1463,609 @@ html, body {
   filter: none !important;
 }
 
+/* About & Contact Brand Pages Styles */
+.aboutWrapper, .contactWrapper {
+  min-height: 100vh;
+  min-height: 100svh;
+  background: #f8fafc;
+  color: #0f172a;
+  display: flex;
+  flex-direction: column;
+}
+
+.aboutHeaderContainer, .contactHeaderContainer {
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.aboutNav, .contactNav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.aboutNav a, .contactNav a {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  color: #475569;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.aboutNav a:hover, .contactNav a:hover {
+  color: #316bff;
+  border-color: #316bff;
+}
+
+.aboutNav a.active, .contactNav a.active {
+  background: #eef4ff;
+  color: #316bff;
+  border-color: #c7d9ff;
+  font-weight: 700;
+}
+
+.aboutContent, .contactContent {
+  flex: 1 1 auto;
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 40px 32px 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 52px;
+}
+
+/* Hero Section */
+.aboutHero, .contactHero {
+  text-align: center;
+  max-width: 840px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.aboutHeroTitle, .contactHeroTitle {
+  margin: 12px 0 16px;
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 850;
+  line-height: 1.25;
+  color: #0f172a;
+  letter-spacing: -0.025em;
+}
+
+.aboutHeroSubtitle, .contactHeroSubtitle {
+  margin: 0;
+  font-size: 16px;
+  color: #475569;
+  line-height: 1.6;
+  font-weight: 450;
+  word-break: keep-all;
+}
+
+/* Brand Grid */
+.brandGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.brandCard {
+  padding: 36px 32px;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.brandCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06);
+}
+
+.brandCardIcon {
+  font-size: 32px;
+}
+
+.brandCard h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 750;
+  color: #0f172a;
+}
+
+.brandCard p {
+  margin: 0;
+  font-size: 14.5px;
+  color: #475569;
+  line-height: 1.65;
+}
+
+/* Section Header */
+.sectionHeader {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.sectionTag {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #316bff;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+}
+
+.sectionHeader h2 {
+  margin: 8px 0 0;
+  font-size: 28px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+/* Features Grid */
+.featuresGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.featureCardItem {
+  padding: 28px 24px;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.featureCardItem:hover {
+  transform: translateY(-2px);
+  border-color: #316bff;
+}
+
+.featureIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #edf4fe;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+}
+
+.featureCardItem h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 750;
+  color: #0f172a;
+}
+
+.featureCardItem p {
+  margin: 0;
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+/* Workflow Steps */
+.workflowSteps {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.workflowStep {
+  flex: 1;
+  padding: 28px 24px;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stepNumber {
+  font-size: 24px;
+  font-weight: 900;
+  color: #316bff;
+}
+
+.stepContent h4 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 750;
+  color: #0f172a;
+}
+
+.stepContent p {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.55;
+}
+
+.workflowArrow {
+  font-size: 20px;
+  color: #cbd5e1;
+  font-weight: 700;
+}
+
+/* Stats Section */
+.aboutStatsSection {
+  padding: 36px;
+  border-radius: 24px;
+  background: linear-gradient(110deg, #edf4fe 0%, #ffffff 100%);
+  border: 1px solid #d4e4fc;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  text-align: center;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.statNumber {
+  font-size: 40px;
+  font-weight: 900;
+  color: #316bff;
+  letter-spacing: -0.03em;
+}
+
+.statLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
+}
+
+/* CTA Box */
+.aboutCtaSection {
+  text-align: center;
+}
+
+.ctaBox {
+  padding: 48px 36px;
+  border-radius: 24px;
+  background: #0f172a;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.ctaBox h2 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.ctaBox p {
+  margin: 0 0 12px;
+  font-size: 15px;
+  color: #94a3b8;
+}
+
+.ctaButton {
+  padding: 14px 28px;
+  border-radius: 14px;
+  background: #316bff;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 6px 20px rgba(49, 107, 255, 0.3);
+}
+
+.ctaButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(49, 107, 255, 0.4);
+}
+
+/* Contact Category Cards */
+.categoryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.categoryCard {
+  padding: 24px 20px;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.categoryCard:hover {
+  border-color: #316bff;
+  transform: translateY(-2px);
+}
+
+.categoryCard.active {
+  background: #eef4ff;
+  border-color: #316bff;
+  box-shadow: 0 4px 16px rgba(49, 107, 255, 0.12);
+}
+
+.categoryIcon {
+  font-size: 28px;
+}
+
+.categoryTitle {
+  font-size: 16px;
+  font-weight: 750;
+  color: #0f172a;
+}
+
+.categoryDesc {
+  font-size: 12.5px;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+/* Contact Grid & Form */
+.contactGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+.formCard, .channelCard {
+  padding: 36px 32px;
+  border-radius: 24px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03);
+}
+
+.formCard h3, .channelCard h3 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.formSubtitle {
+  margin: 6px 0 24px;
+  font-size: 13.5px;
+  color: #64748b;
+}
+
+.contactForm {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.contactForm label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.contactForm input, .contactForm textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  font-size: 14px;
+  color: #0f172a;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.contactForm input:focus, .contactForm textarea:focus {
+  border-color: #316bff;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(49, 107, 255, 0.12);
+}
+
+.demoNoticePill {
+  font-size: 12.5px;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 10px 14px;
+  border-radius: 10px;
+  line-height: 1.45;
+}
+
+.submitContactButton {
+  height: 48px;
+  border: none;
+  border-radius: 12px;
+  background: #316bff;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(49, 107, 255, 0.22);
+}
+
+.submitContactButton:hover {
+  background: #2558e6;
+  box-shadow: 0 6px 20px rgba(49, 107, 255, 0.35);
+}
+
+.demoSuccessBox {
+  padding: 32px 24px;
+  text-align: center;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.successIcon {
+  font-size: 36px;
+}
+
+.demoSuccessBox h4 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #166534;
+}
+
+.demoSuccessBox p {
+  margin: 0;
+  font-size: 13.5px;
+  color: #15803d;
+  line-height: 1.55;
+}
+
+.resetFormButton {
+  margin-top: 12px;
+  padding: 8px 16px;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #166534;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.channelDesc {
+  margin: 6px 0 24px;
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.55;
+}
+
+.channelList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.channelItem {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+}
+
+.channelIcon {
+  font-size: 24px;
+}
+
+.channelItem div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.channelItem strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.channelItem span, .channelItem a {
+  font-size: 13px;
+  color: #316bff;
+  word-break: break-all;
+  text-decoration: none;
+}
+
+.channelItem a:hover {
+  text-decoration: underline;
+}
+
+.faqBox {
+  margin-top: 24px;
+  padding: 18px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.faqBox strong {
+  font-size: 13px;
+  font-weight: 750;
+  color: #0f172a;
+}
+
+.faqBox p {
+  margin: 0;
+  font-size: 12.5px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+@media (max-width: 1024px) {
+  .featuresGrid, .categoriesGrid, .categoryGrid, .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .workflowSteps {
+    flex-direction: column;
+  }
+  .workflowArrow {
+    transform: rotate(90deg);
+  }
+  .contactGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .brandGrid, .featuresGrid, .categoryGrid, .statsGrid {
+    grid-template-columns: 1fr;
+  }
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+}
+
 
