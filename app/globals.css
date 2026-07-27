@@ -2316,18 +2316,18 @@ html, body {
   }
 }
 
-/* Global Shared Footer Component */
+/* Minimal Ultra-Thin Apple-Style Shared Footer */
 .globalFooter {
   width: 100%;
   background: #ffffff;
   border-top: 1px solid #e2e8f0;
-  padding: 48px 32px 40px;
+  padding: 16px 32px;
   margin-top: auto;
 }
 
 .landingWrapper .globalFooter {
-  margin-top: 48px;
-  padding: 40px 32px 40px;
+  margin-top: 24px;
+  padding: 16px 32px;
 }
 
 .footerContainer {
@@ -2335,73 +2335,32 @@ html, body {
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
-  gap: 48px;
+  align-items: center;
+  gap: 24px;
 }
 
-.footerBrandCol {
-  max-width: 340px;
+.footerLinks {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  gap: 24px;
 }
 
-.footerLogo {
-  font-size: 22px;
-  font-weight: 900;
-  color: #0f172a;
-  text-decoration: none;
-  letter-spacing: -0.02em;
-}
-
-.footerLogo i {
-  font-style: normal;
-  color: #316bff;
-  margin-left: 2px;
-}
-
-.footerTagline {
-  margin: 0;
-  font-size: 14px;
-  color: #64748b;
-  line-height: 1.6;
-}
-
-.footerCopyright {
-  margin-top: 12px;
+.footerLinks a {
   font-size: 12.5px;
-  color: #94a3b8;
   font-weight: 500;
-}
-
-.footerNavGrid {
-  display: flex;
-  gap: 64px;
-}
-
-.footerNavCol {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.footerNavCol strong {
-  font-size: 13px;
-  font-weight: 800;
-  color: #0f172a;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  margin-bottom: 4px;
-}
-
-.footerNavCol a {
-  font-size: 13.5px;
-  color: #475569;
+  color: #64748b;
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
-.footerNavCol a:hover {
+.footerLinks a:hover {
   color: #316bff;
+}
+
+.footerCopyright {
+  font-size: 11.5px;
+  color: #94a3b8;
+  font-weight: 500;
 }
 
 /* Privacy & Terms Policy Styling */
