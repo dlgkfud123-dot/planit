@@ -108,6 +108,9 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
       L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { subdomains: "abcd" }).addTo(map);
       mapRef.current = map;
       map.invalidateSize();
+      setTimeout(() => { map?.invalidateSize(); }, 100);
+      setTimeout(() => { map?.invalidateSize(); }, 300);
+      setTimeout(() => { map?.invalidateSize(); }, 600);
       setMapReady(true);
     });
     return () => {
@@ -263,5 +266,12 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
     return () => { cancelled = true; };
   }, [selected, showRoute, mapReady]);
 
-  return <div ref={containerRef} className="travelMap" aria-label="국가와 도시를 탐색하는 인터랙티브 세계지도" />;
+  return (
+    <div
+      ref={containerRef}
+      className="travelMap"
+      style={{ width: "100%", height: "100%", minHeight: "520px", display: "block", position: "relative", zIndex: 1 }}
+      aria-label="국가와 도시를 탐색하는 인터랙티브 세계지도"
+    />
+  );
 }
