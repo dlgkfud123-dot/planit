@@ -6,6 +6,9 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import {generateItinerary,refreshDay,type GeneratedDay,type GeneratedStop} from "../../utils/itineraryGenerator";
 import {fetchWeatherData,type WeatherDataResponse} from "../../utils/weatherService";
+import {calculateDayCostSummary,formatCurrency,formatKrwReference,EXCHANGE_REFERENCE_DATE} from "../../utils/costEngine";
+import {validateStopOpening} from "../../utils/openingHoursValidator";
+import {findSmartCandidates,replaceSingleStop,type SmartCandidate} from "../../utils/smartReplaceEngine";
 import {supportedCityIds} from "../../data/cities";
 import {placesByCity,type Place} from "../../data/places";
 
@@ -77,6 +80,16 @@ export default function PlannerApp(){
   const commitEdit=(next:GeneratedDay[],notice:string)=>{const beforeIds=plan.flatMap(day=>day.stops.map(stop=>`${day.label}:${stop.placeId}`)).join("|"),afterIds=next.flatMap(day=>day.stops.map(stop=>`${day.label}:${stop.placeId}`)).join("|");if(beforeIds===afterIds)return false;historyRef.current=[...historyRef.current.slice(-19),clonePlan(plan)];setHistoryDepth(historyRef.current.length);setPlan(next);setEditNotice(notice);return true};
   const undoEdit=()=>{const previous=historyRef.current.pop();if(!previous)return;setPlan(previous);setHistoryDepth(historyRef.current.length);setActiveDay(day=>Math.min(day,Math.max(0,previous.length-1)));setActiveStop(0);setEditNotice("직전 편집을 실행 취소했습니다.")};
   const [weatherResult, setWeatherResult] = useState<WeatherDataResponse | null>(null);
+  const [showCostDetails, setShowCostDetails] = useState(false);
+  const [smartReplaceStopId, setSmartReplaceStopId] = useState<string | null>(null);
+  const dayCostSummary = useMemo(() => current ? calculateDayCostSummary(current.stops, people, destination) : null, [current, people, destination]);
+  const executeSmartReplace = (stopIndex: number, newPlace: Place) => {
+    const next = replaceSingleStop(plan, activeDay, stopIndex, newPlace, destination, pace);
+    if (commitEdit(next, `${newPlace.name}(으)로 장소를 교체하고 동선과 경비를 재계산했습니다.`)) {
+      setSmartReplaceStopId(null);
+      setOpenStopMenu(null);
+    }
+  };
   const generationTimers=useRef<number[]>([]);
   const generate=(e:FormEvent)=>{e.preventDefault();generationTimers.current.forEach(window.clearTimeout);generationTimers.current=[];setGenerationError("");setStatus("loading");setLoadingStep(0);const weatherPromise=fetchWeatherData(destination,start,end);[1,2,3,4].forEach(step=>generationTimers.current.push(window.setTimeout(()=>setLoadingStep(step),step*450)));generationTimers.current.push(window.setTimeout(async()=>{generationTimers.current=[];const weatherRes=await weatherPromise;setWeatherResult(weatherRes);const next=generateItinerary({destination,start,days:nights+1,style:interest,foodPreference:food,pace,wishList:wish,weatherData:weatherRes});if(!next.length){setStatus("unsupported");setGenerationError(`${destination}의 검증된 장소 데이터가 아직 준비되지 않았습니다.`);setMobileTab("schedule");return}historyRef.current=[];setHistoryDepth(0);setPlan(next);setActiveDay(0);setActiveStop(0);setStatus("complete");setMobileTab("schedule");setEditNotice(`${destination} 여행 일정이 완성되었습니다.`)},2300))};
   const updateStop=(index:number,field:"name"|"time",value:string)=>setPlan(old=>old.map((d,di)=>di===activeDay?{...d,stops:d.stops.map((s,si)=>si===index?{...s,[field]:value}:s)}:d));
@@ -116,10 +129,127 @@ export default function PlannerApp(){
         {status==="unsupported"&&<div className="plannerUnsupported"><span>장소 데이터 준비 중</span><h2>{destination} 일정은 아직 만들 수 없어요.</h2><p>{generationError}<br/>가짜 장소를 만들지 않고, 실제 장소가 준비된 도시만 안내하고 있습니다.</p><strong>현재 일정 생성 가능 도시</strong><div>{supportedCityIds.map(city=><button key={city} onClick={()=>{setDestination(city);setStatus("empty");setGenerationError("")}}>{city}</button>)}</div></div>}
         {status==="loading"&&<div className="plannerLoading"><div className="aiPulse">✦</div><h2>{loadingStep>=4?"여행 계획이 준비되었습니다.":"EYRIA가 여행을 설계하고 있습니다..."}</h2><div className="plannerLoadingStepList">{["여행 스타일 분석","이동 동선 최적화","운영시간 확인","최적 일정 생성"].map((s,i)=>{const done=i<loadingStep,active=i===loadingStep;return <div key={s} className={`plannerLoadingStepItem ${done?"done":active?"active":"pending"}`}><span className="stepSymbol">{done?"✓":"○"}</span><span>{s}</span></div>})}</div></div>}
         {status==="complete"&&current&&<><div className="planHeader"><div><span>YOUR TRIP TO</span><h2>{destination}, {nights+1}일의 여행</h2><p>{start} — {end} · {people}명 · {tempo} · {interest}</p></div><button onClick={()=>setStatus("empty")}>조건 다시 보기</button></div>{weatherResult?.hasRain&&<div className="weatherBanner">✦ 비 예보를 반영해 실내 장소를 우선 배치했습니다.</div>}{!weatherResult?.hasRain&&weatherResult?.hasClear&&<div className="weatherBanner">✦ 맑은 날씨를 고려해 야외 일정을 중심으로 구성했습니다.</div>}<div className="serviceActions"><span className={`saveIndicator ${saveStatus}`}>{saveStatus==="saving"?"저장 중…":saveStatus==="saved"?"✓ 자동 저장됨":"자동 저장 준비"}</span><div className="actionButtonsGroup"><button onClick={()=>void saveCurrentTrip()}>{source==="shared"?"내 일정으로 저장":"일정 저장"}</button><button onClick={shareCurrentTrip}>링크 공유</button><button onClick={()=>window.print()}>PDF로 저장</button><button onClick={exportCalendar}>캘린더 내보내기</button>{current.stops[activeStop]&&<Link href={`/place?id=${encodeURIComponent(current.stops[activeStop].placeId)}`}>선택 장소 상세</Link>}</div></div>
-          <div className="planMetrics"><span><small>방문 장소</small><strong>{totals.stops}곳</strong></span><span><small>예상 이동거리</small><strong>{totals.distance} km</strong></span><span><small>예상 체류시간</small><strong>{Math.floor(totals.duration/60)}시간 {totals.duration%60}분</strong></span><span><small>예상 현지 지출 (추정)</small><strong>{Math.round(totals.cost/10000)}만원</strong></span><span><small>예상 예산 잔여</small><strong>{Math.max(0,budget-Math.round(totals.cost/10000))}만원</strong></span></div>
+          <div className="planMetrics">
+            <span><small>방문 장소</small><strong>{totals.stops}곳</strong></span>
+            <span><small>예상 이동거리</small><strong>{totals.distance} km</strong></span>
+            <span><small>예상 체류시간</small><strong>{Math.floor(totals.duration/60)}시간 {totals.duration%60}분</strong></span>
+            <span>
+              <small>DAY {activeDay+1} 1인당 경비 ({dayCostSummary?.currencySymbol})</small>
+              <strong>{dayCostSummary ? formatCurrency(dayCostSummary.perPersonLocal, dayCostSummary.localCurrency) : `${Math.round(totals.cost/10000)}만원`}</strong>
+              {dayCostSummary && dayCostSummary.localCurrency !== "KRW" && (
+                <small className="krwRefText">({formatKrwReference(dayCostSummary.perPersonKrw)})</small>
+              )}
+            </span>
+            <span>
+              <small>{people}인 총 예상 경비 ({dayCostSummary?.currencySymbol})</small>
+              <strong>{dayCostSummary ? formatCurrency(dayCostSummary.totalGroupLocal, dayCostSummary.localCurrency) : `${Math.max(0,budget-Math.round(totals.cost/10000))}만원`}</strong>
+              {dayCostSummary && dayCostSummary.localCurrency !== "KRW" && (
+                <small className="krwRefText">({formatKrwReference(dayCostSummary.totalGroupKrw)})</small>
+              )}
+            </span>
+            <button type="button" className="toggleCostDetailsBtn" onClick={() => setShowCostDetails(v => !v)}>
+              {showCostDetails ? "비용 세부 닫기 ▲" : "비용 세부보기 ▾"}
+            </button>
+          </div>
+
+          {showCostDetails && dayCostSummary && (
+            <div className="costCategoryDetailsTray">
+              <div className="costCategoryHeader">
+                <strong>DAY {activeDay+1} 항목별 예상 비용 ({people}인 기준)</strong>
+                <span>확인 가능한 항목 기준 ({EXCHANGE_REFERENCE_DATE})</span>
+              </div>
+              <div className="costCategoryGrid">
+                {dayCostSummary.categories.map(cat => (
+                  <div key={cat.key} className="costCategoryItem">
+                    <span className="catLabel">{cat.label}</span>
+                    <strong className="catAmount">{formatCurrency(cat.localAmount * people, dayCostSummary.localCurrency)}</strong>
+                    {dayCostSummary.localCurrency !== "KRW" && (
+                      <small className="catKrw">({formatKrwReference(cat.krwAmount * people)})</small>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <p className="estimateDisclaimer">운영시간·비용·이동 정보는 {informationReferenceDate} 기준 정적 데이터에 따른 추정값이며, 현지 사정에 따라 달라질 수 있습니다.</p>
           <div className="quickStyleBar"><strong>현재 일정을 가볍게 보완</strong>{quickStyles.map(style=><button key={style.key} onClick={()=>applyQuickStyle(style.key,style.label)}>{style.label}</button>)}<button className="undoButton" disabled={!historyDepth} onClick={undoEdit}>↶ 실행 취소{historyDepth>1?` (${historyDepth})`:""}</button></div>
-          <div className="planMain"><div className="timelineColumn"><div className="dayScroller">{plan.map((d,i)=><button className={i===activeDay?"active":""} onClick={()=>{setActiveDay(i);setActiveStop(0);setEditingStop(null);setOpenStopMenu(null)}} onDragOver={event=>event.preventDefault()} onDrop={event=>{event.preventDefault();const source=dragRef.current,sourceIndex=source?plan[source.day]?.stops.findIndex(stop=>stop.placeId===source.placeId):-1;if(source&&sourceIndex>=0)moveStop(source.day,sourceIndex,i,d.stops.length);dragRef.current=null}} key={d.label}>{d.label}<small>{d.date}</small></button>)}</div><div className="dayIntro"><div><h3>{current.theme}</h3><p>{current.stops.length}개 실제 장소 · 손잡이를 끌어 순서를 바꿔보세요</p></div><button onClick={()=>setAddOpen(open=>!open)}>＋ 장소 검색</button></div>{addOpen&&<div className="placeFinder"><input autoFocus value={placeQuery} onChange={event=>setPlaceQuery(event.target.value)} placeholder={`${destination}의 장소 또는 태그 검색`}/><div>{availablePlaces.slice(0,6).map(place=><button key={place.id} onClick={()=>addPlace(place)}><strong>{place.name}</strong><span>{place.description}</span></button>)}{availablePlaces.length===0&&<p>검색 결과가 없거나 이미 일정에 포함된 장소입니다.</p>}</div></div>}<ol className="timelineList">{current.stops.map((stop,i)=><li className={`${i===activeStop?"active":""} ${editingStop===stop.id?"editing":""}`} onClick={()=>setActiveStop(i)} onMouseEnter={()=>setActiveStop(i)} onDragOver={event=>event.preventDefault()} onDrop={event=>handleDrop(event,activeDay,i)} key={stop.id}><span className="dragHandle" draggable onDragStart={()=>{dragRef.current={day:activeDay,placeId:stop.placeId}}} onDragEnd={()=>{dragRef.current=null}} aria-label={`${stop.name} 순서 이동`} title="드래그해 순서 변경">⠿</span><div className="stopTimeCard">{editingStop===stop.id?<input className="stopTime" value={stop.time} onChange={e=>updateStop(i,"time",e.target.value)} aria-label={`${stop.name} 시간 수정`}/>:<strong>{stop.time}</strong>}<small>{stop.recommendedTime==="morning"?"오전":stop.recommendedTime==="evening"?"저녁":"오후"}</small></div><i>{i+1}</i><div className="stopCardBody">{editingStop===stop.id?<input className="stopName stopEditInput" value={stop.name} onChange={e=>updateStop(i,"name",e.target.value)} aria-label="장소명 수정"/>:<div className="stopTitleRow"><strong>{stop.name}</strong><span>{categoryNames[stop.category]}</span></div>}<p className="stopMeta">{stop.transportFromPrevious&&`${stop.transportFromPrevious} ${stop.travelMinutes}분 · `}{stop.duration} · 약 {stop.cost.toLocaleString()}원{stop.userAdded?" · 직접 추가":""}</p><em className="recommendationReason">✦ {recommendationReason(stop,interest,food)}</em>{editingStop===stop.id&&<button type="button" className="finishEditButton" onClick={event=>{event.stopPropagation();setEditingStop(null)}}>편집 완료</button>}<span className="touchReorder"><button disabled={i===0} onClick={event=>{event.stopPropagation();moveWithinDay(i,-1)}} aria-label={`${stop.name} 위로 이동`}>↑</button><button disabled={i===current.stops.length-1} onClick={event=>{event.stopPropagation();moveWithinDay(i,1)}} aria-label={`${stop.name} 아래로 이동`}>↓</button></span></div><div className="stopMenuWrap"><button type="button" className="stopMenuButton" aria-label={`${stop.name} 일정 메뉴`} aria-expanded={openStopMenu===stop.id} onClick={event=>{event.stopPropagation();setOpenStopMenu(openStopMenu===stop.id?null:stop.id)}}>•••</button>{openStopMenu===stop.id&&<div className="stopActionMenu" onClick={event=>event.stopPropagation()}><button type="button" onClick={()=>{setEditingStop(stop.id);setOpenStopMenu(null)}}>✎ 장소 편집</button><label>↪ 다른 DAY<select value="" onChange={event=>{if(event.target.value==="")return;const target=Number(event.target.value);if(Number.isInteger(target))moveStop(activeDay,i,target,plan[target].stops.length);setOpenStopMenu(null)}} aria-label={`${stop.name} 다른 날짜로 이동`}><option value="">선택</option>{plan.map((day,dayIndex)=>dayIndex!==activeDay&&<option value={dayIndex} key={day.label}>{day.label}</option>)}</select></label><button type="button" className="danger" onClick={()=>{removeStop(i);setOpenStopMenu(null)}}>× 일정에서 삭제</button></div>}</div></li>)}{current.stops.length>0&&<li className="timelineDropEnd" onDragOver={event=>event.preventDefault()} onDrop={event=>{event.preventDefault();const source=dragRef.current,sourceIndex=source?plan[source.day]?.stops.findIndex(stop=>stop.placeId===source.placeId):-1;if(source&&sourceIndex>=0)moveStop(source.day,sourceIndex,activeDay,current.stops.length);dragRef.current=null}}>맨 아래로 이동</li>}</ol>{current.stops.length===0&&<div className="emptyDay"><strong>이 DAY는 비어 있습니다.</strong><span>장소 검색으로 추가하거나 다른 DAY에서 장소를 옮겨보세요.</span></div>}</div><div className="plannerMapColumn"><PlannerMap stops={current.stops} allDays={plan} activeDay={activeDay} activeIndex={activeStop} onSelect={setActiveStop}/></div></div>
+          <div className="planMain"><div className="timelineColumn"><div className="dayScroller">{plan.map((d,i)=><button className={i===activeDay?"active":""} onClick={()=>{setActiveDay(i);setActiveStop(0);setEditingStop(null);setOpenStopMenu(null)}} onDragOver={event=>event.preventDefault()} onDrop={event=>{event.preventDefault();const source=dragRef.current,sourceIndex=source?plan[source.day]?.stops.findIndex(stop=>stop.placeId===source.placeId):-1;if(source&&sourceIndex>=0)moveStop(source.day,sourceIndex,i,d.stops.length);dragRef.current=null}} key={d.label}>{d.label}<small>{d.date}</small></button>)}</div><div className="dayIntro"><div><h3>{current.theme}</h3><p>{current.stops.length}개 실제 장소 · 손잡이를 끌어 순서를 바꿔보세요</p></div><button onClick={()=>setAddOpen(open=>!open)}>＋ 장소 검색</button></div>{addOpen&&<div className="placeFinder"><input autoFocus value={placeQuery} onChange={event=>setPlaceQuery(event.target.value)} placeholder={`${destination}의 장소 또는 태그 검색`}/><div>{availablePlaces.slice(0,6).map(place=><button key={place.id} onClick={()=>addPlace(place)}><strong>{place.name}</strong><span>{place.description}</span></button>)}{availablePlaces.length===0&&<p>검색 결과가 없거나 이미 일정에 포함된 장소입니다.</p>}</div></div>}
+          <ol className="timelineList">{current.stops.map((stop,i)=>{
+            const validation = validateStopOpening(stop, current.date, current.stops, i);
+            const candidates = smartReplaceStopId === stop.id ? findSmartCandidates(stop, plan, destination, { destination, start, days: nights + 1, style: interest, foodPreference: food, pace, wishList: wish, weatherData: weatherResult }, weatherResult?.daily?.[activeDay]) : [];
+            return <li className={`${i===activeStop?"active":""} ${editingStop===stop.id?"editing":""}`} onClick={()=>setActiveStop(i)} onMouseEnter={()=>setActiveStop(i)} onDragOver={event=>event.preventDefault()} onDrop={event=>handleDrop(event,activeDay,i)} key={stop.id}>
+              <span className="dragHandle" draggable onDragStart={()=>{dragRef.current={day:activeDay,placeId:stop.placeId}}} onDragEnd={()=>{dragRef.current=null}} aria-label={`${stop.name} 순서 이동`} title="드래그해 순서 변경">⠿</span>
+              <div className="stopTimeCard">{editingStop===stop.id?<input className="stopTime" value={stop.time} onChange={e=>updateStop(i,"time",e.target.value)} aria-label={`${stop.name} 시간 수정`}/>:<strong>{stop.time}</strong>}<small>{stop.recommendedTime==="morning"?"오전":stop.recommendedTime==="evening"?"저녁":"오후"}</small></div>
+              <i>{i+1}</i>
+              <div className="stopCardBody">
+                {editingStop===stop.id?<input className="stopName stopEditInput" value={stop.name} onChange={e=>updateStop(i,"name",e.target.value)} aria-label="장소명 수정"/>:<div className="stopTitleRow"><strong>{stop.name}</strong><span>{categoryNames[stop.category]}</span></div>}
+                <p className="stopMeta">{stop.transportFromPrevious&&`${stop.transportFromPrevious} ${stop.travelMinutes}분 · `}{stop.duration} · 약 {stop.costBreakdown ? formatCurrency(stop.costBreakdown.localTotalPerPerson, stop.costBreakdown.localCurrency) : `${stop.cost.toLocaleString()}원`}{stop.userAdded?" · 직접 추가":""}</p>
+                <em className="recommendationReason">✦ {recommendationReason(stop,interest,food)}</em>
+
+                {!validation.isValid && (
+                  <div className="openingHoursNotice">
+                    <div className="noticeTitle">정적 운영시간 검증: {validation.message}</div>
+                    <div className="proposalActionGroup">
+                      {validation.proposals.map((prop, pIdx) => (
+                        <button
+                          key={pIdx}
+                          type="button"
+                          className="proposalBtn"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            if (prop.type === "time_adjust") {
+                              updateStop(i, "time", prop.newTime);
+                              setEditNotice(`${prop.newTime}로 시간을 조정했습니다.`);
+                            } else if (prop.type === "reorder") {
+                              moveWithinDay(i, prop.targetIndex > i ? 1 : -1);
+                            } else if (prop.type === "smart_replace") {
+                              setSmartReplaceStopId(smartReplaceStopId === stop.id ? null : stop.id);
+                            }
+                          }}
+                        >
+                          {prop.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {smartReplaceStopId === stop.id && (
+                  <div className="smartReplaceTray" onClick={e=>e.stopPropagation()}>
+                    <div className="smartReplaceHeader">
+                      <strong>✦ {stop.name} 대체 추천 장소</strong>
+                      <button type="button" onClick={()=>setSmartReplaceStopId(null)}>×</button>
+                    </div>
+                    <div className="smartCandidateList">
+                      {candidates.map(cand => (
+                        <div key={cand.place.id} className="smartCandidateCard">
+                          <div>
+                            <strong>{cand.place.name}</strong>
+                            <small>{cand.matchReason} · {cand.place.district}</small>
+                          </div>
+                          <button type="button" onClick={()=>executeSmartReplace(i, cand.place)}>이 장소로 교체</button>
+                        </div>
+                      ))}
+                      {candidates.length === 0 && <p className="noCandidateText">대체할 인접 장소가 없습니다.</p>}
+                    </div>
+                  </div>
+                )}
+
+                {editingStop===stop.id&&<button type="button" className="finishEditButton" onClick={event=>{event.stopPropagation();setEditingStop(null)}}>편집 완료</button>}
+                <span className="touchReorder"><button disabled={i===0} onClick={event=>{event.stopPropagation();moveWithinDay(i,-1)}} aria-label={`${stop.name} 위로 이동`}>↑</button><button disabled={i===current.stops.length-1} onClick={event=>{event.stopPropagation();moveWithinDay(i,1)}} aria-label={`${stop.name} 아래로 이동`}>↓</button></span>
+              </div>
+              <div className="stopMenuWrap">
+                <button type="button" className="stopMenuButton" aria-label={`${stop.name} 일정 메뉴`} aria-expanded={openStopMenu===stop.id} onClick={event=>{event.stopPropagation();setOpenStopMenu(openStopMenu===stop.id?null:stop.id)}}>•••</button>
+                {openStopMenu===stop.id&&<div className="stopActionMenu" onClick={event=>event.stopPropagation()}>
+                  <button type="button" onClick={()=>{setSmartReplaceStopId(stop.id);setOpenStopMenu(null)}}>✦ 다른 장소 추천 (Smart Replace)</button>
+                  <button type="button" onClick={()=>{setEditingStop(stop.id);setOpenStopMenu(null)}}>✎ 장소 편집</button>
+                  <label>↪ 다른 DAY<select value="" onChange={event=>{if(event.target.value==="")return;const target=Number(event.target.value);if(Number.isInteger(target))moveStop(activeDay,i,target,plan[target].stops.length);setOpenStopMenu(null)}} aria-label={`${stop.name} 다른 날짜로 이동`}><option value="">선택</option>{plan.map((day,dayIndex)=>dayIndex!==activeDay&&<option value={dayIndex} key={day.label}>{day.label}</option>)}</select></label>
+                  <button type="button" className="danger" onClick={()=>{removeStop(i);setOpenStopMenu(null)}}>× 일정에서 삭제</button>
+                </div>}
+              </div>
+            </li>;
+          })}{current.stops.length>0&&<li className="timelineDropEnd" onDragOver={event=>event.preventDefault()} onDrop={event=>{event.preventDefault();const source=dragRef.current,sourceIndex=source?plan[source.day]?.stops.findIndex(stop=>stop.placeId===source.placeId):-1;if(source&&sourceIndex>=0)moveStop(source.day,sourceIndex,activeDay,current.stops.length);dragRef.current=null}}>맨 아래로 이동</li>}</ol>{current.stops.length===0&&<div className="emptyDay"><strong>이 DAY는 비어 있습니다.</strong><span>장소 검색으로 추가하거나 다른 DAY에서 장소를 옮겨보세요.</span></div>}</div><div className="plannerMapColumn"><PlannerMap stops={current.stops} allDays={plan} activeDay={activeDay} activeIndex={activeStop} onSelect={setActiveStop}/></div></div>
           {recommendations.length>0&&<div className="aiSuggestions"><strong>✦ 일정에 없는 실제 추천 장소</strong>{recommendations.map(place=><button onClick={()=>addRecommendation(place)} key={place.id}>{place.name}<span>＋ 일정에 추가</span></button>)}</div>}<section className="printItinerary"><h1>EYRIA · {destination} 여행</h1><p>{start} — {end} · {people}명 · {interest}</p>{plan.map(day=><article key={day.label}><h2>{day.label} · {day.date}</h2><h3>{day.theme}</h3>{day.stops.map(stop=><div key={stop.id}><strong>{stop.time}　{stop.name}</strong><span>{stop.duration} · {stop.transportFromPrevious?`${stop.transportFromPrevious} ${stop.travelMinutes}분`:"첫 장소"} · 약 {stop.cost.toLocaleString()}원</span><small>{stop.description}</small></div>)}</article>)}<footer>운영시간·비용·이동 정보는 {informationReferenceDate} 기준 추정값입니다.</footer></section></>}
       </section>
     </div>

@@ -1,10 +1,11 @@
-import {placesByCity,type Place} from "../data/places";
+import {placesByCity,type Place,type PlaceEnvironment} from "../data/places";
 import {paceRules,preferredTimeOrder,stylePriority} from "../data/travelRules";
 import {distanceKm} from "./distance";
 import {chooseTransport,estimatedRouteDistance,transportMinutes,type TransportMode} from "./transport";
 import type {WeatherDataResponse,DayWeatherInfo} from "./weatherService";
+import {calculateStopCost,type StopCostBreakdown} from "./costEngine";
 
-export type GeneratedStop={id:string;placeId:string;name:string;time:string;cost:number;duration:string;lat:number;lng:number;category:Place["category"];recommendedTime?:Place["recommendedTime"];description:string;openingHours:string;tags:string[];isCoreLandmark:boolean;district:string;nearbyTrip:boolean;transportHints:string[];estimateStatus:Place["estimateStatus"];userAdded?:boolean;transportFromPrevious?:TransportMode;distanceFromPrevious?:number;travelMinutes?:number};
+export type GeneratedStop={id:string;placeId:string;name:string;time:string;cost:number;duration:string;lat:number;lng:number;category:Place["category"];environment?:PlaceEnvironment;costBreakdown?:StopCostBreakdown;recommendedTime?:Place["recommendedTime"];description:string;openingHours:string;tags:string[];isCoreLandmark:boolean;district:string;nearbyTrip:boolean;transportHints:string[];estimateStatus:Place["estimateStatus"];userAdded?:boolean;transportFromPrevious?:TransportMode;distanceFromPrevious?:number;travelMinutes?:number};
 export type GeneratedDay={label:string;date:string;theme:string;stops:GeneratedStop[]};
 export type GenerateOptions={destination:string;start:string;days:number;style:string;foodPreference:string;pace:1|2|3;wishList:string;weatherData?:WeatherDataResponse|null};
 
@@ -130,7 +131,8 @@ export function recalculateStops(stops:GeneratedStop[],destination:string,pace:1
     if(previous)minute+=travel;
     if(stop.recommendedTime==="afternoon")minute=Math.max(minute,13*60);
     if(stop.recommendedTime==="evening")minute=Math.max(minute,17*60+30);
-    const next={...stop,time:timeText(minute),transportFromPrevious:transport,distanceFromPrevious:previous?routeDistance:undefined,travelMinutes:previous?travel:undefined};
+    const costBreakdown=calculateStopCost(stop.cost,stop.category,stop.tags,stop.estimateStatus,transport,previous?routeDistance:undefined,destination);
+    const next={...stop,time:timeText(minute),transportFromPrevious:transport,distanceFromPrevious:previous?routeDistance:undefined,travelMinutes:previous?travel:undefined,costBreakdown};
     minute+=Number.parseInt(stop.duration)||90;
     minute+=rule.breakMinutes;
     return next;
@@ -179,7 +181,8 @@ export function generateItinerary(options:GenerateOptions):GeneratedDay[]{
       if(previous)minute+=travel;
       minute=preferredStart(place,minute);
       if(minute+place.recommendedDuration>rule.endHour*60&&stops.length)continue;
-      stops.push({id:`${day}-${place.id}`,placeId:place.id,name:place.name,time:timeText(minute),cost:place.estimatedCost,duration:`${Math.round(place.recommendedDuration/10)*10}분`,lat:place.latitude,lng:place.longitude,category:place.category,recommendedTime:place.recommendedTime,description:place.description,openingHours:place.openingHours,tags:place.tags,isCoreLandmark:place.isCoreLandmark,district:place.district,nearbyTrip:place.nearbyTrip,transportHints:place.transportHints,estimateStatus:place.estimateStatus,transportFromPrevious:transport,distanceFromPrevious:previous?routeDistance:undefined,travelMinutes:previous?travel:undefined});
+      const costBreakdown=calculateStopCost(place.estimatedCost,place.category,place.tags,place.estimateStatus,transport,previous?routeDistance:undefined,options.destination);
+      stops.push({id:`${day}-${place.id}`,placeId:place.id,name:place.name,time:timeText(minute),cost:place.estimatedCost,duration:`${Math.round(place.recommendedDuration/10)*10}분`,lat:place.latitude,lng:place.longitude,category:place.category,environment:place.environment,costBreakdown,recommendedTime:place.recommendedTime,description:place.description,openingHours:place.openingHours,tags:place.tags,isCoreLandmark:place.isCoreLandmark,district:place.district,nearbyTrip:place.nearbyTrip,transportHints:place.transportHints,estimateStatus:place.estimateStatus,transportFromPrevious:transport,distanceFromPrevious:previous?routeDistance:undefined,travelMinutes:previous?travel:undefined});
       minute+=place.recommendedDuration+rule.breakMinutes;
       previous=place;
     }
