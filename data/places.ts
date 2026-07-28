@@ -1,6 +1,16 @@
 export type PlaceCategory="landmark"|"culture"|"food"|"market"|"nature"|"shopping";
 export type EstimateStatus="estimated"|"free"|"variable";
-export type Place={id:string;cityId:string;name:string;category:PlaceCategory;latitude:number;longitude:number;recommendedDuration:number;recommendedTime:"morning"|"afternoon"|"evening"|"any";estimatedCost:number;description:string;openingHours:string;tags:string[];isCoreLandmark:boolean;district:string;nearbyTrip:boolean;transportHints:string[];estimateStatus:EstimateStatus};
+export type PlaceEnvironment="indoor"|"outdoor"|"mixed";
+
+export type Place={id:string;cityId:string;name:string;category:PlaceCategory;environment:PlaceEnvironment;latitude:number;longitude:number;recommendedDuration:number;recommendedTime:"morning"|"afternoon"|"evening"|"any";estimatedCost:number;description:string;openingHours:string;tags:string[];isCoreLandmark:boolean;district:string;nearbyTrip:boolean;transportHints:string[];estimateStatus:EstimateStatus};
+
+export function defaultEnvironment(category:PlaceCategory,tags:string[]):PlaceEnvironment{
+  if(category==="nature")return "outdoor";
+  if(tags.some(t=>["산책","공원","해변","전망","야경","야타이","유람선","궁궐"].some(w=>t.includes(w))))return "outdoor";
+  if(category==="shopping"||tags.some(t=>["실내","미술관","박물관","쇼핑","쇼핑몰","공연","백화점"].some(w=>t.includes(w))))return "indoor";
+  return "mixed";
+}
+
 const districtOverrides:Record<string,string>={
   "seoul-gyeongbokgung":"종로","seoul-bukchon":"종로","seoul-gwangjang":"종로","seoul-namsan":"명동","seoul-seoulforest":"성수","seoul-mangwon":"홍대","seoul-leeum":"용산","seoul-namdaemun":"명동","seoul-haneul":"홍대","seoul-museum-modern":"종로",
   "fuk-kushida":"하카타","fuk-ohori":"오호리","fuk-castle":"오호리","fuk-yanagibashi":"하카타","fuk-canal":"하카타","fuk-nakasu":"나카스","fuk-dazaifu":"다자이후","fuk-uminonakamichi":"우미노나카미치","fuk-yufuin":"유후인","fuk-rec-coffee":"야쿠인",
@@ -14,7 +24,7 @@ const districtOverrides:Record<string,string>={
 const corePlaceIds=new Set(["seoul-gyeongbokgung","seoul-bukchon","seoul-namsan","fuk-kushida","fuk-ohori","fuk-castle","osa-castle","osa-dotonbori","bkk-palace","bkk-watpho","bkk-watarun"]);
 const nearbyPlaceIds=new Set(["lon-greenwich","syd-manly"]);
 const waterTransportIds=new Set(["syd-manly"]);
-const p=(id:string,cityId:string,name:string,category:PlaceCategory,latitude:number,longitude:number,recommendedDuration:number,recommendedTime:Place["recommendedTime"],estimatedCost:number,description:string,openingHours:string,tags:string[]):Place=>({id,cityId,name,category,latitude,longitude,recommendedDuration,recommendedTime,estimatedCost,description,openingHours,tags,isCoreLandmark:corePlaceIds.has(id)||category==="landmark"||tags.includes("랜드마크"),district:districtOverrides[id]||"도심",nearbyTrip:nearbyPlaceIds.has(id)||tags.includes("근교")||tags.includes("기차"),transportHints:waterTransportIds.has(id)?["보트·수상교통","도보"]:tags.includes("기차")?["기차"]:["대중교통","도보"],estimateStatus:estimatedCost===0?"free":"estimated"});
+const p=(id:string,cityId:string,name:string,category:PlaceCategory,latitude:number,longitude:number,recommendedDuration:number,recommendedTime:Place["recommendedTime"],estimatedCost:number,description:string,openingHours:string,tags:string[],environment?:PlaceEnvironment):Place=>({id,cityId,name,category,environment:environment||defaultEnvironment(category,tags),latitude,longitude,recommendedDuration,recommendedTime,estimatedCost,description,openingHours,tags,isCoreLandmark:corePlaceIds.has(id)||category==="landmark"||tags.includes("랜드마크"),district:districtOverrides[id]||"도심",nearbyTrip:nearbyPlaceIds.has(id)||tags.includes("근교")||tags.includes("기차"),transportHints:waterTransportIds.has(id)?["보트·수상교통","도보"]:tags.includes("기차")?["기차"]:["대중교통","도보"],estimateStatus:estimatedCost===0?"free":"estimated"});
 const basePlaces:Place[]=[
 // 서울
 p("seoul-gyeongbokgung","서울","경복궁","culture",37.5796,126.977,120,"morning",3000,"조선 왕조의 중심 궁궐과 전통 건축을 둘러보는 장소","09:00–18:00 전후 · 계절 변동, 화요일 휴무",["역사","궁궐","사진"]),p("seoul-bukchon","서울","북촌한옥마을","culture",37.5826,126.983,90,"morning",0,"한옥과 골목 풍경이 남아 있는 주거 지역","골목 관람 가능 · 주민 생활 시간 배려",["한옥","산책","골목"]),p("seoul-gwangjang","서울","광장시장","market",37.57,126.999,100,"afternoon",25000,"빈대떡과 육회 등 서울의 시장 음식을 경험하는 전통시장","점포별 운영시간 상이",["시장","미식","로컬"]),p("seoul-namsan","서울","N서울타워·남산","landmark",37.5512,126.9882,120,"evening",26000,"서울 도심을 한눈에 내려다보는 대표 전망 명소","전망대 운영시간 변동 · 방문 전 확인",["전망","야경","랜드마크"]),p("seoul-seoulforest","서울","서울숲","nature",37.5444,127.0374,100,"afternoon",0,"도심 속 숲길과 잔디밭에서 쉬어 가기 좋은 공원","공원 상시 개방 · 일부 시설 시간 제한",["공원","산책","휴식"]),p("seoul-mangwon","서울","망원시장","market",37.556,126.9057,80,"afternoon",20000,"동네 먹거리와 생활 풍경을 함께 만나는 시장","점포별 운영시간 상이",["시장","간식","로컬"]),

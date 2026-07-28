@@ -2,10 +2,11 @@ import {placesByCity,type Place} from "../data/places";
 import {paceRules,preferredTimeOrder,stylePriority} from "../data/travelRules";
 import {distanceKm} from "./distance";
 import {chooseTransport,estimatedRouteDistance,transportMinutes,type TransportMode} from "./transport";
+import type {WeatherDataResponse,DayWeatherInfo} from "./weatherService";
 
 export type GeneratedStop={id:string;placeId:string;name:string;time:string;cost:number;duration:string;lat:number;lng:number;category:Place["category"];recommendedTime?:Place["recommendedTime"];description:string;openingHours:string;tags:string[];isCoreLandmark:boolean;district:string;nearbyTrip:boolean;transportHints:string[];estimateStatus:Place["estimateStatus"];userAdded?:boolean;transportFromPrevious?:TransportMode;distanceFromPrevious?:number;travelMinutes?:number};
 export type GeneratedDay={label:string;date:string;theme:string;stops:GeneratedStop[]};
-export type GenerateOptions={destination:string;start:string;days:number;style:string;foodPreference:string;pace:1|2|3;wishList:string};
+export type GenerateOptions={destination:string;start:string;days:number;style:string;foodPreference:string;pace:1|2|3;wishList:string;weatherData?:WeatherDataResponse|null};
 
 const timeText=(minutes:number)=>`${Math.floor(minutes/60).toString().padStart(2,"0")}:${(minutes%60).toString().padStart(2,"0")}`;
 const wishes=(value:string)=>value.split(",").map(item=>item.trim().toLowerCase()).filter(Boolean);
@@ -28,7 +29,7 @@ function reserveSupplementCandidates(source:Place[],options:GenerateOptions){
   return source.filter(place=>!reserved.has(place.id));
 }
 
-function score(place:Place,options:GenerateOptions){
+function score(place:Place,options:GenerateOptions,dayWeather?:DayWeatherInfo){
   const order=stylePriority[options.style]||stylePriority["자연 · 도시"];
   const categoryIndex=order.indexOf(place.category);
   const styleScore=(order.length-(categoryIndex<0?order.length:categoryIndex))*12;
@@ -37,7 +38,19 @@ function score(place:Place,options:GenerateOptions){
   const healthyScore=options.foodPreference.includes("건강")&&(place.category==="nature"||place.tags.some(tag=>tag.includes("산책")))?10:0;
   const wishScore=matchesWish(place,wishes(options.wishList))?100:0;
   const relaxed=options.pace===1&&(place.category==="nature"||place.tags.some(tag=>tag.includes("카페")||tag.includes("산책")))?16:0;
-  return styleScore+foodScore+healthyScore+wishScore+relaxed;
+  
+  let base = styleScore + foodScore + healthyScore + wishScore + relaxed;
+  if(dayWeather){
+    if(dayWeather.isRain){
+      if(place.environment==="indoor")base+=45;
+      else if(place.environment==="outdoor")base-=50;
+      else if(place.environment==="mixed")base+=15;
+    }else if(dayWeather.isClear){
+      if(place.environment==="outdoor")base+=30;
+      else if(place.environment==="mixed")base+=10;
+    }
+  }
+  return base;
 }
 
 const separatedDistrictGroups:Record<string,string[][]>={
@@ -61,10 +74,10 @@ function districtSeparationPenalty(city:string,a:string,b:string){
   return aGroup>=0&&bGroup>=0&&aGroup!==bGroup?140:0;
 }
 
-function selectDayPlaces(remaining:Place[],count:number,options:GenerateOptions,maxDailyTravelKm:number){
+function selectDayPlaces(remaining:Place[],count:number,options:GenerateOptions,maxDailyTravelKm:number,dayWeather?:DayWeatherInfo){
   if(!remaining.length||count<=0)return [];
   const selected:Place[]=[];
-  const ranked=[...remaining].sort((a,b)=>score(b,options)-score(a,options));
+  const ranked=[...remaining].sort((a,b)=>score(b,options,dayWeather)-score(a,options,dayWeather));
   selected.push(ranked.shift()!);
   let routeDistance=0;
   while(ranked.length&&selected.length<count){
@@ -78,7 +91,7 @@ function selectDayPlaces(remaining:Place[],count:number,options:GenerateOptions,
       const districtPenalty=candidate.district===current.district?-14:selected.some(place=>place.district===candidate.district)?-5:8;
       const separationPenalty=Math.max(...selected.map(place=>districtSeparationPenalty(options.destination,place.district,candidate.district)),0);
       if(separationPenalty>0)return;
-      const value=leg*5+categoryRepeats*9+districtPenalty+separationPenalty+excessPenalty-score(candidate,options)*.08;
+      const value=leg*5+categoryRepeats*9+districtPenalty+separationPenalty+excessPenalty-score(candidate,options,dayWeather)*.08;
       if(value<bestValue){bestValue=value;bestIndex=index}
     });
     if(bestIndex<0)break;
@@ -142,10 +155,11 @@ export function generateItinerary(options:GenerateOptions):GeneratedDay[]{
   const days:GeneratedDay[]=[];
 
   for(let day=0;day<dayCount;day++){
+    const dayWeather=options.weatherData?.daily?.[day];
     const remainingDays=dayCount-day;
     const leisureLimit=isLeisureCity?Math.max(2,rule.placesPerDay-1):rule.placesPerDay;
     const targetCount=Math.min(leisureLimit,Math.ceil(remaining.length/remainingDays));
-    const selected=selectDayPlaces(remaining,targetCount,options,rule.maxDailyTravelKm);
+    const selected=selectDayPlaces(remaining,targetCount,options,rule.maxDailyTravelKm,dayWeather);
     const selectedIds=new Set(selected.map(place=>place.id));
     for(let index=remaining.length-1;index>=0;index--)if(selectedIds.has(remaining[index].id))remaining.splice(index,1);
 
