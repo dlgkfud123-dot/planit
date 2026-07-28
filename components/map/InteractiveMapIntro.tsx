@@ -11,7 +11,7 @@ import { writeDraftById, type TripSnapshot } from "../../utils/tripStorage";
 
 const MapCanvas = dynamic(() => import("./MapCanvas"), {
   ssr: false,
-  loading: () => <div className="travelMap" style={{ width: "100%", height: "100%", background: "#f8fafc", borderRadius: "20px" }} />
+  loading: () => <div className="travelMap" style={{ width: "100%", height: "100%", background: "#f8fafc", borderRadius: "24px" }} />
 });
 
 import BrandOpeningIntro from "../intro/BrandOpeningIntro";
@@ -46,6 +46,16 @@ const continentGroups: { continent: string; countries: string[] }[] = [
     continent: "아프리카",
     countries: ["이집트", "남아프리카공화국"]
   }
+];
+
+const quickCityChips = [
+  { name: "후쿠오카", country: "일본" },
+  { name: "도쿄", country: "일본" },
+  { name: "교토", country: "일본" },
+  { name: "오사카", country: "일본" },
+  { name: "파리", country: "프랑스" },
+  { name: "뉴욕", country: "미국" },
+  { name: "시드니", country: "호주" },
 ];
 
 function checkShouldShowIntro(): boolean {
@@ -168,7 +178,6 @@ export default function InteractiveMapIntro() {
     }
   };
 
-  // Map pin selection handlers (preserving inputs)
   const handleMapCitySelect = (city: TravelCity) => {
     setSelectedCountry(city.country);
     setSelectedCityName(city.name);
@@ -286,196 +295,188 @@ export default function InteractiveMapIntro() {
       )}
 
       <div className="landingMainContent hifiCenterContainer">
+        {/* Sleek Hero Header matching exact Mockup Image typography */}
         <section className="heroHeaderSection centeredHeroHeader">
-          <div className="heroBadge">
-            <span>✦</span> Intelligent Itinerary Builder
-          </div>
-          <h1 className="heroTitle">
-            AI가 설계하는 나만의 완벽한 여행
+          <h1 className="heroTitle hifiHeroTitle">
+            Build Your Perfect Trip with EYRIA
           </h1>
-          <p className="heroSubtitle">
-            국가, 도시, 날짜, 인원, 예산을 한곳에서 바로 입력하여 완벽한 여행 일정을 만드세요.
+          <p className="heroSubtitle hifiHeroSubtitle">
+            Leverage AI to create personalized, unforgettable travel experiences across the globe.
           </p>
         </section>
 
-        {/* Clean Korean Horizontal Floating Search Bar Card */}
+        {/* Ultra Pixel-Perfect Horizontal Search Bar Card matching Mockup Image 100% */}
         <section className="hifiHeroCardWrapper">
-          <div className="hifiHorizontalSearchCard">
-            {/* 1. 여행지 선택 (국가 / 도시) */}
+          <div className="hifiHorizontalSearchCard hifiPillCard">
+            {/* 1. Country/City Field */}
             <div className="hifiSearchCol whereCol">
-              <span className="colLabel">여행지 (국가 / 도시)</span>
-              <div className="destSelectGroup">
-                <div className="customSelectWrapper" ref={countryDropdownRef}>
-                  <button
-                    type="button"
-                    aria-haspopup="listbox"
-                    aria-expanded={isCountryOpen}
-                    className="hifiSelectTrigger"
-                    onClick={() => {
-                      setIsCityOpen(false);
-                      setIsCountryOpen((prev) => !prev);
-                    }}
-                  >
-                    <span>{selectedCountry ? selectedCountry : "국가 선택"}</span>
-                    <i>{isCountryOpen ? "▲" : "▼"}</i>
-                  </button>
-                  {isCountryOpen && (
-                    <div className="customDropdownPanel" role="listbox">
-                      {continentGroups.map((group) => {
-                        const groupCountries = group.countries.filter((c) =>
-                          availableCities.some((ac) => ac.country === c)
-                        );
-                        if (groupCountries.length === 0) return null;
-                        return (
-                          <div key={group.continent} className="continentGroup">
-                            <div className="continentHeader">•• {group.continent}</div>
-                            {groupCountries.map((country) => (
-                              <button
-                                key={country}
-                                type="button"
-                                className={`countryOption ${selectedCountry === country ? "selected" : ""}`}
-                                onClick={() => handleCountryChange(country)}
-                              >
-                                {country}
-                              </button>
-                            ))}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+              <span className="colLabel">Country/City</span>
+              <div className="fieldWithIcon">
+                <span className="inputIcon">📍</span>
+                <div className="destSelectGroup">
+                  <div className="customSelectWrapper" ref={countryDropdownRef}>
+                    <button
+                      type="button"
+                      aria-haspopup="listbox"
+                      aria-expanded={isCountryOpen}
+                      className="hifiPillTrigger"
+                      onClick={() => {
+                        setIsCityOpen(false);
+                        setIsCountryOpen((prev) => !prev);
+                      }}
+                    >
+                      <span>{selectedCountry ? selectedCountry : "Where are you going?"}</span>
+                      <i className="chevronIcon">{isCountryOpen ? "▲" : "▼"}</i>
+                    </button>
+                    {isCountryOpen && (
+                      <div className="customDropdownPanel" role="listbox">
+                        {continentGroups.map((group) => {
+                          const groupCountries = group.countries.filter((c) =>
+                            availableCities.some((ac) => ac.country === c)
+                          );
+                          if (groupCountries.length === 0) return null;
+                          return (
+                            <div key={group.continent} className="continentGroup">
+                              <div className="continentHeader">•• {group.continent}</div>
+                              {groupCountries.map((country) => (
+                                <button
+                                  key={country}
+                                  type="button"
+                                  className={`countryOption ${selectedCountry === country ? "selected" : ""}`}
+                                  onClick={() => handleCountryChange(country)}
+                                >
+                                  {country}
+                                </button>
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
 
-                <div className="customSelectWrapper" ref={cityDropdownRef}>
-                  <button
-                    type="button"
-                    aria-haspopup="listbox"
-                    aria-expanded={isCityOpen}
-                    disabled={!selectedCountry}
-                    className={`hifiSelectTrigger ${!selectedCountry ? "disabled" : ""}`}
-                    onClick={() => {
-                      if (selectedCountry) {
-                        setIsCountryOpen(false);
-                        setIsCityOpen((prev) => !prev);
-                      }
-                    }}
-                  >
-                    <span>
-                      {!selectedCountry ? "도시 선택" : selectedCityName ? selectedCityName : "도시 선택"}
-                    </span>
-                    <i>{isCityOpen ? "▲" : "▼"}</i>
-                  </button>
-                  {isCityOpen && selectedCountry && (
-                    <div className="customDropdownPanel" role="listbox">
-                      {countryCities.map((city) => (
-                        <button
-                          key={city.en}
-                          type="button"
-                          className={`countryOption ${selectedCityName === city.name ? "selected" : ""}`}
-                          onClick={() => handleCityChange(city.name)}
-                        >
-                          {city.name}
-                        </button>
-                      ))}
+                  {selectedCountry && (
+                    <div className="customSelectWrapper" ref={cityDropdownRef}>
+                      <button
+                        type="button"
+                        aria-haspopup="listbox"
+                        aria-expanded={isCityOpen}
+                        className="hifiPillTrigger citySubTrigger"
+                        onClick={() => setIsCityOpen((prev) => !prev)}
+                      >
+                        <span>{selectedCityName ? selectedCityName : "도시 선택"}</span>
+                        <i className="chevronIcon">{isCityOpen ? "▲" : "▼"}</i>
+                      </button>
+                      {isCityOpen && (
+                        <div className="customDropdownPanel" role="listbox">
+                          {countryCities.map((city) => (
+                            <button
+                              key={city.en}
+                              type="button"
+                              className={`countryOption ${selectedCityName === city.name ? "selected" : ""}`}
+                              onClick={() => handleCityChange(city.name)}
+                            >
+                              {city.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="hifiColDivider" />
-
-            {/* 2. 여행 기간 */}
+            {/* 2. Dates Field */}
             <div className="hifiSearchCol whenCol">
-              <span className="colLabel">여행 기간</span>
-              <div className="dateRangeGroup">
-                <input
-                  type="date"
-                  value={start}
-                  onChange={(e) => {
-                    setStart(e.target.value);
-                    if (end && e.target.value > end) setEnd("");
-                  }}
-                  className="hifiInlineInput"
-                />
-                <span className="dateDash">-</span>
-                <input
-                  type="date"
-                  min={start || undefined}
-                  value={end}
-                  onChange={(e) => setEnd(e.target.value)}
-                  className="hifiInlineInput"
-                />
+              <span className="colLabel">Dates</span>
+              <div className="fieldWithIcon">
+                <span className="inputIcon">📅</span>
+                <div className="dateRangeInputsGroup">
+                  <input
+                    type="date"
+                    value={start}
+                    onChange={(e) => {
+                      setStart(e.target.value);
+                      if (end && e.target.value > end) setEnd("");
+                    }}
+                    className="hifiPillInput"
+                  />
+                  <span className="dateDash">-</span>
+                  <input
+                    type="date"
+                    min={start || undefined}
+                    value={end}
+                    onChange={(e) => setEnd(e.target.value)}
+                    className="hifiPillInput"
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="hifiColDivider" />
-
-            {/* 3. 여행 인원 */}
+            {/* 3. People Field */}
             <div className="hifiSearchCol whoCol">
-              <span className="colLabel">여행 인원</span>
-              <div className="counterInlineGroup">
-                <button
-                  type="button"
-                  onClick={() => setPeople((p) => Math.max(1, p - 1))}
-                  className="counterCircleBtn"
-                  disabled={people <= 1}
-                >
-                  -
-                </button>
-                <span className="peopleCountText">{people > 0 ? `${people}명` : "인원 입력"}</span>
-                <button
-                  type="button"
-                  onClick={() => setPeople((p) => (p === 0 ? 1 : p + 1))}
-                  className="counterCircleBtn"
-                >
-                  +
-                </button>
+              <span className="colLabel">People</span>
+              <div className="fieldWithIcon">
+                <span className="inputIcon">👥</span>
+                <div className="counterPillGroup">
+                  <button
+                    type="button"
+                    onClick={() => setPeople((p) => Math.max(1, p - 1))}
+                    className="counterSmallBtn"
+                    disabled={people <= 1}
+                  >
+                    -
+                  </button>
+                  <span className="peopleValText">{people > 0 ? `${people}명` : "인원 선택"}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPeople((p) => (p === 0 ? 1 : p + 1))}
+                    className="counterSmallBtn"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
             </div>
 
-            <div className="hifiColDivider" />
-
-            {/* 4. 여행 예산 */}
+            {/* 4. Budget Field */}
             <div className="hifiSearchCol budgetCol">
-              <span className="colLabel">여행 예산</span>
-              <div className="budgetInputInline">
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  placeholder="예산 입력"
-                  value={budget === 0 ? "" : budget}
-                  onChange={(e) => setBudget(e.target.value ? Math.max(1, +e.target.value) : 0)}
-                  className="hifiInlineInput budgetValInput"
-                />
-                <span className="currencyTag">만원</span>
+              <span className="colLabel">Budget</span>
+              <div className="fieldWithIcon">
+                <span className="inputIcon">💶</span>
+                <div className="budgetPillWrap">
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    placeholder="예산 입력"
+                    value={budget === 0 ? "" : budget}
+                    onChange={(e) => setBudget(e.target.value ? Math.max(1, +e.target.value) : 0)}
+                    className="hifiPillInput budgetPillInput"
+                  />
+                  <span className="kwTag">만원</span>
+                </div>
               </div>
             </div>
 
-            {/* 5. AI 일정 만들기 CTA Button */}
+            {/* 5. Build AI Itinerary ✨ Button */}
             <div className="hifiSearchCol ctaCol">
               <button
                 type="button"
-                className={`hifiPrimaryCtaBtn ${isFormValid ? "active" : "disabled"}`}
+                className={`hifiGradientCtaBtn ${isFormValid ? "active" : "disabled"}`}
                 disabled={!isFormValid || isGenerating}
                 onClick={handleCreateItinerary}
               >
-                ✦ AI 일정 만들기
+                Build AI Itinerary ✨
               </button>
             </div>
           </div>
 
           {generationError && <p className="hifiErrorText">{generationError}</p>}
-        </section>
 
-        {/* 3. Secondary World Map Section (Placed vertically below search card) */}
-        <section className="mainWorldMapSection">
-          <div className="mapSectionHeader">
-            <h2>🗺️ 지도에서 직접 여행지 탐색하기</h2>
-            <p>핀을 클릭하면 상단 입력 카드의 국가와 도시가 자동으로 선택됩니다.</p>
-          </div>
-          <div className="mainMapContainer">
+          {/* Integrated World Map Canvas (Matching Mockup Image Background Layer) */}
+          <div className="hifiIntegratedMapSection">
             <MapCanvas
               cities={availableCities}
               focusedCountry={focusedCountry}
@@ -488,6 +489,23 @@ export default function InteractiveMapIntro() {
               onCityHover={setHoveredCity}
               onMoveComplete={() => {}}
             />
+          </div>
+
+          {/* Quick Destination Chips Row */}
+          <div className="hifiQuickChipsRow">
+            {quickCityChips.map((chip) => (
+              <button
+                key={chip.name}
+                type="button"
+                className={`quickCityChip ${selectedCityName === chip.name ? "active" : ""}`}
+                onClick={() => {
+                  setSelectedCountry(chip.country);
+                  handleCityChange(chip.name);
+                }}
+              >
+                {chip.name} ({chip.country})
+              </button>
+            ))}
           </div>
         </section>
       </div>
