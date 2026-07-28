@@ -62,8 +62,8 @@ export default function PlannerApp(){
         setMobileTab("schedule");
         return;
       }
-      const dest=q.get("destination"),p=q.get("people"),b=q.get("budget"),s=q.get("style");
-      hydrate({destination:dest||"",origin:"",start:"",end:"",people:p?parseInt(p)||0:0,budget:b?parseInt(b)||0:0,wish:"",...(s?{interest:s}:{})});
+      const dest=q.get("destination"),s=q.get("style");
+      hydrate({destination:dest||"",origin:"",start:"",end:"",people:0,budget:0,wish:"",...(s?{interest:s}:{})});
       setStatus("empty");
     },0);
     return()=>{active=false;window.clearTimeout(timer)};

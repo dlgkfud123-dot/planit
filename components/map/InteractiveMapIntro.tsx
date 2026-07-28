@@ -171,10 +171,6 @@ export default function InteractiveMapIntro() {
     if (!selectedCountry || !selectedCityName) return;
     const p = new URLSearchParams({
       destination: selectedCityName,
-      duration: "4박 5일",
-      people: "2명",
-      style: "자연 · 도시",
-      budget: "120만원",
     });
     window.location.href = `/planner?${p}`;
   };
