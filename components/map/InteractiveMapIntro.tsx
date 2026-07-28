@@ -87,7 +87,7 @@ export default function InteractiveMapIntro() {
   const [selectedCountry, setSelectedCountry] = useState<string>("");
   const [selectedCityName, setSelectedCityName] = useState<string>("");
 
-  // Travel Condition Inputs (Unified on Main Page)
+  // Travel Condition Inputs (Always rendered on Main Page to match Hi-Fi Mockup 100%)
   const [start, setStart] = useState<string>("");
   const [end, setEnd] = useState<string>("");
   const [people, setPeople] = useState<number>(0);
@@ -298,12 +298,12 @@ export default function InteractiveMapIntro() {
             AI가 설계하는 나만의 완벽한 여행
           </h1>
           <p className="heroSubtitle">
-            국가, 도시, 날짜, 인원, 예산을 입력하면 최적의 완벽 동선을 일체형으로 생성합니다.
+            국가, 도시, 날짜, 인원, 예산을 한곳에서 바로 입력하여 완벽한 여행 일정을 만드세요.
           </p>
         </section>
 
         <section className="plannerGridSection">
-          {/* Main Unified Input Card */}
+          {/* Main Unified Input Card (Always Visible to match Approved Hi-Fi Mockup 100%) */}
           <div className="heroSelectCard hifiUnifiedCard">
             <div className="cardHeaderLabel">
               <strong>1. 여행지 선택</strong>
@@ -406,89 +406,87 @@ export default function InteractiveMapIntro() {
               </div>
             </div>
 
-            {/* Travel Condition Inputs Section (Unlocked upon city selection) */}
-            {selectedCityName && (
-              <div className="hifiConditionSection">
-                <div className="cardHeaderLabel">
-                  <strong>2. 여행 조건 입력</strong>
+            {/* Travel Condition Inputs Section (Always visible, matching Approved Mockup Spec) */}
+            <div className="hifiConditionSection">
+              <div className="cardHeaderLabel">
+                <strong>2. 여행 조건 입력</strong>
+              </div>
+
+              <div className="hifiFormRow">
+                <div className="hifiInputBlock">
+                  <label>시작일</label>
+                  <input
+                    type="date"
+                    value={start}
+                    onChange={(e) => {
+                      setStart(e.target.value);
+                      if (end && e.target.value > end) setEnd("");
+                    }}
+                    className="hifiDateInput"
+                  />
                 </div>
-
-                <div className="hifiFormRow">
-                  <div className="hifiInputBlock">
-                    <label>시작일</label>
-                    <input
-                      type="date"
-                      value={start}
-                      onChange={(e) => {
-                        setStart(e.target.value);
-                        if (end && e.target.value > end) setEnd("");
-                      }}
-                      className="hifiDateInput"
-                    />
-                  </div>
-                  <div className="hifiInputBlock">
-                    <label>종료일</label>
-                    <input
-                      type="date"
-                      min={start || undefined}
-                      value={end}
-                      onChange={(e) => setEnd(e.target.value)}
-                      className="hifiDateInput"
-                    />
-                  </div>
+                <div className="hifiInputBlock">
+                  <label>종료일</label>
+                  <input
+                    type="date"
+                    min={start || undefined}
+                    value={end}
+                    onChange={(e) => setEnd(e.target.value)}
+                    className="hifiDateInput"
+                  />
                 </div>
+              </div>
 
-                <div className="hifiFormRow">
-                  <div className="hifiInputBlock">
-                    <label>여행 인원 (명)</label>
-                    <div className="peopleCounterWrap">
-                      <button
-                        type="button"
-                        onClick={() => setPeople((p) => Math.max(1, p - 1))}
-                        className="counterBtn"
-                        disabled={people <= 1}
-                      >
-                        -
-                      </button>
-                      <input
-                        type="number"
-                        min="1"
-                        step="1"
-                        placeholder="-"
-                        value={people === 0 ? "" : people}
-                        onChange={(e) => setPeople(e.target.value ? Math.max(1, +e.target.value) : 0)}
-                        className="counterInput"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setPeople((p) => (p === 0 ? 1 : p + 1))}
-                        className="counterBtn"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="hifiInputBlock">
-                    <label>예산 (만원)</label>
+              <div className="hifiFormRow">
+                <div className="hifiInputBlock">
+                  <label>여행 인원 (명)</label>
+                  <div className="peopleCounterWrap">
+                    <button
+                      type="button"
+                      onClick={() => setPeople((p) => Math.max(1, p - 1))}
+                      className="counterBtn"
+                      disabled={people <= 1}
+                    >
+                      -
+                    </button>
                     <input
                       type="number"
                       min="1"
                       step="1"
                       placeholder="-"
-                      value={budget === 0 ? "" : budget}
-                      onChange={(e) => setBudget(e.target.value ? Math.max(1, +e.target.value) : 0)}
-                      className="hifiBudgetInput"
+                      value={people === 0 ? "" : people}
+                      onChange={(e) => setPeople(e.target.value ? Math.max(1, +e.target.value) : 0)}
+                      className="counterInput"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setPeople((p) => (p === 0 ? 1 : p + 1))}
+                      className="counterBtn"
+                    >
+                      +
+                    </button>
                   </div>
                 </div>
+
+                <div className="hifiInputBlock">
+                  <label>예산 (만원)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    placeholder="-"
+                    value={budget === 0 ? "" : budget}
+                    onChange={(e) => setBudget(e.target.value ? Math.max(1, +e.target.value) : 0)}
+                    className="hifiBudgetInput"
+                  />
+                </div>
               </div>
-            )}
+            </div>
 
             {/* Validation Notice & CTA Button */}
-            {!isFormValid && selectedCityName && (
+            {!isFormValid && (
               <p className="formValidationNoticeText">
-                시작일, 종료일, 인원(명), 예산(만원)을 모두 입력해야 AI 일정을 만들 수 있습니다.
+                국가, 도시, 시작일, 종료일, 인원(명), 예산(만원)을 모두 입력해야 AI 일정을 만들 수 있습니다.
               </p>
             )}
 
