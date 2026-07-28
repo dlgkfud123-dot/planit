@@ -189,6 +189,7 @@ export default function InteractiveMapIntro() {
 
       <div className="landingMainContent">
         <section className="heroHeaderSection">
+          <div className="heroAmbientAura" aria-hidden="true" />
           <div className="heroBadge">
             <span>✦</span> Intelligent Itinerary Builder
           </div>

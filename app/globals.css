@@ -66,8 +66,8 @@
   padding: 24px 0 48px;
 }
 
-/* Centered Hero Section */
 .heroHeaderSection {
+  position: relative;
   max-width: 980px;
   width: 100%;
   margin: 0 auto 36px;
@@ -77,6 +77,19 @@
   flex-direction: column;
   align-items: center;
   z-index: 20;
+}
+.heroAmbientAura {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 520px;
+  height: 240px;
+  background: radial-gradient(ellipse at center, rgba(49, 107, 255, 0.08) 0%, rgba(49, 107, 255, 0) 70%);
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(35px);
+  border-radius: 50%;
 }
 .heroBadge {
   display: inline-flex;
@@ -540,7 +553,8 @@ button,a,input,select{font-family:inherit}button,a{ -webkit-tap-highlight-color:
 .shareDialog{position:fixed;z-index:4000;inset:0;padding:20px;display:grid;place-items:center;background:rgba(13,31,48,.4);backdrop-filter:blur(8px)}.shareDialog>div{position:relative;width:min(520px,100%);padding:30px;border-radius:22px;background:white;box-shadow:0 28px 80px rgba(11,33,53,.25)}.shareDialog>div>span{color:#3970f7;font-size:11px;font-weight:850;letter-spacing:1.4px}.shareDialog h2{margin:10px 0 7px;font-size:22px}.shareDialog p{color:#728598;font-size:13px}.shareDialog input{width:100%;height:46px;margin:13px 0;padding:0 12px;border:1px solid #d7e2e9;border-radius:10px;background:#f6f9fb;color:#53697d}.shareDialog>div>button:not(.shareClose){width:100%;height:46px;border:0;border-radius:11px;background:#d6ff2f;color:#18314b;font-weight:850}.shareClose{position:absolute;top:14px;right:14px;width:36px;height:36px;border:0;border-radius:50%;background:#eef3f6;color:#53697d;font-size:20px}
 
 /* UI bug fixes: keep the pin appearance, but make its hitbox accessible. */
-.countryMarker>span{position:relative}.countryMarker>span:after{content:"";position:absolute;left:50%;top:50%;width:34px;height:34px;transform:translate(-50%,-50%);border-radius:50%}.countryMarkerShell:focus{outline:0}.countryMarkerShell:focus .countryMarker>span{background:#d7ff35;box-shadow:0 0 0 8px rgba(50,108,255,.18)}
+.countryMarker>span{position:relative}.countryMarker>span:after{content:"";position:absolute;left:50%;top:50%;width:100%;height:100%;border-radius:50%;transform:translate(-50%,-50%);border:1px solid rgba(49,107,255,.45);animation:countryPinPulseRing 2.6s cubic-bezier(.16,1,.3,1) infinite;pointer-events:none}@keyframes countryPinPulseRing{0%{transform:translate(-50%,-50%) scale(.9);opacity:.75}70%,100%{transform:translate(-50%,-50%) scale(1.85);opacity:0}}.countryMarkerShell:focus{outline:0}.countryMarkerShell:focus .countryMarker>span{background:#d7ff35;box-shadow:0 0 0 8px rgba(50,108,255,.18)}
+.countryOption,.cityChoiceCard{animation:subtleStaggerIn .32s cubic-bezier(.16,1,.3,1) both}@keyframes subtleStaggerIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .countryMarker>span{width:20px;height:20px}.cityMarker>span{position:relative}.countryMarker>span:before,.cityMarker>span:before{content:"";position:absolute;left:50%;top:50%;width:100%;height:100%;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 0 rgba(50,108,255,.18);animation:mapPinGlow 3.2s ease-in-out infinite;pointer-events:none}@keyframes mapPinGlow{50%{box-shadow:0 0 0 6px rgba(50,108,255,.08)}}@media(max-width:700px){.countryMarker>span{width:20px;height:20px}}@media(prefers-reduced-motion:reduce){.countryMarker>span:before,.cityMarker>span:before{animation:none}}
 .travelMap .leaflet-tile-pane{filter:saturate(.78) brightness(1.03) contrast(.94)}
 .mapSearchBox{position:relative}.mapSearchBox:after{content:"현재 30개 도시의 여행 일정을 만들 수 있어요";position:absolute;left:24px;top:calc(100% + 10px);color:#647b92;font-size:11px;font-weight:650;letter-spacing:-.15px;opacity:.9;pointer-events:none;transition:opacity .18s ease}.mapSearchPanel:has(.mapSuggestions) .mapSearchBox:after,.mapSearchPanel:has(.backToWorld) .mapSearchBox:after{opacity:0}

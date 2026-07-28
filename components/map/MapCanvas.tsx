@@ -192,7 +192,13 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
             icon: L.divIcon({ className: "countryMarkerShell", html: countryMarkup(focusedCountry, list, 0, true, true), iconSize: [112, 46], iconAnchor: [56, 23] }),
           }).addTo(map)];
         }
-        if (!selectedRef.current) map.flyTo([view[0], view[1]], targetZoom, { duration: 1.3, easeLinearity: 0.2 });
+        if (!selectedRef.current) {
+          window.setTimeout(() => {
+            if (!cancelled && mapRef.current) {
+              mapRef.current.flyTo([view[0], view[1]], targetZoom, { duration: 0.95, easeLinearity: 0.25 });
+            }
+          }, 160);
+        }
       } else {
         const groups = Object.entries(cities.reduce<Record<string, TravelCity[]>>((all, city) => {
           (all[city.country] ??= []).push(city);
