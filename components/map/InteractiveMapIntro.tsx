@@ -48,6 +48,14 @@ const continentGroups: { continent: string; countries: string[] }[] = [
   }
 ];
 
+// Quick featured destination choices (Matching Mockup Image)
+const featuredDestinations = [
+  { name: "후쿠오카", country: "일본", countryEn: "Fukuoka, Japan", image: "https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=600&q=80" },
+  { name: "도쿄", country: "일본", countryEn: "Tokyo, Japan", image: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=600&q=80" },
+  { name: "오사카", country: "일본", countryEn: "Osaka, Japan", image: "https://images.unsplash.com/photo-1590559899731-a382839e5549?w=600&q=80" },
+  { name: "파리", country: "프랑스", countryEn: "Paris, France", image: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=600&q=80" },
+];
+
 function checkShouldShowIntro(): boolean {
   if (typeof window === "undefined") return true;
   try {
@@ -87,7 +95,7 @@ export default function InteractiveMapIntro() {
   const [selectedCountry, setSelectedCountry] = useState<string>("");
   const [selectedCityName, setSelectedCityName] = useState<string>("");
 
-  // Travel Condition Inputs (Always rendered on Main Page to match Hi-Fi Mockup 100%)
+  // Travel Condition Inputs
   const [start, setStart] = useState<string>("");
   const [end, setEnd] = useState<string>("");
   const [people, setPeople] = useState<number>(0);
@@ -141,9 +149,6 @@ export default function InteractiveMapIntro() {
     return availableCities.find((c) => c.name === selectedCityName) || null;
   }, [selectedCityName]);
 
-  const countryCount = useMemo(() => new Set(availableCities.map((c) => c.country)).size, []);
-
-  // Handle Country dropdown change
   const handleCountryChange = (country: string) => {
     setSelectedCountry(country);
     setSelectedCityName("");
@@ -158,7 +163,6 @@ export default function InteractiveMapIntro() {
     }
   };
 
-  // Handle City dropdown change
   const handleCityChange = (cityName: string) => {
     setSelectedCityName(cityName);
     setIsCityOpen(false);
@@ -172,15 +176,11 @@ export default function InteractiveMapIntro() {
     }
   };
 
-  const handleMapCitySelect = (city: TravelCity) => {
-    setSelectedCountry(city.country);
-    setSelectedCityName(city.name);
-    setFocusedCountry(city.country);
+  const selectFeaturedCity = (cityName: string, countryName: string) => {
+    setSelectedCountry(countryName);
+    setSelectedCityName(cityName);
+    setFocusedCountry(countryName);
     setCitiesVisible(true);
-  };
-
-  const handleMapCountrySelect = (country: string) => {
-    handleCountryChange(country);
   };
 
   // Validation
@@ -266,7 +266,7 @@ export default function InteractiveMapIntro() {
   }
 
   return (
-    <main className="landingWrapper">
+    <main className="landingWrapper hifiHeroLayout">
       <Header />
 
       {/* AI Generation Loading Transition Screen */}
@@ -288,234 +288,217 @@ export default function InteractiveMapIntro() {
         </div>
       )}
 
-      <div className="landingMainContent">
-        <section className="heroHeaderSection">
-          <div className="heroAmbientAura" aria-hidden="true" />
+      <div className="landingMainContent hifiCenterContainer">
+        <section className="heroHeaderSection centeredHeroHeader">
           <div className="heroBadge">
             <span>✦</span> Intelligent Itinerary Builder
           </div>
           <h1 className="heroTitle">
-            AI가 설계하는 나만의 완벽한 여행
+            Build Your Perfect Trip with EYRIA
           </h1>
           <p className="heroSubtitle">
             국가, 도시, 날짜, 인원, 예산을 한곳에서 바로 입력하여 완벽한 여행 일정을 만드세요.
           </p>
         </section>
 
-        <section className="plannerGridSection">
-          {/* Main Unified Input Card (Always Visible to match Approved Hi-Fi Mockup 100%) */}
-          <div className="heroSelectCard hifiUnifiedCard">
-            <div className="cardHeaderLabel">
-              <strong>1. 여행지 선택</strong>
-            </div>
-
-            <div className="selectFormGroup countryGroup">
-              <label id="countrySelectLabel">국가 선택</label>
-              <div className="customSelectWrapper" ref={countryDropdownRef}>
-                <button
-                  type="button"
-                  aria-labelledby="countrySelectLabel"
-                  aria-haspopup="listbox"
-                  aria-expanded={isCountryOpen}
-                  className={`customSelectTrigger ${isCountryOpen ? "open" : ""}`}
-                  onClick={() => {
-                    setIsCityOpen(false);
-                    setIsCountryOpen((prev) => !prev);
-                  }}
-                >
-                  <span className="selectValue">
-                    {selectedCountry ? selectedCountry : "여행할 국가를 선택하세요"}
-                  </span>
-                  <i className="selectArrow">{isCountryOpen ? "▲" : "▼"}</i>
-                </button>
-
-                {isCountryOpen && (
-                  <div className="customDropdownPanel" role="listbox" aria-labelledby="countrySelectLabel">
-                    {continentGroups.map((group) => {
-                      const groupCountries = group.countries.filter((c) =>
-                        availableCities.some((ac) => ac.country === c)
-                      );
-                      if (groupCountries.length === 0) return null;
-                      return (
-                        <div key={group.continent} className="continentGroup">
-                          <div className="continentHeader">•• {group.continent}</div>
-                          {groupCountries.map((country) => (
-                            <button
-                              key={country}
-                              type="button"
-                              role="option"
-                              aria-selected={selectedCountry === country}
-                              className={`countryOption ${selectedCountry === country ? "selected" : ""}`}
-                              onClick={() => handleCountryChange(country)}
-                            >
-                              <span className="countryName">{country}</span>
-                            </button>
-                          ))}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="selectFormGroup cityGroup">
-              <label id="citySelectLabel">도시 선택</label>
-              <div className="customSelectWrapper" ref={cityDropdownRef}>
-                <button
-                  type="button"
-                  id="citySelect"
-                  aria-labelledby="citySelectLabel"
-                  aria-haspopup="listbox"
-                  aria-expanded={isCityOpen}
-                  disabled={!selectedCountry}
-                  className={`customSelectTrigger ${!selectedCountry ? "disabled" : ""} ${isCityOpen ? "open" : ""}`}
-                  onClick={() => {
-                    if (selectedCountry) {
-                      setIsCountryOpen(false);
-                      setIsCityOpen((prev) => !prev);
-                    }
-                  }}
-                >
-                  <span className="selectValue">
-                    {!selectedCountry
-                      ? "먼저 국가를 선택하세요"
-                      : selectedCityName
-                      ? selectedCityName
-                      : "도시를 선택하세요"}
-                  </span>
-                  <i className="selectArrow">{isCityOpen ? "▲" : "▼"}</i>
-                </button>
-
-                {isCityOpen && selectedCountry && (
-                  <div className="customDropdownPanel" role="listbox" aria-labelledby="citySelectLabel">
-                    {countryCities.map((city) => (
-                      <button
-                        key={city.en}
-                        type="button"
-                        role="option"
-                        aria-selected={selectedCityName === city.name}
-                        className={`countryOption ${selectedCityName === city.name ? "selected" : ""}`}
-                        onClick={() => handleCityChange(city.name)}
-                      >
-                        <span className="countryName">{city.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Travel Condition Inputs Section (Always visible, matching Approved Mockup Spec) */}
-            <div className="hifiConditionSection">
-              <div className="cardHeaderLabel">
-                <strong>2. 여행 조건 입력</strong>
-              </div>
-
-              <div className="hifiFormRow">
-                <div className="hifiInputBlock">
-                  <label>시작일</label>
-                  <input
-                    type="date"
-                    value={start}
-                    onChange={(e) => {
-                      setStart(e.target.value);
-                      if (end && e.target.value > end) setEnd("");
+        {/* Horizontal Floating Search Bar Card (Matching Approved Mockup Image 100%) */}
+        <section className="hifiHeroCardWrapper">
+          <div className="hifiHorizontalSearchCard">
+            {/* 1. Where to? (어디로?) */}
+            <div className="hifiSearchCol whereCol">
+              <span className="colLabel">Where to?</span>
+              <div className="destSelectGroup">
+                <div className="customSelectWrapper" ref={countryDropdownRef}>
+                  <button
+                    type="button"
+                    aria-haspopup="listbox"
+                    aria-expanded={isCountryOpen}
+                    className="hifiSelectTrigger"
+                    onClick={() => {
+                      setIsCityOpen(false);
+                      setIsCountryOpen((prev) => !prev);
                     }}
-                    className="hifiDateInput"
-                  />
-                </div>
-                <div className="hifiInputBlock">
-                  <label>종료일</label>
-                  <input
-                    type="date"
-                    min={start || undefined}
-                    value={end}
-                    onChange={(e) => setEnd(e.target.value)}
-                    className="hifiDateInput"
-                  />
-                </div>
-              </div>
-
-              <div className="hifiFormRow">
-                <div className="hifiInputBlock">
-                  <label>여행 인원 (명)</label>
-                  <div className="peopleCounterWrap">
-                    <button
-                      type="button"
-                      onClick={() => setPeople((p) => Math.max(1, p - 1))}
-                      className="counterBtn"
-                      disabled={people <= 1}
-                    >
-                      -
-                    </button>
-                    <input
-                      type="number"
-                      min="1"
-                      step="1"
-                      placeholder="-"
-                      value={people === 0 ? "" : people}
-                      onChange={(e) => setPeople(e.target.value ? Math.max(1, +e.target.value) : 0)}
-                      className="counterInput"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setPeople((p) => (p === 0 ? 1 : p + 1))}
-                      className="counterBtn"
-                    >
-                      +
-                    </button>
-                  </div>
+                  >
+                    <span>{selectedCountry ? selectedCountry : "국가 선택"}</span>
+                    <i>{isCountryOpen ? "▲" : "▼"}</i>
+                  </button>
+                  {isCountryOpen && (
+                    <div className="customDropdownPanel" role="listbox">
+                      {continentGroups.map((group) => {
+                        const groupCountries = group.countries.filter((c) =>
+                          availableCities.some((ac) => ac.country === c)
+                        );
+                        if (groupCountries.length === 0) return null;
+                        return (
+                          <div key={group.continent} className="continentGroup">
+                            <div className="continentHeader">•• {group.continent}</div>
+                            {groupCountries.map((country) => (
+                              <button
+                                key={country}
+                                type="button"
+                                className={`countryOption ${selectedCountry === country ? "selected" : ""}`}
+                                onClick={() => handleCountryChange(country)}
+                              >
+                                {country}
+                              </button>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
-                <div className="hifiInputBlock">
-                  <label>예산 (만원)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    step="1"
-                    placeholder="-"
-                    value={budget === 0 ? "" : budget}
-                    onChange={(e) => setBudget(e.target.value ? Math.max(1, +e.target.value) : 0)}
-                    className="hifiBudgetInput"
-                  />
+                <div className="customSelectWrapper" ref={cityDropdownRef}>
+                  <button
+                    type="button"
+                    aria-haspopup="listbox"
+                    aria-expanded={isCityOpen}
+                    disabled={!selectedCountry}
+                    className={`hifiSelectTrigger ${!selectedCountry ? "disabled" : ""}`}
+                    onClick={() => {
+                      if (selectedCountry) {
+                        setIsCountryOpen(false);
+                        setIsCityOpen((prev) => !prev);
+                      }
+                    }}
+                  >
+                    <span>
+                      {!selectedCountry ? "도시 선택" : selectedCityName ? selectedCityName : "도시 선택"}
+                    </span>
+                    <i>{isCityOpen ? "▲" : "▼"}</i>
+                  </button>
+                  {isCityOpen && selectedCountry && (
+                    <div className="customDropdownPanel" role="listbox">
+                      {countryCities.map((city) => (
+                        <button
+                          key={city.en}
+                          type="button"
+                          className={`countryOption ${selectedCityName === city.name ? "selected" : ""}`}
+                          onClick={() => handleCityChange(city.name)}
+                        >
+                          {city.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Validation Notice & CTA Button */}
-            {!isFormValid && (
-              <p className="formValidationNoticeText">
-                국가, 도시, 시작일, 종료일, 인원(명), 예산(만원)을 모두 입력해야 AI 일정을 만들 수 있습니다.
-              </p>
-            )}
+            <div className="hifiColDivider" />
 
-            {generationError && <p className="formErrorNoticeText">{generationError}</p>}
+            {/* 2. When? (언제?) */}
+            <div className="hifiSearchCol whenCol">
+              <span className="colLabel">When?</span>
+              <div className="dateRangeGroup">
+                <input
+                  type="date"
+                  value={start}
+                  onChange={(e) => {
+                    setStart(e.target.value);
+                    if (end && e.target.value > end) setEnd("");
+                  }}
+                  className="hifiInlineInput"
+                  placeholder="시작일"
+                />
+                <span className="dateDash">-</span>
+                <input
+                  type="date"
+                  min={start || undefined}
+                  value={end}
+                  onChange={(e) => setEnd(e.target.value)}
+                  className="hifiInlineInput"
+                  placeholder="종료일"
+                />
+              </div>
+            </div>
 
-            <button
-              type="button"
-              className={`heroCtaButton ${isFormValid ? "active" : "disabled"}`}
-              disabled={!isFormValid || isGenerating}
-              onClick={handleCreateItinerary}
-            >
-              ✦ AI 일정 만들기
-            </button>
+            <div className="hifiColDivider" />
+
+            {/* 3. Who? (누구와?) */}
+            <div className="hifiSearchCol whoCol">
+              <span className="colLabel">Who?</span>
+              <div className="counterInlineGroup">
+                <button
+                  type="button"
+                  onClick={() => setPeople((p) => Math.max(1, p - 1))}
+                  className="counterCircleBtn"
+                  disabled={people <= 1}
+                >
+                  -
+                </button>
+                <span className="peopleCountText">{people > 0 ? `${people} Travelers` : "인원 선택"}</span>
+                <button
+                  type="button"
+                  onClick={() => setPeople((p) => (p === 0 ? 1 : p + 1))}
+                  className="counterCircleBtn"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            <div className="hifiColDivider" />
+
+            {/* 4. Budget (예산) */}
+            <div className="hifiSearchCol budgetCol">
+              <span className="colLabel">Budget</span>
+              <div className="budgetInputInline">
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="예산 (만원)"
+                  value={budget === 0 ? "" : budget}
+                  onChange={(e) => setBudget(e.target.value ? Math.max(1, +e.target.value) : 0)}
+                  className="hifiInlineInput budgetValInput"
+                />
+                <span className="currencyTag">만원</span>
+              </div>
+            </div>
+
+            {/* 5. Build AI Itinerary CTA Button */}
+            <div className="hifiSearchCol ctaCol">
+              <button
+                type="button"
+                className={`hifiPrimaryCtaBtn ${isFormValid ? "active" : "disabled"}`}
+                disabled={!isFormValid || isGenerating}
+                onClick={handleCreateItinerary}
+              >
+                ✦ Build AI Itinerary
+              </button>
+            </div>
           </div>
 
-          <div className="heroRightMap">
-            <MapCanvas
-              cities={availableCities}
-              focusedCountry={focusedCountry}
-              citiesVisible={citiesVisible}
-              hoveredCity={hoveredCity}
-              selected={selectedCity}
-              showRoute={!!selectedCity}
-              onCountrySelect={handleMapCountrySelect}
-              onSelect={handleMapCitySelect}
-              onCityHover={setHoveredCity}
-              onMoveComplete={() => {}}
-            />
+          {/* Featured Destination Cards Grid (Matching Mockup Image) */}
+          <div className="featuredDestinationsGrid">
+            {featuredDestinations.map((dest) => (
+              <button
+                key={dest.name}
+                type="button"
+                className={`featuredDestCard ${selectedCityName === dest.name ? "selected" : ""}`}
+                onClick={() => selectFeaturedCity(dest.name, dest.country)}
+              >
+                <div className="destCardPhotoWrap">
+                  <img src={dest.image} alt={dest.name} />
+                  <div className="destCardBadge">Select</div>
+                </div>
+                <div className="destCardText">
+                  <strong>{dest.name}</strong>
+                  <small>{dest.countryEn}</small>
+                </div>
+              </button>
+            ))}
           </div>
+
+          {!isFormValid && (
+            <p className="hifiNoticeText">
+              국가, 도시, 시작일, 종료일, 인원(명), 예산(만원)을 모두 입력하면 AI 일정을 생성할 수 있습니다.
+            </p>
+          )}
+
+          {generationError && <p className="hifiErrorText">{generationError}</p>}
         </section>
       </div>
 
