@@ -3,6 +3,7 @@ import type { GeneratedDay, GeneratedStop, GenerateOptions } from "./itineraryGe
 import { refreshDay } from "./itineraryGenerator";
 import { parseOpeningHoursRule } from "./openingHoursValidator";
 import type { DayWeatherInfo } from "./weatherService";
+import { distanceKm } from "./distance";
 
 export type SmartCandidate = {
   place: Place;
@@ -15,10 +16,19 @@ export function findSmartCandidates(
   currentPlan: GeneratedDay[],
   destination: string,
   options: GenerateOptions,
-  dayWeather?: DayWeatherInfo
+  dayWeather?: DayWeatherInfo,
+  activeDayIndex: number = 0,
+  targetStopIndex: number = 0
 ): SmartCandidate[] {
   const usedIds = new Set(currentPlan.flatMap(d => d.stops.map(s => s.placeId)));
   const allCityPlaces = placesByCity(destination);
+  const currentDayStops = currentPlan[activeDayIndex]?.stops || [];
+
+  const prevStop = currentDayStops[targetStopIndex - 1];
+  const nextStop = currentDayStops[targetStopIndex + 1];
+
+  const targetDuration = Number.parseInt(targetStop.duration) || 90;
+  const targetCost = targetStop.cost || 0;
 
   const candidates: SmartCandidate[] = [];
 
@@ -28,7 +38,7 @@ export function findSmartCandidates(
     let candidateScore = 0;
     const reasons: string[] = [];
 
-    // District matching
+    // 1. District matching
     if (place.district === targetStop.district) {
       candidateScore += 45;
       reasons.push(`${place.district} 인접`);
@@ -36,32 +46,78 @@ export function findSmartCandidates(
       candidateScore += 10;
     }
 
-    // Category & Atmosphere matching
+    // 2. Category & Atmosphere matching
     if (place.category === targetStop.category) {
-      candidateScore += 35;
-      reasons.push(`${place.category === "food" ? "미식" : place.category === "culture" ? "문화" : place.category === "nature" ? "자연" : "쇼핑"} 테마`);
+      candidateScore += 30;
+      reasons.push(`${place.category} 카테고리 매칭`);
     }
 
-    // Weather suitability matching
+    // 3. User Style matching
+    if (options.style) {
+      const styleKey = options.style.toLowerCase();
+      if (place.tags.some(t => t.toLowerCase().includes(styleKey))) {
+        candidateScore += 25;
+        reasons.push("여행 취향 부합");
+      }
+    }
+
+    // 4. Time slot suitability
+    if (place.recommendedTime) {
+      const [vH] = targetStop.time.split(":").map(Number);
+      const isMorning = vH < 12;
+      const isAfternoon = vH >= 12 && vH < 17;
+      const isEvening = vH >= 17;
+
+      if ((isMorning && place.recommendedTime === "morning") ||
+          (isAfternoon && place.recommendedTime === "afternoon") ||
+          (isEvening && place.recommendedTime === "evening")) {
+        candidateScore += 20;
+        reasons.push("방문 시각대 적합");
+      }
+    }
+
+    // 5. Duration similarity
+    const durDiff = Math.abs(place.recommendedDuration - targetDuration);
+    if (durDiff <= 30) {
+      candidateScore += 15;
+    }
+
+    // 6. Cost difference ratio
+    if (targetCost > 0) {
+      const costRatio = Math.abs(place.estimatedCost - targetCost) / targetCost;
+      if (costRatio <= 0.3) {
+        candidateScore += 15;
+        reasons.push("비용 수준 유사");
+      }
+    }
+
+    // 7. Total Route Distance Impact: prev -> candidate -> next
+    let routeDistPen = 0;
+    if (prevStop) {
+      const dPrev = distanceKm({ latitude: prevStop.lat, longitude: prevStop.lng }, { latitude: place.latitude, longitude: place.longitude });
+      routeDistPen += dPrev * 4;
+    }
+    if (nextStop) {
+      const dNext = distanceKm({ latitude: place.latitude, longitude: place.longitude }, { latitude: nextStop.lat, longitude: nextStop.lng });
+      routeDistPen += dNext * 4;
+    }
+    candidateScore -= routeDistPen;
+
+    // 8. Weather suitability
     if (dayWeather) {
       if (dayWeather.isRain) {
         if (place.environment === "indoor") { candidateScore += 40; reasons.push("우천 대응 실내"); }
         else if (place.environment === "outdoor") candidateScore -= 50;
       } else if (dayWeather.isClear) {
-        if (place.environment === "outdoor") { candidateScore += 30; reasons.push("맑은 날씨 야외"); }
+        if (place.environment === "outdoor") { candidateScore += 25; reasons.push("야외 적합"); }
       }
     }
 
-    // Opening hours check
-    const validation = parseOpeningHoursRule(place.openingHours, options.start, targetStop.time);
+    // 9. Static Opening Hours validation check
+    const validation = parseOpeningHoursRule(place.openingHours, options.start, targetStop.time, destination);
     if (validation.status === "closed") {
-      candidateScore -= 100; // Penalize closed places
+      candidateScore -= 100;
     } else if (validation.status === "open") {
-      candidateScore += 20;
-    }
-
-    // Core landmark protection
-    if (place.isCoreLandmark) {
       candidateScore += 15;
     }
 

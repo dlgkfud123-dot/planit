@@ -4,24 +4,27 @@ export type CostConfidence = "confirmed" | "estimated" | "free" | "unknown";
 
 export type CostCategoryKey = "transport" | "food" | "cafe" | "admission" | "experience";
 
+export type CostSource = "explicit_price" | "category_average" | "free_entry" | "missing_data";
+
 export type CategoryCostItem = {
   key: CostCategoryKey;
   label: string;
-  localAmount: number;
-  krwAmount: number;
+  localAmount: number | null;
+  krwAmount: number | null;
   confidence: CostConfidence;
+  source: CostSource;
 };
 
 export type StopCostBreakdown = {
   localCurrency: CurrencyCode;
   currencySymbol: string;
-  admissionLocal: number;
-  foodLocal: number;
-  cafeLocal: number;
-  transportLocal: number;
-  experienceLocal: number;
-  localTotalPerPerson: number;
-  krwTotalPerPerson: number;
+  admissionLocal: number | null;
+  foodLocal: number | null;
+  cafeLocal: number | null;
+  transportLocal: number | null;
+  experienceLocal: number | null;
+  localTotalPerPerson: number | null;
+  krwTotalPerPerson: number | null;
   confidence: CostConfidence;
   categories: CategoryCostItem[];
 };
@@ -29,13 +32,20 @@ export type StopCostBreakdown = {
 export type DayCostSummary = {
   localCurrency: CurrencyCode;
   currencySymbol: string;
-  perPersonLocal: number;
-  perPersonKrw: number;
-  totalGroupLocal: number;
-  totalGroupKrw: number;
+  perPersonLocal: number | null;
+  perPersonKrw: number | null;
+  totalGroupLocal: number | null;
+  totalGroupKrw: number | null;
   confidence: CostConfidence;
   hasUnknown: boolean;
   categories: CategoryCostItem[];
+};
+
+export const EXCHANGE_RATE_METADATA = {
+  baseCurrency: "KRW" as CurrencyCode,
+  referenceDate: "2026-07-28",
+  source: "한국수출입은행 및 주요 은행 매매기준율 참고",
+  disclaimerLabel: "2026-07-28 기준 참고 환율 (참고 환산액)",
 };
 
 export const EXCHANGE_RATES: Record<CurrencyCode, { rateToKrw: number; symbol: string }> = {
@@ -47,8 +57,6 @@ export const EXCHANGE_RATES: Record<CurrencyCode, { rateToKrw: number; symbol: s
   USD: { rateToKrw: 1380.0, symbol: "$" },
   AUD: { rateToKrw: 910.0, symbol: "A$" },
 };
-
-export const EXCHANGE_REFERENCE_DATE = "2026-07-28 기준 참고 환율";
 
 export const CITY_CURRENCY_MAP: Record<string, CurrencyCode> = {
   서울: "KRW", 부산: "KRW", 제주: "KRW",
@@ -64,16 +72,19 @@ export function getCityCurrency(destination: string): CurrencyCode {
   return CITY_CURRENCY_MAP[destination] || "KRW";
 }
 
-export function formatCurrency(amount: number, currency: CurrencyCode): string {
+export function formatCurrency(amount: number | null, currency: CurrencyCode): string {
+  if (amount === null) return "정보 없음";
   const info = EXCHANGE_RATES[currency] || EXCHANGE_RATES.KRW;
+  if (amount === 0) return currency === "KRW" ? "0원 (무료)" : `${info.symbol}0 (무료)`;
   if (currency === "KRW") {
     return `${Math.round(amount).toLocaleString()}원`;
   }
   return `${info.symbol}${Math.round(amount).toLocaleString()}`;
 }
 
-export function formatKrwReference(krwAmount: number): string {
-  if (krwAmount <= 0) return "0원";
+export function formatKrwReference(krwAmount: number | null): string {
+  if (krwAmount === null) return "정보 없음";
+  if (krwAmount === 0) return "무료";
   if (krwAmount >= 10000) {
     const man = (krwAmount / 10000).toFixed(1).replace(/\.0$/, "");
     return `약 ${man}만원`;
@@ -81,7 +92,6 @@ export function formatKrwReference(krwAmount: number): string {
   return `약 ${Math.round(krwAmount).toLocaleString()}원`;
 }
 
-// Estimates base transport fare in local currency per leg
 export function estimateTransportFare(mode: string | undefined, distanceKm: number, currency: CurrencyCode): number {
   if (!mode || mode === "도보") return 0;
   const info = EXCHANGE_RATES[currency] || EXCHANGE_RATES.KRW;
@@ -90,7 +100,7 @@ export function estimateTransportFare(mode: string | undefined, distanceKm: numb
 }
 
 export function calculateStopCost(
-  placeCost: number, // raw cost from Place
+  placeCost: number,
   category: string,
   tags: string[],
   estimateStatus: "free" | "estimated" | "variable",
@@ -102,43 +112,102 @@ export function calculateStopCost(
   const info = EXCHANGE_RATES[currency];
 
   const transportLocal = estimateTransportFare(transportMode, distanceFromPrevious || 0, currency);
-  let admissionLocal = 0;
-  let foodLocal = 0;
-  let cafeLocal = 0;
-  let experienceLocal = 0;
+  
+  let admissionLocal: number | null = null;
+  let foodLocal: number | null = null;
+  let cafeLocal: number | null = null;
+  let experienceLocal: number | null = null;
 
-  let confidence: CostConfidence = "estimated";
+  let admissionConf: CostConfidence = "unknown";
+  let foodConf: CostConfidence = "unknown";
+  let cafeConf: CostConfidence = "unknown";
+  let expConf: CostConfidence = "unknown";
 
-  if (estimateStatus === "free" || placeCost === 0) {
-    confidence = "free";
-  } else if (estimateStatus === "estimated") {
-    confidence = "confirmed";
-  } else {
-    confidence = "estimated";
-  }
+  let admissionSource: CostSource = "missing_data";
+  let foodSource: CostSource = "missing_data";
+  let cafeSource: CostSource = "missing_data";
+  let expSource: CostSource = "missing_data";
 
-  // Local currency conversion if placeCost is in KRW or local
   const costInLocal = currency === "KRW" ? placeCost : Math.round(placeCost / info.rateToKrw);
 
-  if (category === "food" || category === "market") {
+  if (estimateStatus === "free") {
+    admissionLocal = 0;
+    admissionConf = "free";
+    admissionSource = "free_entry";
+  } else if (category === "food" || category === "market") {
     foodLocal = costInLocal > 0 ? costInLocal : Math.round(20000 / info.rateToKrw);
+    foodConf = costInLocal > 0 ? (estimateStatus === "estimated" ? "confirmed" : "estimated") : "estimated";
+    foodSource = costInLocal > 0 ? "explicit_price" : "category_average";
   } else if (tags.some(t => t.includes("카페"))) {
     cafeLocal = costInLocal > 0 ? costInLocal : Math.round(8000 / info.rateToKrw);
+    cafeConf = costInLocal > 0 ? (estimateStatus === "estimated" ? "confirmed" : "estimated") : "estimated";
+    cafeSource = costInLocal > 0 ? "explicit_price" : "category_average";
   } else if (category === "culture" || category === "landmark") {
-    admissionLocal = costInLocal;
+    if (placeCost > 0) {
+      admissionLocal = costInLocal;
+      admissionConf = estimateStatus === "estimated" ? "confirmed" : "estimated";
+      admissionSource = "explicit_price";
+    } else if (estimateStatus === "variable") {
+      admissionLocal = null;
+      admissionConf = "unknown";
+      admissionSource = "missing_data";
+    }
   } else {
-    experienceLocal = costInLocal;
+    if (placeCost > 0) {
+      experienceLocal = costInLocal;
+      expConf = estimateStatus === "estimated" ? "confirmed" : "estimated";
+      expSource = "explicit_price";
+    }
   }
 
-  const localTotalPerPerson = admissionLocal + foodLocal + cafeLocal + transportLocal + experienceLocal;
+  const knownLocals = [admissionLocal, foodLocal, cafeLocal, transportLocal, experienceLocal].filter((v): v is number => v !== null);
+  const localTotalPerPerson = knownLocals.reduce((sum, v) => sum + v, 0);
   const krwTotalPerPerson = Math.round(localTotalPerPerson * info.rateToKrw);
 
+  const hasUnknown = admissionLocal === null && foodLocal === null && cafeLocal === null && experienceLocal === null;
+  const overallConfidence: CostConfidence = hasUnknown ? "unknown" : (estimateStatus === "free" ? "free" : "estimated");
+
   const categories: CategoryCostItem[] = [
-    { key: "transport", label: "교통비", localAmount: transportLocal, krwAmount: Math.round(transportLocal * info.rateToKrw), confidence: transportLocal > 0 ? "estimated" : "free" },
-    { key: "food", label: "식사", localAmount: foodLocal, krwAmount: Math.round(foodLocal * info.rateToKrw), confidence: foodLocal > 0 ? confidence : "free" },
-    { key: "cafe", label: "카페/디저트", localAmount: cafeLocal, krwAmount: Math.round(cafeLocal * info.rateToKrw), confidence: cafeLocal > 0 ? confidence : "free" },
-    { key: "admission", label: "입장료", localAmount: admissionLocal, krwAmount: Math.round(admissionLocal * info.rateToKrw), confidence: admissionLocal > 0 ? confidence : "free" },
-    { key: "experience", label: "체험/기타", localAmount: experienceLocal, krwAmount: Math.round(experienceLocal * info.rateToKrw), confidence: experienceLocal > 0 ? confidence : "free" },
+    {
+      key: "transport",
+      label: "교통비",
+      localAmount: transportLocal,
+      krwAmount: Math.round(transportLocal * info.rateToKrw),
+      confidence: transportLocal > 0 ? "estimated" : "free",
+      source: transportLocal > 0 ? "category_average" : "free_entry",
+    },
+    {
+      key: "food",
+      label: "식사",
+      localAmount: foodLocal,
+      krwAmount: foodLocal !== null ? Math.round(foodLocal * info.rateToKrw) : null,
+      confidence: foodConf,
+      source: foodSource,
+    },
+    {
+      key: "cafe",
+      label: "카페/디저트",
+      localAmount: cafeLocal,
+      krwAmount: cafeLocal !== null ? Math.round(cafeLocal * info.rateToKrw) : null,
+      confidence: cafeConf,
+      source: cafeSource,
+    },
+    {
+      key: "admission",
+      label: "입장료",
+      localAmount: admissionLocal,
+      krwAmount: admissionLocal !== null ? Math.round(admissionLocal * info.rateToKrw) : null,
+      confidence: admissionConf,
+      source: admissionSource,
+    },
+    {
+      key: "experience",
+      label: "체험/기타",
+      localAmount: experienceLocal,
+      krwAmount: experienceLocal !== null ? Math.round(experienceLocal * info.rateToKrw) : null,
+      confidence: expConf,
+      source: expSource,
+    },
   ];
 
   return {
@@ -151,7 +220,7 @@ export function calculateStopCost(
     experienceLocal,
     localTotalPerPerson,
     krwTotalPerPerson,
-    confidence,
+    confidence: overallConfidence,
     categories,
   };
 }
@@ -165,33 +234,44 @@ export function calculateDayCostSummary(
   const info = EXCHANGE_RATES[currency];
 
   let totalTransport = 0;
-  let totalFood = 0;
-  let totalCafe = 0;
-  let totalAdmission = 0;
-  let totalExperience = 0;
+  let totalFood: number | null = 0;
+  let totalCafe: number | null = 0;
+  let totalAdmission: number | null = 0;
+  let totalExperience: number | null = 0;
   let hasUnknown = false;
 
   for (const stop of stops) {
     if (!stop.costBreakdown) continue;
-    totalTransport += stop.costBreakdown.transportLocal;
-    totalFood += stop.costBreakdown.foodLocal;
-    totalCafe += stop.costBreakdown.cafeLocal;
-    totalAdmission += stop.costBreakdown.admissionLocal;
-    totalExperience += stop.costBreakdown.experienceLocal;
+
+    if (stop.costBreakdown.transportLocal !== null) totalTransport += stop.costBreakdown.transportLocal;
+
+    if (stop.costBreakdown.foodLocal === null) { if (totalFood === 0) totalFood = null; }
+    else if (totalFood !== null) totalFood += stop.costBreakdown.foodLocal;
+
+    if (stop.costBreakdown.cafeLocal === null) { if (totalCafe === 0) totalCafe = null; }
+    else if (totalCafe !== null) totalCafe += stop.costBreakdown.cafeLocal;
+
+    if (stop.costBreakdown.admissionLocal === null) { if (totalAdmission === 0) totalAdmission = null; }
+    else if (totalAdmission !== null) totalAdmission += stop.costBreakdown.admissionLocal;
+
+    if (stop.costBreakdown.experienceLocal === null) { if (totalExperience === 0) totalExperience = null; }
+    else if (totalExperience !== null) totalExperience += stop.costBreakdown.experienceLocal;
+
     if (stop.costBreakdown.confidence === "unknown") hasUnknown = true;
   }
 
-  const perPersonLocal = totalTransport + totalFood + totalCafe + totalAdmission + totalExperience;
+  const knownList = [totalTransport, totalFood, totalCafe, totalAdmission, totalExperience].filter((v): v is number => v !== null);
+  const perPersonLocal = knownList.reduce((s, v) => s + v, 0);
   const perPersonKrw = Math.round(perPersonLocal * info.rateToKrw);
   const totalGroupLocal = perPersonLocal * peopleCount;
   const totalGroupKrw = perPersonKrw * peopleCount;
 
   const categories: CategoryCostItem[] = [
-    { key: "transport", label: "교통비", localAmount: totalTransport, krwAmount: Math.round(totalTransport * info.rateToKrw), confidence: "estimated" },
-    { key: "food", label: "식사", localAmount: totalFood, krwAmount: Math.round(totalFood * info.rateToKrw), confidence: "estimated" },
-    { key: "cafe", label: "카페/디저트", localAmount: totalCafe, krwAmount: Math.round(totalCafe * info.rateToKrw), confidence: "estimated" },
-    { key: "admission", label: "입장료", localAmount: totalAdmission, krwAmount: Math.round(totalAdmission * info.rateToKrw), confidence: "estimated" },
-    { key: "experience", label: "체험/기타", localAmount: totalExperience, krwAmount: Math.round(totalExperience * info.rateToKrw), confidence: "estimated" },
+    { key: "transport", label: "교통비", localAmount: totalTransport, krwAmount: Math.round(totalTransport * info.rateToKrw), confidence: "estimated", source: "category_average" },
+    { key: "food", label: "식사", localAmount: totalFood, krwAmount: totalFood !== null ? Math.round(totalFood * info.rateToKrw) : null, confidence: totalFood !== null ? "estimated" : "unknown", source: totalFood !== null ? "category_average" : "missing_data" },
+    { key: "cafe", label: "카페/디저트", localAmount: totalCafe, krwAmount: totalCafe !== null ? Math.round(totalCafe * info.rateToKrw) : null, confidence: totalCafe !== null ? "estimated" : "unknown", source: totalCafe !== null ? "category_average" : "missing_data" },
+    { key: "admission", label: "입장료", localAmount: totalAdmission, krwAmount: totalAdmission !== null ? Math.round(totalAdmission * info.rateToKrw) : null, confidence: totalAdmission !== null ? "estimated" : "unknown", source: totalAdmission !== null ? "explicit_price" : "missing_data" },
+    { key: "experience", label: "체험/기타", localAmount: totalExperience, krwAmount: totalExperience !== null ? Math.round(totalExperience * info.rateToKrw) : null, confidence: totalExperience !== null ? "estimated" : "unknown", source: totalExperience !== null ? "explicit_price" : "missing_data" },
   ];
 
   return {

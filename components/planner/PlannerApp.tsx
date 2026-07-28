@@ -6,7 +6,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import {generateItinerary,refreshDay,type GeneratedDay,type GeneratedStop} from "../../utils/itineraryGenerator";
 import {fetchWeatherData,type WeatherDataResponse} from "../../utils/weatherService";
-import {calculateDayCostSummary,formatCurrency,formatKrwReference,EXCHANGE_REFERENCE_DATE} from "../../utils/costEngine";
+import {calculateDayCostSummary,formatCurrency,formatKrwReference,EXCHANGE_RATE_METADATA} from "../../utils/costEngine";
 import {validateStopOpening} from "../../utils/openingHoursValidator";
 import {findSmartCandidates,replaceSingleStop,type SmartCandidate} from "../../utils/smartReplaceEngine";
 import {supportedCityIds} from "../../data/cities";
@@ -156,14 +156,14 @@ export default function PlannerApp(){
             <div className="costCategoryDetailsTray">
               <div className="costCategoryHeader">
                 <strong>DAY {activeDay+1} 항목별 예상 비용 ({people}인 기준)</strong>
-                <span>확인 가능한 항목 기준 ({EXCHANGE_REFERENCE_DATE})</span>
+                <span>{EXCHANGE_RATE_METADATA.disclaimerLabel}</span>
               </div>
               <div className="costCategoryGrid">
                 {dayCostSummary.categories.map(cat => (
                   <div key={cat.key} className="costCategoryItem">
                     <span className="catLabel">{cat.label}</span>
-                    <strong className="catAmount">{formatCurrency(cat.localAmount * people, dayCostSummary.localCurrency)}</strong>
-                    {dayCostSummary.localCurrency !== "KRW" && (
+                    <strong className="catAmount">{formatCurrency(cat.localAmount !== null ? cat.localAmount * people : null, dayCostSummary.localCurrency)}</strong>
+                    {dayCostSummary.localCurrency !== "KRW" && cat.krwAmount !== null && (
                       <small className="catKrw">({formatKrwReference(cat.krwAmount * people)})</small>
                     )}
                   </div>
@@ -172,12 +172,12 @@ export default function PlannerApp(){
             </div>
           )}
 
-          <p className="estimateDisclaimer">운영시간·비용·이동 정보는 {informationReferenceDate} 기준 정적 데이터에 따른 추정값이며, 현지 사정에 따라 달라질 수 있습니다.</p>
+          <p className="estimateDisclaimer">운영시간·비용·이동 정보는 정적 데이터 기준 추정값이며, 현지 사정에 따라 달라질 수 있습니다.</p>
           <div className="quickStyleBar"><strong>현재 일정을 가볍게 보완</strong>{quickStyles.map(style=><button key={style.key} onClick={()=>applyQuickStyle(style.key,style.label)}>{style.label}</button>)}<button className="undoButton" disabled={!historyDepth} onClick={undoEdit}>↶ 실행 취소{historyDepth>1?` (${historyDepth})`:""}</button></div>
           <div className="planMain"><div className="timelineColumn"><div className="dayScroller">{plan.map((d,i)=><button className={i===activeDay?"active":""} onClick={()=>{setActiveDay(i);setActiveStop(0);setEditingStop(null);setOpenStopMenu(null)}} onDragOver={event=>event.preventDefault()} onDrop={event=>{event.preventDefault();const source=dragRef.current,sourceIndex=source?plan[source.day]?.stops.findIndex(stop=>stop.placeId===source.placeId):-1;if(source&&sourceIndex>=0)moveStop(source.day,sourceIndex,i,d.stops.length);dragRef.current=null}} key={d.label}>{d.label}<small>{d.date}</small></button>)}</div><div className="dayIntro"><div><h3>{current.theme}</h3><p>{current.stops.length}개 실제 장소 · 손잡이를 끌어 순서를 바꿔보세요</p></div><button onClick={()=>setAddOpen(open=>!open)}>＋ 장소 검색</button></div>{addOpen&&<div className="placeFinder"><input autoFocus value={placeQuery} onChange={event=>setPlaceQuery(event.target.value)} placeholder={`${destination}의 장소 또는 태그 검색`}/><div>{availablePlaces.slice(0,6).map(place=><button key={place.id} onClick={()=>addPlace(place)}><strong>{place.name}</strong><span>{place.description}</span></button>)}{availablePlaces.length===0&&<p>검색 결과가 없거나 이미 일정에 포함된 장소입니다.</p>}</div></div>}
           <ol className="timelineList">{current.stops.map((stop,i)=>{
-            const validation = validateStopOpening(stop, current.date, current.stops, i);
-            const candidates = smartReplaceStopId === stop.id ? findSmartCandidates(stop, plan, destination, { destination, start, days: nights + 1, style: interest, foodPreference: food, pace, wishList: wish, weatherData: weatherResult }, weatherResult?.daily?.[activeDay]) : [];
+            const validation = validateStopOpening(stop, current.date, current.stops, i, destination);
+            const candidates = smartReplaceStopId === stop.id ? findSmartCandidates(stop, plan, destination, { destination, start, days: nights + 1, style: interest, foodPreference: food, pace, wishList: wish, weatherData: weatherResult }, weatherResult?.daily?.[activeDay], activeDay, i) : [];
             return <li className={`${i===activeStop?"active":""} ${editingStop===stop.id?"editing":""}`} onClick={()=>setActiveStop(i)} onMouseEnter={()=>setActiveStop(i)} onDragOver={event=>event.preventDefault()} onDrop={event=>handleDrop(event,activeDay,i)} key={stop.id}>
               <span className="dragHandle" draggable onDragStart={()=>{dragRef.current={day:activeDay,placeId:stop.placeId}}} onDragEnd={()=>{dragRef.current=null}} aria-label={`${stop.name} 순서 이동`} title="드래그해 순서 변경">⠿</span>
               <div className="stopTimeCard">{editingStop===stop.id?<input className="stopTime" value={stop.time} onChange={e=>updateStop(i,"time",e.target.value)} aria-label={`${stop.name} 시간 수정`}/>:<strong>{stop.time}</strong>}<small>{stop.recommendedTime==="morning"?"오전":stop.recommendedTime==="evening"?"저녁":"오후"}</small></div>

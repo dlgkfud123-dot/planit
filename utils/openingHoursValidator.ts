@@ -1,4 +1,4 @@
-import type { GeneratedStop, GeneratedDay } from "./itineraryGenerator";
+import type { GeneratedStop } from "./itineraryGenerator";
 
 export type ConflictResolutionProposal =
   | { type: "time_adjust"; newTime: string; label: string; description: string }
@@ -12,45 +12,67 @@ export type OpeningValidationResult = {
   proposals: ConflictResolutionProposal[];
 };
 
+export const CITY_TIMEZONE_MAP: Record<string, string> = {
+  서울: "Asia/Seoul", 부산: "Asia/Seoul", 제주: "Asia/Seoul",
+  도쿄: "Asia/Tokyo", 오사카: "Asia/Tokyo", 후쿠오카: "Asia/Tokyo", 교토: "Asia/Tokyo", 삿포로: "Asia/Tokyo",
+  방콕: "Asia/Bangkok", 푸껫: "Asia/Bangkok", 치앙마이: "Asia/Bangkok",
+  파리: "Europe/Paris", 로마: "Europe/Rome", 바르셀로나: "Europe/Madrid", 니스: "Europe/Paris", 암스테르담: "Europe/Amsterdam", 마드리드: "Europe/Madrid",
+  런던: "Europe/London", 에든버러: "Europe/London",
+  뉴욕: "America/New_York", 로스앤젤레스: "America/Los_Angeles", 호놀룰루: "Pacific/Honolulu", 샌프란시스코: "America/Los_Angeles", 마이애미: "America/New_York",
+  시드니: "Australia/Sydney", 멜버른: "Australia/Melbourne",
+};
+
+export function getCityTimezone(destination: string): string {
+  return CITY_TIMEZONE_MAP[destination] || "Asia/Seoul";
+}
+
 const DAY_NAMES = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
 
-export function parseOpeningHoursRule(openingHoursText: string, dateStr: string, timeStr: string): {
-  status: "open" | "closed" | "closing_soon" | "unknown";
-  message?: string;
-} {
-  if (!openingHoursText || openingHoursText.includes("상시") || openingHoursText.includes("24시간")) {
+export function parseOpeningHoursRule(
+  openingHoursText: string,
+  dateStr: string,
+  timeStr: string,
+  destination: string = "서울"
+): { status: "open" | "closed" | "closing_soon" | "unknown"; message?: string } {
+  if (!openingHoursText || openingHoursText.trim() === "" || openingHoursText.includes("변동") || openingHoursText.includes("사전 문의")) {
+    return { status: "unknown", message: "정적 데이터 기준 운영시간 정보 미비" };
+  }
+
+  if (openingHoursText.includes("상시") || openingHoursText.includes("24시간")) {
     return { status: "open" };
   }
 
-  // Parse Day of Week Closed Days
+  const timeZone = getCityTimezone(destination);
   let targetDayOfWeek = -1;
+
   try {
-    const d = new Date(dateStr);
+    const d = new Date(`${dateStr}T${timeStr}:00`);
     if (!isNaN(d.getTime())) {
-      targetDayOfWeek = d.getDay();
+      const dayFormatter = new Intl.DateTimeFormat("en-US", { weekday: "narrow", timeZone });
+      const dayStr = dayFormatter.format(d);
+      const dayMap: Record<string, number> = { S: 0, M: 1, T: 2, W: 3, Th: 4, F: 5, Sa: 6 };
+      targetDayOfWeek = d.getDay(); // fallback
     }
   } catch {
-    // ignore
+    targetDayOfWeek = -1;
   }
 
   if (targetDayOfWeek >= 0) {
     const dayName = DAY_NAMES[targetDayOfWeek];
     if (openingHoursText.includes(`${dayName} 휴무`) || openingHoursText.includes(`${dayName.replace("요일", "")}요일 휴무`)) {
-      return { status: "closed", message: `${dayName} 정기 휴무일입니다.` };
+      return { status: "closed", message: `${dayName} 정기 휴무일입니다. (정적 데이터 기준)` };
     }
-    if (openingHoursText.includes("연중무휴")) {
-      // open
-    } else if (targetDayOfWeek === 1 && openingHoursText.includes("월요일 휴무")) {
-      return { status: "closed", message: "월요일 정기 휴무일입니다." };
-    } else if (targetDayOfWeek === 2 && openingHoursText.includes("화요일 휴무")) {
-      return { status: "closed", message: "화요일 정기 휴무일입니다." };
+    if (targetDayOfWeek === 1 && openingHoursText.includes("월요일 휴무")) {
+      return { status: "closed", message: "월요일 정기 휴무일입니다. (정적 데이터 기준)" };
+    }
+    if (targetDayOfWeek === 2 && openingHoursText.includes("화요일 휴무")) {
+      return { status: "closed", message: "화요일 정기 휴무일입니다. (정적 데이터 기준)" };
     }
   }
 
-  // Parse Opening Time Range (e.g. "09:00–18:00")
   const match = openingHoursText.match(/(\d{1,2}:\d{2})\s*[–~-]\s*(\d{1,2}:\d{2})/);
   if (!match) {
-    return { status: "unknown" }; // Cannot parse exact range safely
+    return { status: "unknown", message: "운영시간 문자열 구문 미해석 (안전 처리)" };
   }
 
   const [, openTime, closeTime] = match;
@@ -60,18 +82,28 @@ export function parseOpeningHoursRule(openingHoursText: string, dateStr: string,
   const [visitHour, visitMin] = timeStr.split(":").map(Number);
   const visitMinutes = visitHour * 60 + visitMin;
   const openMinutes = openHour * 60 + openMin;
-  const closeMinutes = closeHour * 60 + closeMin;
+  let closeMinutes = closeHour * 60 + closeMin;
 
-  if (visitMinutes < openMinutes) {
-    return { status: "closed", message: `운영시간 전입니다. (${openTime} 개장)` };
+  // Handle midnight / overnight (e.g., 18:00 - 02:00 next day)
+  if (closeMinutes < openMinutes) {
+    closeMinutes += 24 * 60;
   }
 
-  if (visitMinutes >= closeMinutes) {
-    return { status: "closed", message: `운영시간이 종료되었습니다. (${closeTime} 마감)` };
+  let effectiveVisitMinutes = visitMinutes;
+  if (visitMinutes < openMinutes && visitMinutes < 6 * 60 && closeMinutes > 24 * 60) {
+    effectiveVisitMinutes += 24 * 60;
   }
 
-  if (closeMinutes - visitMinutes <= 45) {
-    return { status: "closing_soon", message: `방문 예정 시간에 마감이 임박합니다. (${closeTime} 마감)` };
+  if (effectiveVisitMinutes < openMinutes) {
+    return { status: "closed", message: `운영시간 전입니다. (${openTime} 개장 정적 기준)` };
+  }
+
+  if (effectiveVisitMinutes >= closeMinutes) {
+    return { status: "closed", message: `운영시간이 종료되었습니다. (${closeTime} 마감 정적 기준)` };
+  }
+
+  if (closeMinutes - effectiveVisitMinutes <= 45) {
+    return { status: "closing_soon", message: `방문 예정 시간에 마감이 임박합니다. (${closeTime} 마감 정적 기준)` };
   }
 
   return { status: "open" };
@@ -81,31 +113,24 @@ export function validateStopOpening(
   stop: GeneratedStop,
   dateStr: string,
   dayStops: GeneratedStop[],
-  stopIndex: number
+  stopIndex: number,
+  destination: string = "서울"
 ): OpeningValidationResult {
-  const result = parseOpeningHoursRule(stop.openingHours, dateStr, stop.time);
+  const result = parseOpeningHoursRule(stop.openingHours, dateStr, stop.time, destination);
 
-  if (result.status === "open") {
-    return { isValid: true, status: "open", proposals: [] };
-  }
-
-  if (result.status === "unknown") {
-    return { isValid: true, status: "unknown", proposals: [] };
+  if (result.status === "open" || result.status === "unknown") {
+    return { isValid: true, status: result.status, message: result.message, proposals: [] };
   }
 
   const proposals: ConflictResolutionProposal[] = [];
-
-  // Safety constraint: Protected stops (user-added or core landmark)
   const isProtected = stop.userAdded || stop.isCoreLandmark;
 
-  // Tier 1: Time Auto-Adjust Proposal
   const match = stop.openingHours.match(/(\d{1,2}:\d{2})\s*[–~-]\s*(\d{1,2}:\d{2})/);
   if (match) {
     const [, openTime] = match;
     const [openH, openM] = openTime.split(":").map(Number);
     const targetStartMins = openH * 60 + openM;
 
-    // Check if shifting time to openTime creates a conflict with previous/next stop
     const prevStop = dayStops[stopIndex - 1];
     const nextStop = dayStops[stopIndex + 1];
 
@@ -127,40 +152,38 @@ export function validateStopOpening(
         type: "time_adjust",
         newTime: suggestedTime,
         label: `${suggestedTime}로 시간 조정 제안`,
-        description: `운영시간 시작인 ${suggestedTime}에 맞춰 시간을 변경합니다.`,
+        description: `운영시간 개장 시각인 ${suggestedTime}으로 변경을 제안합니다.`,
       });
     }
   }
 
-  // Tier 2: Same-Day Reorder Proposal (only if not protected or if swapping with unprotected stop)
   if (!isProtected && dayStops.length > 1) {
     dayStops.forEach((otherStop, idx) => {
       if (idx !== stopIndex && !otherStop.userAdded && !otherStop.isCoreLandmark) {
-        const otherRule = parseOpeningHoursRule(stop.openingHours, dateStr, otherStop.time);
+        const otherRule = parseOpeningHoursRule(stop.openingHours, dateStr, otherStop.time, destination);
         if (otherRule.status === "open") {
           proposals.push({
             type: "reorder",
             targetIndex: idx,
             targetName: otherStop.name,
             label: `${otherStop.name}와 순서 변경 제안`,
-            description: `${otherStop.time} 시간대의 ${otherStop.name}과 순서를 교체합니다.`,
+            description: `${otherStop.time} 시간대의 ${otherStop.name}과 순서 교체를 제안합니다.`,
           });
         }
       }
     });
   }
 
-  // Tier 3: Smart Replace Proposal
   proposals.push({
     type: "smart_replace",
     label: "다른 장소 추천 (Smart Replace)",
-    description: "같은 권역/테마의 운영 중인 대체 장소를 추천합니다.",
+    description: "같은 권역 및 테마의 대체 장소 3곳을 제안합니다.",
   });
 
   return {
     isValid: false,
     status: result.status,
-    message: result.message || "방문 예정 시간에는 운영하지 않습니다.",
+    message: result.message || "방문 예정 시간대 운영 불일치 (정적 데이터 기준)",
     proposals,
   };
 }
