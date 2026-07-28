@@ -1,4 +1,5 @@
 import BrandLogo from "../common/BrandLogo";
+import Header from "../layout/Header";
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -184,15 +185,7 @@ export default function InteractiveMapIntro() {
 
   return (
     <main className="landingWrapper">
-      <header className="mapHeader">
-        <div className="headerContainer">
-          <BrandLogo />
-          <nav className="homeServiceNav">
-            <Link href="/trips" className="navPill">내 여행</Link>
-            <Link href="/about" className="navPill active">EYRIA 소개</Link>
-          </nav>
-        </div>
-      </header>
+      <Header />
 
       <div className="landingMainContent">
         <section className="heroHeaderSection">

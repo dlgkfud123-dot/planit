@@ -1,28 +1,12 @@
-import BrandLogo from "../../components/common/BrandLogo";
 "use client";
 
-import Link from "next/link";
-import AccountActions from "../../components/auth/AccountActions";
+import Header from "../../components/layout/Header";
 import Footer from "../../components/layout/Footer";
 
 export default function AboutPage() {
   return (
     <main className="servicePage aboutWrapper">
-      {/* Header */}
-      <header className="serviceHeader aboutHeader">
-        <div className="aboutHeaderContainer">
-          <BrandLogo />
-          <nav className="aboutNav">
-            <Link href="/">새 여행</Link>
-            <Link href="/trips">내 여행</Link>
-            <Link href="/about" className="active">
-              EYRIA 소개
-            </Link>
-            <Link href="/contact">고객센터</Link>
-            <AccountActions />
-          </nav>
-        </div>
-      </header>
+      <Header activeNav="about" />
 
       <div className="aboutContent">
         {/* 1. Hero Section */}

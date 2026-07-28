@@ -47,7 +47,12 @@
   width: 13px;
   height: 13px;
 }
-.homeServiceNav{display:flex;gap:8px}
+
+.landingWrapper{position:relative;width:100%;min-height:100vh;min-height:100svh;background:var(--bg);font-family:Inter,"Noto Sans KR",sans-serif;display:flex;flex-direction:column;overflow-x:hidden}
+.mapHeader, .serviceHeader {flex:0 0 auto;position:relative;z-index:100;width:100%;padding:18px 0 10px}
+.headerContainer, .serviceHeaderContainer, .aboutHeaderContainer, .contactHeaderContainer, .privacyHeaderContainer, .termsHeaderContainer{max-width:1560px;width:calc(100% - 80px);margin:0 auto;padding:0 16px;display:flex;justify-content:space-between;align-items:center}
+
+.homeServiceNav{display:flex;align-items:center;gap:8px}
 .navPill{padding:8px 18px;border-radius:20px;font-size:13px;font-weight:600;text-decoration:none;color:#475569;background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(15,23,42,.03);transition:all .2s cubic-bezier(.16,1,.3,1)}
 .navPill:hover{background:#f8fafc;color:#316bff;border-color:#316bff;transform:translateY(-1px)}
 .navPill.active{background:#f1f5f9;color:#316bff;border-color:#e2e8f0;font-weight:700}

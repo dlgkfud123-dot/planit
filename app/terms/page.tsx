@@ -1,26 +1,12 @@
-import BrandLogo from "../../components/common/BrandLogo";
 "use client";
 
-import Link from "next/link";
-import AccountActions from "../../components/auth/AccountActions";
+import Header from "../../components/layout/Header";
 import Footer from "../../components/layout/Footer";
 
 export default function TermsPage() {
   return (
     <main className="servicePage termsWrapper">
-      {/* Header */}
-      <header className="serviceHeader termsHeader">
-        <div className="termsHeaderContainer">
-          <BrandLogo />
-          <nav className="termsNav">
-            <Link href="/">새 여행</Link>
-            <Link href="/trips">내 여행</Link>
-            <Link href="/about">EYRIA 소개</Link>
-            <Link href="/contact">고객센터</Link>
-            <AccountActions />
-          </nav>
-        </div>
-      </header>
+      <Header />
 
       <div className="termsContent">
         {/* Hero */}

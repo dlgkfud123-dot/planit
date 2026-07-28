@@ -1,4 +1,3 @@
-import BrandLogo from "../common/BrandLogo";
 "use client";
 
 import Link from "next/link";
@@ -8,6 +7,7 @@ import { useTripPersistence } from "../planner/useTripPersistence";
 import { useAuth } from "../auth/AuthProvider";
 import AccountActions from "../auth/AccountActions";
 import Footer from "../layout/Footer";
+import Header from "../layout/Header";
 import { cityByName } from "../../data/cities";
 
 function formatTimeAgo(dateString: string) {
@@ -117,16 +117,7 @@ export default function SavedTrips() {
 
   return (
     <main className="servicePage myJourneysWrapper">
-      <header className="serviceHeader myJourneysHeader">
-        <div className="myJourneysHeaderContainer">
-          <BrandLogo />
-          <nav className="myJourneysNav">
-            <Link href="/">새 여행</Link>
-            <Link href="/about">서비스 소개</Link>
-            <AccountActions />
-          </nav>
-        </div>
-      </header>
+      <Header activeNav="trips" />
 
       <div className="myJourneysContent">
         {/* 1. Hero Section - Prominent Travel Banner */}
