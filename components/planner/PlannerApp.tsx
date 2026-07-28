@@ -358,6 +358,7 @@ export default function PlannerApp(){
                 type="number"
                 min="1"
                 max="100"
+                step="1"
                 placeholder="-"
                 value={people === 0 ? "" : people}
                 onChange={e => setPeople(e.target.value ? Math.max(1, +e.target.value) : 0)}
@@ -368,7 +369,7 @@ export default function PlannerApp(){
               <input
                 type="number"
                 min="1"
-                step="5"
+                step="1"
                 placeholder="-"
                 value={budget === 0 ? "" : budget}
                 onChange={e => setBudget(e.target.value ? Math.max(1, +e.target.value) : 0)}
