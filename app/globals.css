@@ -726,6 +726,21 @@ button,a,input,select{font-family:inherit}button,a{ -webkit-tap-highlight-color:
   .featuredDestinationsGrid{grid-template-columns:repeat(2,1fr)}
 }
 
+/* Vertical World Map Section below Search Card */
+.mainWorldMapSection{width:100%;margin-top:36px;display:flex;flex-direction:column;gap:16px;align-items:center}
+.mapSectionHeader{text-align:center;display:flex;flex-direction:column;gap:4px}
+.mapSectionHeader h2{margin:0;font-size:18px;font-weight:800;color:#0F172A}
+.mapSectionHeader p{margin:0;font-size:13px;color:#64748B;font-weight:500}
+
+.mainMapContainer{width:100%;height:450px;border-radius:20px;overflow:hidden;border:1px solid #E2E8F0;box-shadow:0 8px 24px rgba(15,23,42,.06);background:#F8FAFC}
+
+@media(max-width:768px){
+  .mainWorldMapSection{margin-top:24px}
+  .mainMapContainer{height:320px;border-radius:16px}
+  .mapSectionHeader h2{font-size:16px}
+  .mapSectionHeader p{font-size:12px}
+}
+
 /* EYRIA v1.4 High-Fidelity UI Component Styles */
 .hifiUnifiedCard{padding:24px;border-radius:16px;background:#fff;border:1px solid #e2e8f0;box-shadow:0 12px 32px rgba(15,23,42,.08);display:flex;flex-direction:column;gap:16px}
 .cardHeaderLabel{font-size:13px;font-weight:700;color:#326cff;letter-spacing:-.01em}

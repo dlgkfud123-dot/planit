@@ -168,6 +168,18 @@ export default function InteractiveMapIntro() {
     }
   };
 
+  // Map pin selection handlers (preserving inputs)
+  const handleMapCitySelect = (city: TravelCity) => {
+    setSelectedCountry(city.country);
+    setSelectedCityName(city.name);
+    setFocusedCountry(city.country);
+    setCitiesVisible(true);
+  };
+
+  const handleMapCountrySelect = (country: string) => {
+    handleCountryChange(country);
+  };
+
   // Validation
   const isFormValid = Boolean(
     selectedCountry &&
@@ -455,6 +467,28 @@ export default function InteractiveMapIntro() {
           </div>
 
           {generationError && <p className="hifiErrorText">{generationError}</p>}
+        </section>
+
+        {/* 3. Secondary World Map Section (Placed vertically below search card) */}
+        <section className="mainWorldMapSection">
+          <div className="mapSectionHeader">
+            <h2>🗺️ 지도에서 직접 여행지 탐색하기</h2>
+            <p>핀을 클릭하면 상단 입력 카드의 국가와 도시가 자동으로 선택됩니다.</p>
+          </div>
+          <div className="mainMapContainer">
+            <MapCanvas
+              cities={availableCities}
+              focusedCountry={focusedCountry}
+              citiesVisible={citiesVisible}
+              hoveredCity={hoveredCity}
+              selected={selectedCity}
+              showRoute={false}
+              onCountrySelect={handleMapCountrySelect}
+              onSelect={handleMapCitySelect}
+              onCityHover={setHoveredCity}
+              onMoveComplete={() => {}}
+            />
+          </div>
         </section>
       </div>
 
