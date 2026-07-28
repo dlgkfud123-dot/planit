@@ -9,7 +9,7 @@ export type PlannerFormState={destination:string;origin:string;start:string;end:
 type Field=keyof PlannerFormState;
 type Action={type:"set";field:Field;value:PlannerFormState[Field]}|{type:"hydrate";value:Partial<PlannerFormState>};
 
-const initialState:PlannerFormState={destination:"서울",origin:"서울 (ICN)",start:"2026-08-14",end:"2026-08-18",people:2,budget:120,interest:"자연 · 도시",food:"현지 맛집 중심",stay:"편안한 호텔",wish:"",pace:2};
+const initialState:PlannerFormState={destination:"",origin:"",start:"",end:"",people:0,budget:0,interest:"자연 · 도시",food:"현지 맛집 중심",stay:"편안한 호텔",wish:"",pace:2};
 
 function reducer(state:PlannerFormState,action:Action):PlannerFormState{
   if(action.type==="hydrate")return{...state,...action.value};

@@ -11,6 +11,7 @@ import {validateStopOpening} from "../../utils/openingHoursValidator";
 import {findSmartCandidates,replaceSingleStop,type SmartCandidate} from "../../utils/smartReplaceEngine";
 import {supportedCityIds} from "../../data/cities";
 import {placesByCity,type Place} from "../../data/places";
+import {KOREA_AIRPORTS} from "../../data/airports";
 
 const PlannerMap = dynamic(() => import("./PlannerMap"), {
   ssr: false,
@@ -82,6 +83,10 @@ export default function PlannerApp(){
   const [weatherResult, setWeatherResult] = useState<WeatherDataResponse | null>(null);
   const [showCostDetails, setShowCostDetails] = useState(false);
   const [smartReplaceStopId, setSmartReplaceStopId] = useState<string | null>(null);
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  const [changeDestinationOpen, setChangeDestinationOpen] = useState(false);
+  const [budgetScope, setBudgetScope] = useState<"total" | "local">("total");
+  const isFormValid = Boolean(origin && destination && start && end && people > 0 && budget > 0);
   const dayCostSummary = useMemo(() => current ? calculateDayCostSummary(current.stops, people, destination) : null, [current, people, destination]);
   const executeSmartReplace = (stopIndex: number, newPlace: Place) => {
     const next = replaceSingleStop(plan, activeDay, stopIndex, newPlace, destination, pace);
@@ -114,16 +119,212 @@ export default function PlannerApp(){
     <header className="workspaceHeader"><BrandLogo /><div><strong>{destination} 여행</strong><span>{start} — {end} · {people}명</span><Link href="/trips">내 여행</Link><Link href="/">목적지 변경</Link><AccountActions/></div></header>
     <nav className="mobilePlannerNav"><button className={mobileTab==="conditions"?"active":""} onClick={()=>setMobileTab("conditions")}>여행 조건</button><button className={mobileTab==="schedule"?"active":""} onClick={()=>setMobileTab("schedule")}>일정</button><button className={mobileTab==="map"?"active":""} onClick={()=>setMobileTab("map")}>지도</button></nav>
     <div className="workspaceBody">
-      <aside className={`conditionPanel mobile-${mobileTab}`}><div className="conditionHeading"><span>AI TRIP BUILDER</span><h1>{destination} 여행을<br/>함께 설계해볼까요?</h1><p>조건을 바꾸면 AI가 동선과 예산을 다시 계산합니다.</p></div><form onSubmit={generate}>
-        <label>목적지<input value={destination} onChange={e=>setDestination(e.target.value)}/></label><label>출발지<input value={origin} onChange={e=>setOrigin(e.target.value)}/></label>
-        <div className="plannerFormRow"><label>시작일<input type="date" value={start} onChange={e=>setStart(e.target.value)}/></label><label>종료일<input type="date" min={start} value={end} onChange={e=>setEnd(e.target.value)}/></label></div>
-        <div className="plannerFormRow"><label>인원<input type="number" min="1" max="100" value={people} onChange={e=>setPeople(+e.target.value)}/></label><label>예산 (만원)<input type="number" min="10" step="10" value={budget} onChange={e=>setBudget(+e.target.value)}/></label></div>
-        <label>여행 템포<div className="segmented">{["여유롭게","균형 있게","알차게"].map((v,i)=><button type="button" className={tempo===v?"active":""} onClick={()=>{setTempo(v);setPace((i+1) as 1|2|3)}} key={v}>{v}</button>)}</div></label>
-        <label>관심 테마<select value={interest} onChange={e=>setInterest(e.target.value)}><option>자연 · 도시</option><option>휴양 · 미식</option><option>문화 · 예술</option><option>쇼핑 · 트렌드</option></select></label>
-        <div className="plannerFormRow"><label>음식 취향<select value={food} onChange={e=>setFood(e.target.value)}><option>현지 맛집 중심</option><option>미식 경험</option><option>가볍고 건강하게</option><option>채식 위주</option></select></label><label>숙소 취향<select value={stay} onChange={e=>setStay(e.target.value)}><option>편안한 호텔</option><option>감성 숙소</option><option>가성비 숙소</option><option>럭셔리 리조트</option></select></label></div>
-        <label>꼭 가고 싶은 장소<input value={wish} onChange={e=>setWish(e.target.value)} placeholder="장소를 쉼표로 구분해 입력"/></label><label>일정 강도<input type="range" min="1" max="3" value={pace} onChange={e=>setPace(Number(e.target.value) as 1|2|3)}/><span className="paceLabels"><small>느긋하게</small><small>균형 있게</small><small>촘촘하게</small></span></label>
-        <button className="createPlanButton" disabled={status==="loading"}>{status==="loading"?"AI가 여행을 설계하고 있어요":"✦ AI 일정 만들기"}</button>
-      </form></aside>
+      <aside className={`conditionPanel mobile-${mobileTab}`}>
+        <div className="conditionHeading">
+          <span>AI TRIP BUILDER</span>
+          <h1>{destination ? `${destination} 여행을` : "여행 계획을"}<br/>함께 설계해볼까요?</h1>
+          <p>조건을 바꾸면 AI가 동선과 예산을 다시 계산합니다.</p>
+        </div>
+        <form onSubmit={generate}>
+          {/* 1. 출발지 */}
+          <label>
+            출발 공항
+            <select value={origin} onChange={e => setOrigin(e.target.value)}>
+              <option value="">출발 공항 선택</option>
+              {KOREA_AIRPORTS.map(apt => (
+                <option key={apt.iata} value={apt.label}>{apt.label}</option>
+              ))}
+            </select>
+          </label>
+
+          {/* 2. 목적지 (변경 액션 제공, 삭제 불가) */}
+          <label className="destinationSelectLabel">
+            목적지
+            <div className="destinationValueBox">
+              <input
+                readOnly
+                value={destination}
+                placeholder="목적지 선택"
+                onClick={() => setChangeDestinationOpen(v => !v)}
+              />
+              <button
+                type="button"
+                className="changeDestBtn"
+                onClick={() => setChangeDestinationOpen(v => !v)}
+              >
+                {destination ? "목적지 변경" : "도시 선택"}
+              </button>
+            </div>
+          </label>
+
+          {changeDestinationOpen && (
+            <div className="destinationPickerTray">
+              <div className="destPickerHeader">
+                <strong>목적지 도시 선택</strong>
+                <button type="button" onClick={() => setChangeDestinationOpen(false)}>×</button>
+              </div>
+              <div className="destCityGrid">
+                {supportedCityIds.map(city => (
+                  <button
+                    key={city}
+                    type="button"
+                    className={destination === city ? "active" : ""}
+                    onClick={() => {
+                      setDestination(city);
+                      setChangeDestinationOpen(false);
+                      if (status === "unsupported") setStatus("empty");
+                    }}
+                  >
+                    {city}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 3. 시작일 / 종료일 */}
+          <div className="plannerFormRow">
+            <label>
+              시작일
+              <input
+                type="date"
+                value={start}
+                onChange={e => {
+                  setStart(e.target.value);
+                  if (end && e.target.value > end) setEnd("");
+                }}
+              />
+            </label>
+            <label>
+              종료일
+              <input
+                type="date"
+                min={start || undefined}
+                value={end}
+                onChange={e => setEnd(e.target.value)}
+              />
+            </label>
+          </div>
+
+          {/* 4. 인원 / 예산 */}
+          <div className="plannerFormRow">
+            <label>
+              인원 (명)
+              <input
+                type="number"
+                min="1"
+                max="100"
+                placeholder="예: 2명"
+                value={people || ""}
+                onChange={e => setPeople(e.target.value ? Math.max(1, +e.target.value) : 0)}
+              />
+            </label>
+            <label>
+              예산 (만원)
+              <input
+                type="number"
+                min="1"
+                step="5"
+                placeholder="예: 120"
+                value={budget || ""}
+                onChange={e => setBudget(e.target.value ? Math.max(1, +e.target.value) : 0)}
+              />
+            </label>
+          </div>
+
+          {/* 5. 여행 템포 */}
+          <label>
+            여행 템포
+            <div className="segmented">
+              {["여유롭게", "균형 있게", "알차게"].map((v, i) => (
+                <button
+                  type="button"
+                  className={tempo === v ? "active" : ""}
+                  onClick={() => { setTempo(v); setPace((i + 1) as 1 | 2 | 3); }}
+                  key={v}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+          </label>
+
+          {/* 6. 가고 싶은 장소 */}
+          <label>
+            꼭 가고 싶은 장소
+            <input
+              value={wish}
+              onChange={e => setWish(e.target.value)}
+              placeholder="장소를 쉼표로 구분해 입력 (선택)"
+            />
+          </label>
+
+          {/* 7. 상세 설정 (접이식) */}
+          <div className="advancedSettingsToggleWrap">
+            <button
+              type="button"
+              className="toggleAdvancedBtn"
+              onClick={() => setShowAdvancedSettings(v => !v)}
+            >
+              {showAdvancedSettings ? "상세 설정 접기 ▲" : "상세 설정 (선택) ▾"}
+            </button>
+          </div>
+
+          {showAdvancedSettings && (
+            <div className="advancedSettingsTray">
+              <label>
+                예산 적용 범위
+                <select value={budgetScope} onChange={e => setBudgetScope(e.target.value as "total" | "local")}>
+                  <option value="total">항공·숙박 포함 총예산</option>
+                  <option value="local">현지에서 사용할 여행 경비</option>
+                </select>
+              </label>
+              <label>
+                관심 테마
+                <select value={interest} onChange={e => setInterest(e.target.value)}>
+                  <option>자연 · 도시</option>
+                  <option>휴양 · 미식</option>
+                  <option>문화 · 예술</option>
+                  <option>쇼핑 · 트렌드</option>
+                </select>
+              </label>
+              <div className="plannerFormRow">
+                <label>
+                  음식 취향
+                  <select value={food} onChange={e => setFood(e.target.value)}>
+                    <option>현지 맛집 중심</option>
+                    <option>미식 경험</option>
+                    <option>가볍고 건강하게</option>
+                    <option>채식 위주</option>
+                  </select>
+                </label>
+                <label>
+                  숙소 취향
+                  <select value={stay} onChange={e => setStay(e.target.value)}>
+                    <option>편안한 호텔</option>
+                    <option>감성 숙소</option>
+                    <option>가성비 숙소</option>
+                    <option>럭셔리 리조트</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* 8. 버튼 disabled 처리 및 validation 안내 */}
+          <button
+            className="createPlanButton"
+            disabled={status === "loading" || !isFormValid}
+          >
+            {status === "loading" ? "AI가 여행을 설계하고 있습니다..." : "✦ AI 일정 만들기"}
+          </button>
+          {!isFormValid && (
+            <p className="formValidationNotice">
+              출발지, 목적지, 일정 날짜, 인원, 예산을 모두 입력해 주세요.
+            </p>
+          )}
+        </form>
+      </aside>
       <section className={`scheduleWorkspace mobile-${mobileTab}`}>
         {status==="empty"&&<div className="plannerWelcome"><div className="welcomeRoute"><i/><i/><i/></div><span>EYRIA AI PLANNER</span><h2>여행 조건을 알려주시면<br/>이동까지 자연스러운 하루를 만들어요.</h2><p>{generationError||"일정은 언제든 직접 수정할 수 있습니다."}</p></div>}
         {status==="unsupported"&&<div className="plannerUnsupported"><span>장소 데이터 준비 중</span><h2>{destination} 일정은 아직 만들 수 없어요.</h2><p>{generationError}<br/>가짜 장소를 만들지 않고, 실제 장소가 준비된 도시만 안내하고 있습니다.</p><strong>현재 일정 생성 가능 도시</strong><div>{supportedCityIds.map(city=><button key={city} onClick={()=>{setDestination(city);setStatus("empty");setGenerationError("")}}>{city}</button>)}</div></div>}
