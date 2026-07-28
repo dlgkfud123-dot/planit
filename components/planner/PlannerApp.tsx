@@ -12,6 +12,13 @@ import {findSmartCandidates,replaceSingleStop,type SmartCandidate} from "../../u
 import {supportedCityIds} from "../../data/cities";
 import {placesByCity,type Place} from "../../data/places";
 import {KOREA_AIRPORTS} from "../../data/airports";
+import {
+  DESTINATION_COUNTRIES,
+  POPULAR_CITIES,
+  addRecentDestination,
+  getRecentDestinations,
+  searchDestinations,
+} from "../../data/destinationData";
 
 const PlannerMap = dynamic(() => import("./PlannerMap"), {
   ssr: false,
@@ -110,6 +117,23 @@ export default function PlannerApp(){
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [changeDestinationOpen, setChangeDestinationOpen] = useState(false);
   const [budgetScope, setBudgetScope] = useState<"total" | "local">("total");
+  const [destSearchQuery, setDestSearchQuery] = useState("");
+  const [expandedCountries, setExpandedCountries] = useState<Set<string>>(new Set());
+  const [recentDestinations, setRecentDestinations] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (changeDestinationOpen) {
+      setRecentDestinations(getRecentDestinations());
+    }
+  }, [changeDestinationOpen]);
+
+  const handleSelectCity = (cityName: string) => {
+    setDestination(cityName);
+    addRecentDestination(cityName);
+    setChangeDestinationOpen(false);
+    setDestSearchQuery("");
+    if (status === "unsupported") setStatus("empty");
+  };
   const isFormValid = Boolean(origin && destination && start && end && people > 0 && budget > 0);
   const dayCostSummary = useMemo(() => current ? calculateDayCostSummary(current.stops, people, destination) : null, [current, people, destination]);
   const executeSmartReplace = (stopIndex: number, newPlace: Place) => {
@@ -161,23 +185,17 @@ export default function PlannerApp(){
             </select>
           </label>
 
-          {/* 2. 목적지 (변경 액션 제공, 삭제 불가) */}
+          {/* 2. 목적지 (입력 필드 클릭 시 레이어 오픈, [목적지 변경] 버튼 제거) */}
           <label className="destinationSelectLabel">
             목적지
             <div className="destinationValueBox">
               <input
                 readOnly
                 value={destination}
-                placeholder="목적지 선택"
+                placeholder="도시 선택"
+                className="destinationInputSelect"
                 onClick={() => setChangeDestinationOpen(v => !v)}
               />
-              <button
-                type="button"
-                className="changeDestBtn"
-                onClick={() => setChangeDestinationOpen(v => !v)}
-              >
-                {destination ? "목적지 변경" : "도시 선택"}
-              </button>
             </div>
           </label>
 
@@ -185,23 +203,125 @@ export default function PlannerApp(){
             <div className="destinationPickerTray">
               <div className="destPickerHeader">
                 <strong>목적지 도시 선택</strong>
-                <button type="button" onClick={() => setChangeDestinationOpen(false)}>×</button>
+                <button type="button" className="closeTrayBtn" onClick={() => setChangeDestinationOpen(false)}>×</button>
               </div>
-              <div className="destCityGrid">
-                {supportedCityIds.map(city => (
-                  <button
-                    key={city}
-                    type="button"
-                    className={destination === city ? "active" : ""}
-                    onClick={() => {
-                      setDestination(city);
-                      setChangeDestinationOpen(false);
-                      if (status === "unsupported") setStatus("empty");
-                    }}
-                  >
-                    {city}
-                  </button>
-                ))}
+
+              {/* 검색창 */}
+              <div className="destSearchWrap">
+                <input
+                  type="text"
+                  className="destSearchInput"
+                  placeholder="도시 또는 국가 검색"
+                  value={destSearchQuery}
+                  onChange={e => setDestSearchQuery(e.target.value)}
+                />
+              </div>
+
+              <div className="destPickerScrollContent">
+                {destSearchQuery.trim() ? (
+                  /* 검색 결과 */
+                  <div className="destSearchResultsList">
+                    {searchDestinations(destSearchQuery).map(city => (
+                      <button
+                        key={city.id}
+                        type="button"
+                        className={`destSearchResultItem ${destination === city.name ? "selected" : ""}`}
+                        onClick={() => handleSelectCity(city.name)}
+                      >
+                        <span className="cityName">{city.name}</span>
+                        <span className="countryBadge">{city.countryName}</span>
+                      </button>
+                    ))}
+                    {searchDestinations(destSearchQuery).length === 0 && (
+                      <p className="noDestSearchText">검색 결과가 없습니다.</p>
+                    )}
+                  </div>
+                ) : (
+                  /* 검색 미입력 시: 최근 선택 -> 인기 여행지 -> 국가별 여행지 (Collapsible) */
+                  <>
+                    {/* 최근 선택 */}
+                    {recentDestinations.length > 0 && (
+                      <div className="destTraySection">
+                        <span className="destTraySectionTitle">최근 선택</span>
+                        <div className="recentDestGrid">
+                          {recentDestinations.map(name => (
+                            <button
+                              key={name}
+                              type="button"
+                              className={`recentDestCard ${destination === name ? "active" : ""}`}
+                              onClick={() => handleSelectCity(name)}
+                            >
+                              {name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 인기 여행지 */}
+                    <div className="destTraySection">
+                      <span className="destTraySectionTitle">인기 여행지</span>
+                      <div className="popularDestGrid">
+                        {POPULAR_CITIES.map(city => (
+                          <button
+                            key={city.id}
+                            type="button"
+                            className={`popularDestCard ${destination === city.name ? "active" : ""}`}
+                            onClick={() => handleSelectCity(city.name)}
+                          >
+                            <span className="cityName">{city.name}</span>
+                            <span className="countryName">{city.countryName}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 전체 국가별 도시 (Collapsible) */}
+                    <div className="destTraySection">
+                      <span className="destTraySectionTitle">전체 국가별 도시</span>
+                      <div className="countryAccordionList">
+                        {DESTINATION_COUNTRIES.map(country => {
+                          const isExpanded = expandedCountries.has(country.code);
+                          return (
+                            <div key={country.code} className="countryAccordionGroup">
+                              <button
+                                type="button"
+                                className={`countryHeaderBtn ${isExpanded ? "open" : ""}`}
+                                onClick={() => {
+                                  setExpandedCountries(prev => {
+                                    const next = new Set(prev);
+                                    if (next.has(country.code)) next.delete(country.code);
+                                    else next.add(country.code);
+                                    return next;
+                                  });
+                                }}
+                              >
+                                <span className="countryNameText">{country.name}</span>
+                                <span className="cityCountTag">{country.cities.length}</span>
+                                <span className="accordionChevron">{isExpanded ? "▲" : "▼"}</span>
+                              </button>
+                              {isExpanded && (
+                                <div className="countryCityGrid">
+                                  {country.cities.map(city => (
+                                    <button
+                                      key={city.id}
+                                      type="button"
+                                      className={`countryCityCard ${destination === city.name ? "active" : ""}`}
+                                      onClick={() => handleSelectCity(city.name)}
+                                    >
+                                      <span className="cityName">{city.name}</span>
+                                      <span className="cityEn">{city.en}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}

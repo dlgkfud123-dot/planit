@@ -547,11 +547,27 @@ button,a,input,select{font-family:inherit}button,a{ -webkit-tap-highlight-color:
 .destinationSelectLabel{position:relative}
 .destinationValueBox{display:flex;gap:8px;align-items:center}
 .destinationValueBox input{flex:1;cursor:pointer}
-.changeDestBtn{padding:8px 12px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:#334155;font-size:12px;font-weight:700;white-space:nowrap;transition:all .18s ease}.changeDestBtn:hover{border-color:#326cff;color:#326cff;background:#f0f5ff}
-.destinationPickerTray{margin-top:6px;padding:12px 14px;border:1px solid #cbd5e1;border-radius:12px;background:#fff;box-shadow:0 8px 24px rgba(15,23,42,.08);animation:planReveal .25s var(--plan-ease) both}
-.destPickerHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.destPickerHeader strong{font-size:12px;color:#1e293b}.destPickerHeader button{border:none;background:transparent;color:#64748b;font-size:16px;cursor:pointer}
-.destCityGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:6px;max-height:160px;overflow-y:auto}
-.destCityGrid button{padding:6px 8px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;color:#334155;font-size:11.5px;font-weight:600;transition:all .15s ease}.destCityGrid button:hover{border-color:#326cff;color:#326cff;background:#edf3ff}.destCityGrid button.active{border-color:#326cff;background:#326cff;color:#fff}
+.destinationInputSelect{cursor:pointer;background:#fff;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
+.destinationInputSelect:hover{border-color:#326cff}
+.destinationPickerTray{margin-top:6px;padding:14px;border:1px solid #cbd5e1;border-radius:14px;background:#fff;box-shadow:0 12px 32px rgba(15,23,42,.1);animation:planReveal .25s var(--plan-ease) both}
+.destPickerHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #f1f5f9}.destPickerHeader strong{font-size:13px;color:#0f172a;font-weight:700}.destPickerHeader .closeTrayBtn{border:none;background:transparent;color:#64748b;font-size:18px;font-weight:700;cursor:pointer;padding:2px 6px;line-height:1}
+.destSearchWrap{margin-bottom:12px}
+.destSearchInput{width:100%;height:38px;padding:0 12px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;font-size:13px;color:#0f172a;transition:all .18s ease}.destSearchInput:focus{outline:none;border-color:#326cff;background:#fff;box-shadow:0 0 0 3px rgba(50,108,255,.12)}
+.destPickerScrollContent{max-height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding-right:4px}
+.destSearchResultsList{display:flex;flex-direction:column;gap:6px}
+.destSearchResultItem{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;cursor:pointer;transition:all .15s ease}.destSearchResultItem:hover,.destSearchResultItem.selected{border-color:#326cff;background:#f0f5ff}.destSearchResultItem .cityName{font-size:13px;font-weight:700;color:#0f172a}.destSearchResultItem .countryBadge{font-size:11px;color:#64748b;font-weight:500}
+.noDestSearchText{font-size:12.5px;color:#94a3b8;text-align:center;padding:16px 0}
+.destTraySection{display:flex;flex-direction:column;gap:8px}
+.destTraySectionTitle{font-size:11.5px;font-weight:700;color:#64748b;letter-spacing:-.01em;display:block}
+.recentDestGrid{display:flex;flex-wrap:wrap;gap:6px}
+.recentDestCard{padding:6px 12px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;color:#1e293b;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s ease}.recentDestCard:hover,.recentDestCard.active{border-color:#326cff;background:#326cff;color:#fff}
+.popularDestGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(95px,1fr));gap:6px}
+.popularDestCard{padding:8px 10px;border:1px solid #e2e8f0;border-radius:9px;background:#fff;display:flex;flex-direction:column;align-items:flex-start;gap:2px;cursor:pointer;transition:all .15s ease}.popularDestCard:hover,.popularDestCard.active{border-color:#326cff;background:#f0f5ff}.popularDestCard.active{border-color:#326cff;box-shadow:inset 2px 0 0 #326cff}.popularDestCard .cityName{font-size:12.5px;font-weight:700;color:#0f172a}.popularDestCard .countryName{font-size:10.5px;color:#64748b}
+.countryAccordionList{display:flex;flex-direction:column;gap:6px}
+.countryAccordionGroup{border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;background:#fff}
+.countryHeaderBtn{width:100%;padding:10px 12px;border:none;background:#f8fafc;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:background .15s ease}.countryHeaderBtn:hover,.countryHeaderBtn.open{background:#edf4ff}.countryNameText{font-size:12.5px;font-weight:700;color:#1e293b}.cityCountTag{font-size:11px;color:#94a3b8;margin-left:auto;margin-right:8px;font-weight:500}.accordionChevron{font-size:10px;color:#64748b}
+.countryCityGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(85px,1fr));gap:6px;padding:10px;border-top:1px solid #e2e8f0;background:#fff}
+.countryCityCard{padding:7px 8px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;display:flex;flex-direction:column;align-items:flex-start;gap:1px;cursor:pointer;transition:all .15s ease}.countryCityCard:hover,.countryCityCard.active{border-color:#326cff;background:#326cff;color:#fff}.countryCityCard.active .cityEn,.countryCityCard:hover .cityEn{color:rgba(255,255,255,.8)}.countryCityCard .cityName{font-size:12px;font-weight:700}.countryCityCard .cityEn{font-size:9.5px;color:#94a3b8}
 .advancedSettingsToggleWrap{margin:4px 0 8px}
 .toggleAdvancedBtn{width:100%;padding:8px 12px;border:1px dashed #cbd5e1;border-radius:10px;background:#f8fafc;color:#64748b;font-size:12px;font-weight:650;transition:all .2s ease}.toggleAdvancedBtn:hover{border-color:#326cff;color:#326cff;background:#f0f5ff}
 .advancedSettingsTray{padding:12px 14px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;display:flex;flex-direction:column;gap:10px;margin-bottom:8px;animation:planReveal .25s var(--plan-ease) both}
