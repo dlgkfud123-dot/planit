@@ -669,6 +669,83 @@ button,a,input,select{font-family:inherit}button,a{ -webkit-tap-highlight-color:
 .mapSearchLink{display:inline-block;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;color:#2563eb;font-size:12.5px;font-weight:700;text-decoration:none;transition:all .18s ease}
 .mapSearchLink:hover{background:#edf4ff;border-color:#326cff}
 
+/* EYRIA v1.4 High-Fidelity UI Component Styles */
+.hifiUnifiedCard{padding:24px;border-radius:16px;background:#fff;border:1px solid #e2e8f0;box-shadow:0 12px 32px rgba(15,23,42,.08);display:flex;flex-direction:column;gap:16px}
+.cardHeaderLabel{font-size:13px;font-weight:700;color:#326cff;letter-spacing:-.01em}
+
+.hifiConditionSection{padding-top:12px;border-top:1px dashed #cbd5e1;display:flex;flex-direction:column;gap:12px}
+.hifiFormRow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hifiInputBlock{display:flex;flex-direction:column;gap:5px}
+.hifiInputBlock label{font-size:12px;font-weight:700;color:#475569}
+.hifiDateInput,.hifiBudgetInput,.counterInput{height:44px;padding:0 12px;border:1px solid #cbd5e1;border-radius:12px;background:#f8fafc;font-size:13px;color:#0f172a;font-weight:600;transition:all .18s ease}
+.hifiDateInput:focus,.hifiBudgetInput:focus,.counterInput:focus{outline:none;border-color:#326cff;background:#fff;box-shadow:0 0 0 3px rgba(50,108,255,.12)}
+
+.peopleCounterWrap{display:flex;align-items:center;gap:6px}
+.counterBtn{width:40px;height:44px;border:1px solid #cbd5e1;border-radius:10px;background:#f1f5f9;color:#1e293b;font-size:16px;font-weight:700;cursor:pointer;transition:all .15s ease}
+.counterBtn:hover:not(:disabled){background:#326cff;color:#fff;border-color:#326cff}
+.counterBtn:disabled{opacity:.4;cursor:not-allowed}
+.counterInput{width:100%;text-align:center}
+
+.formValidationNoticeText{font-size:11.5px;color:#ef4444;font-weight:600;text-align:center;margin:-4px 0 0}
+.formErrorNoticeText{font-size:12px;color:#ef4444;font-weight:700;text-align:center;margin:0}
+
+.heroCtaButton.disabled{background:#e2e8f0!important;color:#94a3b8!important;border:1px solid #cbd5e1!important;box-shadow:none!important;cursor:not-allowed!important;transform:none!important}
+.heroCtaButton.active{background:#326cff!important;color:#fff!important;font-weight:700!important;box-shadow:0 6px 20px rgba(50,108,255,.32)!important;cursor:pointer!important}
+.heroCtaButton.active:hover{background:#2563eb!important;transform:translateY(-1px)!important}
+
+/* Loading Overlay */
+.hifiLoadingOverlay{position:fixed;z-index:9999;inset:0;background:rgba(15,23,42,.65);backdrop-filter:blur(16px);display:grid;place-items:center;padding:24px}
+.hifiLoadingCard{width:min(480px,100%);padding:36px 30px;border-radius:20px;background:#fff;box-shadow:0 24px 60px rgba(15,23,42,.25);display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;animation:planReveal .3s cubic-bezier(.16,1,.3,1) both}
+.pulseRingGraphic{position:relative;width:64px;height:64px;display:grid;place-items:center}
+.pulseCore{width:28px;height:28px;border-radius:50%;background:#326cff;box-shadow:0 0 0 10px rgba(50,108,255,.18);animation:hifiPulse 1.4s ease-in-out infinite}
+@keyframes hifiPulse{0%{transform:scale(.9);box-shadow:0 0 0 4px rgba(50,108,255,.3)}50%{transform:scale(1.1);box-shadow:0 0 0 16px rgba(50,108,255,.06)}100%{transform:scale(.9);box-shadow:0 0 0 4px rgba(50,108,255,.3)}}
+.hifiLoadingCard h2{font-size:18px;font-weight:800;color:#0f172a;margin:0;line-height:1.4}
+.loadingStepMessage{font-size:13.5px;color:#2563eb;font-weight:700;margin:0;min-height:22px}
+.loadingProgressTrack{width:100%;height:6px;border-radius:999px;background:#e2e8f0;overflow:hidden}
+.loadingProgressFill{height:100%;background:linear-gradient(90deg,#326cff,#60a5fa);width:85%;border-radius:999px;animation:progressIndet 1.8s ease-in-out infinite}
+@keyframes progressIndet{0%{width:10%;transform:translateX(0)}50%{width:75%;transform:translateX(20%)}100%{width:100%;transform:translateX(0)}}
+.loadingTripInfoBadge{font-size:11.5px;color:#64748b;font-weight:600;padding:5px 12px;border-radius:8px;background:#f1f5f9}
+
+/* Planner V2 Layout & Header Summary Bar */
+.v2PureEditor{display:flex;flex-direction:column;min-height:100vh;background:#f8fafc}
+.v2Header{height:64px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;background:#fff;border-bottom:1px solid #e2e8f0}
+.v2SummaryBar{display:flex;align-items:center;gap:8px}
+.v2SummaryBar span{padding:6px 12px;border-radius:10px;font-size:12.5px;font-weight:700}
+.destPill{background:#edf4ff;color:#2563eb}
+.datePill{background:#fef3c7;color:#b45309}
+.peoplePill,.budgetPill{background:#f1f5f9;color:#334155}
+.tweakSettingsBtn{border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:#475569;font-size:12px;font-weight:700;padding:6px 12px;cursor:pointer;transition:all .18s ease}
+.tweakSettingsBtn:hover{border-color:#326cff;color:#326cff;background:#f0f5ff}
+
+.headerActionsGroup{display:flex;align-items:center;gap:8px}
+.saveTripBtn{padding:8px 14px;border:none;border-radius:10px;background:#326cff;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;transition:background .18s ease}
+.saveTripBtn:hover{background:#2563eb}
+.shareBtn{padding:8px 14px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:#334155;font-size:12.5px;font-weight:700;cursor:pointer;transition:all .18s ease}
+.shareBtn:hover{border-color:#326cff;color:#326cff}
+
+/* Settings Modal */
+.settingsModalOverlay{position:fixed;z-index:9000;inset:0;background:rgba(15,23,42,.5);backdrop-filter:blur(8px);display:grid;place-items:center;padding:20px}
+.settingsModalCard{width:min(460px,100%);padding:24px;border-radius:18px;background:#fff;box-shadow:0 20px 50px rgba(15,23,42,.18);display:flex;flex-direction:column;gap:16px}
+.modalHeader{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid #e2e8f0}.modalHeader h3{margin:0;font-size:16px;font-weight:800;color:#0f172a}.modalHeader button{border:none;background:transparent;font-size:20px;color:#64748b;cursor:pointer}
+.modalBody{display:flex;flex-direction:column;gap:12px}
+.modalBody label{font-size:12px;font-weight:700;color:#475569;display:flex;flex-direction:column;gap:4px}
+.modalBody input{height:42px;padding:0 12px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;font-size:13px;font-weight:600}
+.modalRow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modalFooter{display:flex;justify-content:flex-end;padding-top:12px;border-top:1px solid #e2e8f0}
+.closeModalBtn{padding:8px 16px;border:none;border-radius:10px;background:#326cff;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer}
+
+/* Refinement Chips Bar */
+.hifiActionChipsBar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 14px;border:1px solid #e2e8f0;border-radius:14px;background:#fff;margin-bottom:14px}
+.chipsBarLabel{font-size:12px;font-weight:700;color:#64748b}
+.refinementChipBtn{padding:6px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;color:#334155;font-size:12px;font-weight:650;cursor:pointer;transition:all .18s ease}
+.refinementChipBtn:hover{border-color:#326cff;color:#2563eb;background:#edf4ff}
+
+.v2FullEditorBody{display:grid;grid-template-columns:minmax(0,1fr) 480px;height:calc(100vh - 64px);overflow:hidden}
+@media(max-width:1024px){
+  .v2FullEditorBody{grid-template-columns:1fr}
+  .v2SummaryBar{flex-wrap:wrap}
+}
+
 @media(max-width:840px){
   .placeDetailInfoGrid{grid-template-columns:1fr}
 }
