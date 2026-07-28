@@ -1,3 +1,4 @@
+import BrandLogo from "../common/BrandLogo";
 "use client";
 
 import { FormEvent, useState } from "react";

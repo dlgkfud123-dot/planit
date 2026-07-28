@@ -1,3 +1,4 @@
+import BrandLogo from "../../components/common/BrandLogo";
 "use client";
 
 import Link from "next/link";
@@ -10,9 +11,7 @@ export default function PrivacyPage() {
       {/* Header */}
       <header className="serviceHeader privacyHeader">
         <div className="privacyHeaderContainer">
-          <Link href="/" className="workspaceBrand">
-            EYRIA <i>✦</i>
-          </Link>
+          <BrandLogo />
           <nav className="privacyNav">
             <Link href="/">새 여행</Link>
             <Link href="/trips">내 여행</Link>

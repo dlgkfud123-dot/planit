@@ -1,3 +1,4 @@
+import BrandLogo from "../common/BrandLogo";
 "use client";
 
 import Link from "next/link";
@@ -118,9 +119,7 @@ export default function SavedTrips() {
     <main className="servicePage myJourneysWrapper">
       <header className="serviceHeader myJourneysHeader">
         <div className="myJourneysHeaderContainer">
-          <Link href="/" className="workspaceBrand">
-            EYRIA <i>✦</i>
-          </Link>
+          <BrandLogo />
           <nav className="myJourneysNav">
             <Link href="/">새 여행</Link>
             <Link href="/about">서비스 소개</Link>

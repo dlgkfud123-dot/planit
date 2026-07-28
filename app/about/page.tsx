@@ -1,3 +1,4 @@
+import BrandLogo from "../../components/common/BrandLogo";
 "use client";
 
 import Link from "next/link";
@@ -10,9 +11,7 @@ export default function AboutPage() {
       {/* Header */}
       <header className="serviceHeader aboutHeader">
         <div className="aboutHeaderContainer">
-          <Link href="/" className="workspaceBrand">
-            EYRIA <i>✦</i>
-          </Link>
+          <BrandLogo />
           <nav className="aboutNav">
             <Link href="/">새 여행</Link>
             <Link href="/trips">내 여행</Link>

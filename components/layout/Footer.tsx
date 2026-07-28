@@ -1,3 +1,4 @@
+import BrandLogo from "../common/BrandLogo";
 import Link from "next/link";
 
 export default function Footer() {

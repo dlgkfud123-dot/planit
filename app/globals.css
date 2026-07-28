@@ -1,13 +1,52 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap');
 :root{--navy:#0f172a;--lime:#d7ff35;--line:#e2e8f0;--bg:#fafcfd;--card-bg:#ffffff;--shadow:0 4px 20px rgba(15,23,42,.04),0 1px 3px rgba(15,23,42,.02)}*{box-sizing:border-box}html,body{margin:0;padding:0;font-family:Inter,"Noto Sans KR",sans-serif;color:var(--navy);background:var(--bg)}button,input,select{font:inherit}button{cursor:pointer}
 *:focus-visible{outline:2px solid #316bff;outline-offset:2px}
-.brand{font-size:24px;font-weight:700;letter-spacing:-.02em;text-decoration:none;white-space:nowrap}.brand span{color:#316bff;margin-left:3px;font-size:.65em}
-
-.landingWrapper{position:relative;width:100%;min-height:100vh;min-height:100svh;background:var(--bg);font-family:Inter,"Noto Sans KR",sans-serif;display:flex;flex-direction:column;overflow-x:hidden}
-.mapHeader{flex:0 0 auto;position:relative;z-index:100;width:100%;padding:18px 0 10px}
-.headerContainer{max-width:1560px;width:calc(100% - 80px);margin:0 auto;padding:0 16px;display:flex;justify-content:space-between;align-items:center}
-.mapBrand{font-size:24px;font-weight:750;color:#0f172a;text-decoration:none;letter-spacing:-.02em}
-.mapBrand i{color:#316bff;font-style:normal;margin-left:2px}
+/* Unified Brand Logo Design System */
+.brandLogoLink {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.brandLogoLink:hover {
+  opacity: 0.85;
+}
+.brandLogo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+}
+.brandLogoText {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  font-size: 22px;
+  font-weight: 850;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  color: #0f172a;
+}
+.eyriaSparkleIcon {
+  width: 15px;
+  height: 15px;
+  color: #316bff;
+  flex-shrink: 0;
+  transform: translateY(-1px);
+}
+.brandLogo--large .brandLogoText {
+  font-size: 28px;
+}
+.brandLogo--large .eyriaSparkleIcon {
+  width: 18px;
+  height: 18px;
+}
+.brandLogo--small .brandLogoText {
+  font-size: 17px;
+}
+.brandLogo--small .eyriaSparkleIcon {
+  width: 13px;
+  height: 13px;
+}
 .homeServiceNav{display:flex;gap:8px}
 .navPill{padding:8px 18px;border-radius:20px;font-size:13px;font-weight:600;text-decoration:none;color:#475569;background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(15,23,42,.03);transition:all .2s cubic-bezier(.16,1,.3,1)}
 .navPill:hover{background:#f8fafc;color:#316bff;border-color:#316bff;transform:translateY(-1px)}
