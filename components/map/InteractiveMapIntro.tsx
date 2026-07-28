@@ -48,14 +48,6 @@ const continentGroups: { continent: string; countries: string[] }[] = [
   }
 ];
 
-// Quick featured destination choices (Matching Mockup Image)
-const featuredDestinations = [
-  { name: "후쿠오카", country: "일본", countryEn: "Fukuoka, Japan", image: "https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=600&q=80" },
-  { name: "도쿄", country: "일본", countryEn: "Tokyo, Japan", image: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=600&q=80" },
-  { name: "오사카", country: "일본", countryEn: "Osaka, Japan", image: "https://images.unsplash.com/photo-1590559899731-a382839e5549?w=600&q=80" },
-  { name: "파리", country: "프랑스", countryEn: "Paris, France", image: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=600&q=80" },
-];
-
 function checkShouldShowIntro(): boolean {
   if (typeof window === "undefined") return true;
   try {
@@ -176,13 +168,6 @@ export default function InteractiveMapIntro() {
     }
   };
 
-  const selectFeaturedCity = (cityName: string, countryName: string) => {
-    setSelectedCountry(countryName);
-    setSelectedCityName(cityName);
-    setFocusedCountry(countryName);
-    setCitiesVisible(true);
-  };
-
   // Validation
   const isFormValid = Boolean(
     selectedCountry &&
@@ -294,19 +279,19 @@ export default function InteractiveMapIntro() {
             <span>✦</span> Intelligent Itinerary Builder
           </div>
           <h1 className="heroTitle">
-            Build Your Perfect Trip with EYRIA
+            AI가 설계하는 나만의 완벽한 여행
           </h1>
           <p className="heroSubtitle">
             국가, 도시, 날짜, 인원, 예산을 한곳에서 바로 입력하여 완벽한 여행 일정을 만드세요.
           </p>
         </section>
 
-        {/* Horizontal Floating Search Bar Card (Matching Approved Mockup Image 100%) */}
+        {/* Clean Korean Horizontal Floating Search Bar Card */}
         <section className="hifiHeroCardWrapper">
           <div className="hifiHorizontalSearchCard">
-            {/* 1. Where to? (어디로?) */}
+            {/* 1. 여행지 선택 (국가 / 도시) */}
             <div className="hifiSearchCol whereCol">
-              <span className="colLabel">Where to?</span>
+              <span className="colLabel">여행지 (국가 / 도시)</span>
               <div className="destSelectGroup">
                 <div className="customSelectWrapper" ref={countryDropdownRef}>
                   <button
@@ -388,9 +373,9 @@ export default function InteractiveMapIntro() {
 
             <div className="hifiColDivider" />
 
-            {/* 2. When? (언제?) */}
+            {/* 2. 여행 기간 */}
             <div className="hifiSearchCol whenCol">
-              <span className="colLabel">When?</span>
+              <span className="colLabel">여행 기간</span>
               <div className="dateRangeGroup">
                 <input
                   type="date"
@@ -400,7 +385,6 @@ export default function InteractiveMapIntro() {
                     if (end && e.target.value > end) setEnd("");
                   }}
                   className="hifiInlineInput"
-                  placeholder="시작일"
                 />
                 <span className="dateDash">-</span>
                 <input
@@ -409,16 +393,15 @@ export default function InteractiveMapIntro() {
                   value={end}
                   onChange={(e) => setEnd(e.target.value)}
                   className="hifiInlineInput"
-                  placeholder="종료일"
                 />
               </div>
             </div>
 
             <div className="hifiColDivider" />
 
-            {/* 3. Who? (누구와?) */}
+            {/* 3. 여행 인원 */}
             <div className="hifiSearchCol whoCol">
-              <span className="colLabel">Who?</span>
+              <span className="colLabel">여행 인원</span>
               <div className="counterInlineGroup">
                 <button
                   type="button"
@@ -428,7 +411,7 @@ export default function InteractiveMapIntro() {
                 >
                   -
                 </button>
-                <span className="peopleCountText">{people > 0 ? `${people} Travelers` : "인원 선택"}</span>
+                <span className="peopleCountText">{people > 0 ? `${people}명` : "인원 입력"}</span>
                 <button
                   type="button"
                   onClick={() => setPeople((p) => (p === 0 ? 1 : p + 1))}
@@ -441,15 +424,15 @@ export default function InteractiveMapIntro() {
 
             <div className="hifiColDivider" />
 
-            {/* 4. Budget (예산) */}
+            {/* 4. 여행 예산 */}
             <div className="hifiSearchCol budgetCol">
-              <span className="colLabel">Budget</span>
+              <span className="colLabel">여행 예산</span>
               <div className="budgetInputInline">
                 <input
                   type="number"
                   min="1"
                   step="1"
-                  placeholder="예산 (만원)"
+                  placeholder="예산 입력"
                   value={budget === 0 ? "" : budget}
                   onChange={(e) => setBudget(e.target.value ? Math.max(1, +e.target.value) : 0)}
                   className="hifiInlineInput budgetValInput"
@@ -458,7 +441,7 @@ export default function InteractiveMapIntro() {
               </div>
             </div>
 
-            {/* 5. Build AI Itinerary CTA Button */}
+            {/* 5. AI 일정 만들기 CTA Button */}
             <div className="hifiSearchCol ctaCol">
               <button
                 type="button"
@@ -466,30 +449,9 @@ export default function InteractiveMapIntro() {
                 disabled={!isFormValid || isGenerating}
                 onClick={handleCreateItinerary}
               >
-                ✦ Build AI Itinerary
+                ✦ AI 일정 만들기
               </button>
             </div>
-          </div>
-
-          {/* Featured Destination Cards Grid (Matching Mockup Image) */}
-          <div className="featuredDestinationsGrid">
-            {featuredDestinations.map((dest) => (
-              <button
-                key={dest.name}
-                type="button"
-                className={`featuredDestCard ${selectedCityName === dest.name ? "selected" : ""}`}
-                onClick={() => selectFeaturedCity(dest.name, dest.country)}
-              >
-                <div className="destCardPhotoWrap">
-                  <img src={dest.image} alt={dest.name} />
-                  <div className="destCardBadge">Select</div>
-                </div>
-                <div className="destCardText">
-                  <strong>{dest.name}</strong>
-                  <small>{dest.countryEn}</small>
-                </div>
-              </button>
-            ))}
           </div>
 
           {!isFormValid && (
