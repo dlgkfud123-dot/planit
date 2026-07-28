@@ -51,6 +51,27 @@ export const readDraft=():TripSnapshot|null=>{
   try{const restored=restoreTripSnapshot(JSON.parse(localStorage.getItem(draftKey)||"null"));if(!restored&&localStorage.getItem(draftKey)){localStorage.removeItem(draftKey);lastRestoreError="자동 저장 일정을 복원하지 못해 안전하게 초기화했습니다."}return restored}
   catch{localStorage.removeItem(draftKey);lastRestoreError="자동 저장 일정이 손상되어 안전하게 초기화했습니다.";return null}
 };
+export const getDraftKey=(draftId:string)=>`eyria:planner-draft:${draftId}`;
+export const writeDraftById=(draftId:string,trip:TripSnapshot,activeDay=0,activeStop=0)=>{
+  if(typeof window==="undefined")return;
+  try{
+    const data={...trip,activeDay,activeStop};
+    localStorage.setItem(getDraftKey(draftId),JSON.stringify(data));
+    sessionStorage.setItem("eyria:active-draft-id",draftId);
+    writeDraft(trip);
+  }catch{}
+};
+export const readDraftById=(draftId:string):(TripSnapshot&{activeDay?:number;activeStop?:number})|null=>{
+  if(typeof window==="undefined")return null;
+  try{
+    const raw=localStorage.getItem(getDraftKey(draftId));
+    if(!raw)return readDraft();
+    const parsed=JSON.parse(raw);
+    const restored=restoreTripSnapshot(parsed);
+    if(!restored)return readDraft();
+    return{...restored,activeDay:typeof parsed.activeDay==="number"?parsed.activeDay:0,activeStop:typeof parsed.activeStop==="number"?parsed.activeStop:0};
+  }catch{return readDraft()}
+};
 export const encodeSharedTrip=async(trip:TripSnapshot)=>{const compressed=await new Response(new Blob([JSON.stringify(trip)]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer(),binary=Array.from(new Uint8Array(compressed),byte=>String.fromCharCode(byte)).join("");return btoa(binary).replaceAll("+","-").replaceAll("/","_").replaceAll("=","")};
 export const decodeSharedTrip=async(value:string):Promise<TripSnapshot|null>=>{try{const padded=value.replaceAll("-","+").replaceAll("_","/")+"=".repeat((4-value.length%4)%4),binary=atob(padded),bytes=Uint8Array.from(binary,char=>char.charCodeAt(0)),decompressed=await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"))).text(),restored=restoreTripSnapshot(JSON.parse(decompressed));if(!restored)lastRestoreError="공유 일정의 형식이 올바르지 않습니다.";return restored}catch{lastRestoreError="공유 일정을 복원하지 못했습니다.";return null}};
 export const downloadText=(filename:string,content:string,type:string)=>{const url=URL.createObjectURL(new Blob([content],{type})),anchor=document.createElement("a");anchor.href=url;anchor.download=filename;anchor.click();URL.revokeObjectURL(url)};

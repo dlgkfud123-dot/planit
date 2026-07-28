@@ -24,7 +24,7 @@ const PlannerMap = dynamic(() => import("./PlannerMap"), {
   ssr: false,
   loading: () => <div className="realPlannerMap" style={{ width: "100%", height: "100%", background: "#f8fafc" }} />
 });
-import {decodeSharedTrip,downloadText,encodeSharedTrip,readDraft,writeDraft,type TripSnapshot} from "../../utils/tripStorage";
+import {decodeSharedTrip,downloadText,encodeSharedTrip,readDraft,readDraftById,writeDraft,writeDraftById,type TripSnapshot} from "../../utils/tripStorage";
 import {usePlannerState,usePlannerUiState} from "./usePlannerState";
 import {useTripPersistence} from "./useTripPersistence";
 import AccountActions from "../auth/AccountActions";
@@ -49,24 +49,64 @@ export default function PlannerApp(){
   const{destination,setDestination,origin,setOrigin,start,setStart,end,setEnd,people,setPeople,budget,setBudget,tempo,setTempo,interest,setInterest,food,setFood,stay,setStay,wish,setWish,pace,setPace,hydrate}=usePlannerState();
   const{status,setStatus,loadingStep,setLoadingStep,plan,setPlan,generationError,setGenerationError,activeDay,setActiveDay,activeStop,setActiveStop,mobileTab,setMobileTab,addOpen,setAddOpen,placeQuery,setPlaceQuery,editNotice,setEditNotice,historyDepth,setHistoryDepth,editingStop,setEditingStop,openStopMenu,setOpenStopMenu,savedTripId,setSavedTripId,saveStatus,setSaveStatus,shareUrl,setShareUrl,source,setSource}=usePlannerUiState();
   const{authReady,isRemote,ensureId,save,find}=useTripPersistence();
-  const historyRef=useRef<GeneratedDay[][]>([]),dragRef=useRef<{day:number;placeId:string}|null>(null),addedIdRef=useRef(0),initializedRef=useRef(false);
+  const historyRef=useRef<GeneratedDay[][]>([]),dragRef=useRef<{day:number;placeId:string}|null>(null),addedIdRef=useRef(0),initializedRef=useRef(false),draftIdRef=useRef<string|null>(null);
+
+  const getPlaceDetailUrl=(stopPlaceId:string,stopIdx:number)=>{
+    const currentDraftId=savedTripId||draftIdRef.current||(draftIdRef.current=`draft_${Date.now()}_${Math.random().toString(36).substring(2,7)}`);
+    const snapshot:TripSnapshot={
+      schemaVersion:2,
+      id:currentDraftId,
+      title:`${destination} 여행`,
+      destination,origin,start,end,people,budget,tempo,interest,food,stay,pace,plan,
+      createdAt:new Date().toISOString(),
+      updatedAt:new Date().toISOString()
+    };
+    writeDraftById(currentDraftId,snapshot,activeDay,stopIdx);
+    const params=new URLSearchParams();
+    params.set("id",stopPlaceId);
+    params.set("draft",currentDraftId);
+    params.set("day",String(activeDay+1));
+    params.set("stop",String(stopIdx));
+    params.set("dest",destination);
+    if(savedTripId)params.set("saved",savedTripId);
+    return `/place?${params.toString()}`;
+  };
+
   useEffect(()=>{
     if(!authReady||initializedRef.current)return;
     initializedRef.current=true;
     let active=true;
     const timer=window.setTimeout(async()=>{
       const q=new URLSearchParams(location.search);
-      const shared=q.get("share"),saved=q.get("saved"),draftParam=q.get("draft");
+      const shared=q.get("share"),saved=q.get("saved");
+      const draftParam=q.get("draft")||(typeof sessionStorage!=="undefined"?sessionStorage.getItem("eyria:active-draft-id"):null);
+      const dayParam=q.get("day"),stopParam=q.get("stop"),replaceParam=q.get("replace");
       const isExistingTrip=Boolean(shared||saved||draftParam);
       setSource(shared?"shared":saved?"saved":draftParam?"draft":"new");
-      const snapshot:TripSnapshot|null=shared?await decodeSharedTrip(shared):saved?await find(saved):draftParam?readDraft():null;
+
+      const snapshot:(TripSnapshot&{activeDay?:number;activeStop?:number})|null=shared?await decodeSharedTrip(shared):saved?await find(saved):draftParam?readDraftById(draftParam):null;
       if(!active)return;
-      if(snapshot&&isExistingTrip){
+      if(snapshot&&isExistingTrip&&snapshot.plan&&snapshot.plan.length>0){
+        if(draftParam)draftIdRef.current=draftParam;
         setSavedTripId(saved?snapshot.id:null);
-        hydrate({destination:snapshot.destination,origin:snapshot.origin,start:snapshot.start,end:snapshot.end,people:snapshot.people,budget:snapshot.budget,interest:snapshot.interest,food:snapshot.food,stay:snapshot.stay,wish:"",pace:snapshot.pace});
+        hydrate({destination:snapshot.destination,origin:snapshot.origin,start:snapshot.start,end:snapshot.end,people:snapshot.people,budget:snapshot.budget,tempo:snapshot.tempo,interest:snapshot.interest,food:snapshot.food,stay:snapshot.stay,wish:"",pace:snapshot.pace});
         setPlan(snapshot.plan);
         setStatus("complete");
         setMobileTab("schedule");
+
+        const targetDay=dayParam?Math.max(0,Number(dayParam)-1):snapshot.activeDay??0;
+        const targetStop=stopParam?Math.max(0,Number(stopParam)):snapshot.activeStop??0;
+        const validDay=Math.min(targetDay,snapshot.plan.length-1);
+        setActiveDay(validDay);
+        setActiveStop(targetStop);
+
+        window.setTimeout(()=>{
+          const stopElems=document.querySelectorAll(".timelineList li");
+          const targetElem=stopElems[targetStop];
+          if(targetElem){
+            targetElem.scrollIntoView({behavior:"smooth",block:"center"});
+          }
+        },300);
         return;
       }
       const dest=q.get("destination"),s=q.get("style");
@@ -529,7 +569,7 @@ export default function PlannerApp(){
               <div className="stopTimeCard">{editingStop===stop.id?<input className="stopTime" value={stop.time} onChange={e=>updateStop(i,"time",e.target.value)} aria-label={`${stop.name} 시간 수정`}/>:<strong>{stop.time}</strong>}<small>{stop.recommendedTime==="morning"?"오전":stop.recommendedTime==="evening"?"저녁":"오후"}</small></div>
               <i>{i+1}</i>
               <div className="stopCardBody">
-                {editingStop===stop.id?<input className="stopName stopEditInput" value={stop.name} onChange={e=>updateStop(i,"name",e.target.value)} aria-label="장소명 수정"/>:<div className="stopTitleRow"><Link href={`/place?id=${stop.placeId}&day=${activeDay+1}&stop=${i}&dest=${destination}`}><strong>{stop.name}</strong></Link><span>{categoryNames[stop.category]}</span></div>}
+                {editingStop===stop.id?<input className="stopName stopEditInput" value={stop.name} onChange={e=>updateStop(i,"name",e.target.value)} aria-label="장소명 수정"/>:<div className="stopTitleRow"><Link href={getPlaceDetailUrl(stop.placeId,i)} onClick={()=>getPlaceDetailUrl(stop.placeId,i)}><strong>{stop.name}</strong></Link><span>{categoryNames[stop.category]}</span></div>}
                 <p className="stopMeta">{stop.transportFromPrevious&&`${stop.transportFromPrevious} ${stop.travelMinutes}분 · `}{stop.duration} · 약 {stop.costBreakdown ? formatCurrency(stop.costBreakdown.localTotalPerPerson, stop.costBreakdown.localCurrency) : `${stop.cost.toLocaleString()}원`}{stop.userAdded?" · 직접 추가":""}</p>
                 <em className="recommendationReason">✦ {recommendationReason(stop,interest,food)}</em>
 

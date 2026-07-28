@@ -14,6 +14,8 @@ export default function PlaceDetail() {
   const [dayParam, setDayParam] = useState<string | null>(null);
   const [stopParam, setStopParam] = useState<string | null>(null);
   const [destParam, setDestParam] = useState<string | null>(null);
+  const [draftParam, setDraftParam] = useState<string | null>(null);
+  const [savedParam, setSavedParam] = useState<string | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   function RouterHook() {
@@ -31,14 +33,68 @@ export default function PlaceDetail() {
       const day = q.get("day");
       const stop = q.get("stop");
       const dest = q.get("dest");
+      const draft = q.get("draft") || (typeof sessionStorage !== "undefined" ? sessionStorage.getItem("eyria:active-draft-id") : null);
+      const saved = q.get("saved");
 
       setDayParam(day);
       setStopParam(stop);
       setDestParam(dest);
+      setDraftParam(draft);
+      setSavedParam(saved);
       setPlace(places.find((item) => item.id === id) || null);
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
+
+  const handleBack = () => {
+    if (typeof window === "undefined") return;
+    const q = new URLSearchParams(location.search);
+    const returnTo = q.get("returnTo");
+    const draftId = q.get("draft") || sessionStorage.getItem("eyria:active-draft-id");
+    const savedId = q.get("saved");
+    const day = q.get("day");
+    const stop = q.get("stop");
+
+    // 1. Explicit returnTo path if provided
+    if (returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//")) {
+      window.location.href = returnTo;
+      return;
+    }
+
+    // 2. State-preserved return link with draft/saved ID and active DAY/stop
+    if (savedId || draftId) {
+      const params = new URLSearchParams();
+      if (savedId) params.set("saved", savedId);
+      if (draftId) params.set("draft", draftId);
+      if (day) params.set("day", day);
+      if (stop) params.set("stop", stop);
+      window.location.href = `/planner?${params.toString()}`;
+      return;
+    }
+
+    // 3. Fallback to browser history if same origin
+    if (window.history.length > 1) {
+      router?.back();
+    } else {
+      window.location.href = "/planner";
+    }
+  };
+
+  const handleReplaceAction = () => {
+    if (typeof window === "undefined") return;
+    const q = new URLSearchParams(location.search);
+    const draftId = q.get("draft") || sessionStorage.getItem("eyria:active-draft-id");
+    const savedId = q.get("saved");
+    const day = q.get("day");
+    const stop = q.get("stop");
+    const params = new URLSearchParams();
+    if (savedId) params.set("saved", savedId);
+    if (draftId) params.set("draft", draftId);
+    if (day) params.set("day", day);
+    if (stop) params.set("stop", stop);
+    if (place) params.set("replace", place.id);
+    window.location.href = `/planner?${params.toString()}`;
+  };
 
   if (place === undefined) {
     return <main className="detailLoading">장소 정보를 불러오는 중입니다...</main>;
@@ -48,9 +104,9 @@ export default function PlaceDetail() {
     return (
       <main className="detailLoading">
         <h1>장소를 찾을 수 없습니다.</h1>
-        <Link href="/planner" className="returnPlannerLink">
+        <button type="button" onClick={handleBack} className="returnPlannerLink">
           ← 일정으로 돌아가기
-        </Link>
+        </button>
       </main>
     );
   }
@@ -62,14 +118,6 @@ export default function PlaceDetail() {
 
   const backText = dayParam ? `← DAY ${dayParam} 일정으로 돌아가기` : "← 일정으로 돌아가기";
   const stopOrderText = stopParam ? `${Number(stopParam) + 1}번째 일정` : "";
-
-  const handleBack = () => {
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router?.back();
-    } else {
-      window.location.href = "/planner";
-    }
-  };
 
   return (
     <main className="placeDetailPage">
@@ -229,9 +277,9 @@ export default function PlaceDetail() {
             <button type="button" onClick={handleBack} className="primaryBackAction">
               {backText}
             </button>
-            <Link href="/planner" className="secondaryAction">
+            <button type="button" onClick={handleReplaceAction} className="secondaryAction">
               일정에서 다른 장소로 교체하기
-            </Link>
+            </button>
           </div>
 
           {/* 주변 추천 장소 */}
@@ -242,7 +290,7 @@ export default function PlaceDetail() {
                 {nearbyPlaces.map((np) => (
                   <Link
                     key={np.id}
-                    href={`/place?id=${np.id}&dest=${place.cityId}`}
+                    href={`/place?id=${np.id}&dest=${encodeURIComponent(place.cityId)}${draftParam ? `&draft=${draftParam}` : ""}${savedParam ? `&saved=${savedParam}` : ""}`}
                     className="nearbyItemCard"
                   >
                     <strong>{np.name}</strong>
