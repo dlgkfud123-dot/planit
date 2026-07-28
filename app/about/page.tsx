@@ -11,13 +11,13 @@ export default function AboutPage() {
       <header className="serviceHeader aboutHeader">
         <div className="aboutHeaderContainer">
           <Link href="/" className="workspaceBrand">
-            PLANIT <i>✦</i>
+            EYRIA <i>✦</i>
           </Link>
           <nav className="aboutNav">
             <Link href="/">새 여행</Link>
             <Link href="/trips">내 여행</Link>
             <Link href="/about" className="active">
-              PLANIT 소개
+              EYRIA 소개
             </Link>
             <Link href="/contact">고객센터</Link>
             <AccountActions />
@@ -34,7 +34,7 @@ export default function AboutPage() {
             스마트하게 설계합니다
           </h1>
           <p className="aboutHeroSubtitle">
-            PLANIT은 2,500개 이상의 검증된 장소 데이터와 실시간 도로 경로(OpenRouteService)
+            EYRIA는 2,500개 이상의 검증된 장소 데이터와 실시간 도로 경로(OpenRouteService)
             엔진을 기반으로 복잡한 여행 준비를 3초 만에 완벽한 일정 초안으로 완성합니다.
           </p>
         </section>
@@ -65,7 +65,7 @@ export default function AboutPage() {
         <section className="aboutFeaturesSection">
           <div className="sectionHeader">
             <span className="sectionTag">CORE FEATURES</span>
-            <h2>PLANIT이 제공하는 핵심 기능</h2>
+            <h2>EYRIA가 제공하는 핵심 기능</h2>
           </div>
           <div className="featuresGrid">
             <div className="featureCardItem">
@@ -170,7 +170,7 @@ export default function AboutPage() {
         <section className="aboutCtaSection">
           <div className="ctaBox">
             <h2>지금 나만의 완벽한 여행을 시작해보세요</h2>
-            <p>PLANIT과 함께라면 몇 번의 클릭만으로 잊지 못할 여정이 완성됩니다.</p>
+            <p>EYRIA와 함께라면 몇 번의 클릭만으로 잊지 못할 여정이 완성됩니다.</p>
             <Link href="/" className="ctaButton">
               ✦ 여행 일정 만들기
             </Link>

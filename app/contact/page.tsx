@@ -32,12 +32,12 @@ export default function ContactPage() {
       <header className="serviceHeader contactHeader">
         <div className="contactHeaderContainer">
           <Link href="/" className="workspaceBrand">
-            PLANIT <i>✦</i>
+            EYRIA <i>✦</i>
           </Link>
           <nav className="contactNav">
             <Link href="/">새 여행</Link>
             <Link href="/trips">내 여행</Link>
-            <Link href="/about">PLANIT 소개</Link>
+            <Link href="/about">EYRIA 소개</Link>
             <Link href="/contact" className="active">
               고객센터
             </Link>
@@ -52,7 +52,7 @@ export default function ContactPage() {
           <div className="heroBadge">HELP &amp; SUPPORT</div>
           <h1 className="contactHeroTitle">무엇을 도와드릴까요?</h1>
           <p className="contactHeroSubtitle">
-            PLANIT 서비스 이용 중 궁금한 점이 있거나 개선 의견이 있으시다면
+            EYRIA 서비스 이용 중 궁금한 점이 있거나 개선 의견이 있으시다면
             언제든 의견을 남겨주세요.
           </p>
         </section>
@@ -170,7 +170,7 @@ export default function ContactPage() {
                 <div className="channelItem">
                   <div>
                     <strong>공식 이메일</strong>
-                    <span>support@planit.app</span>
+                    <span>support@eyria.app</span>
                   </div>
                 </div>
 

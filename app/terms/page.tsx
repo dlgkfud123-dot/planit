@@ -11,12 +11,12 @@ export default function TermsPage() {
       <header className="serviceHeader termsHeader">
         <div className="termsHeaderContainer">
           <Link href="/" className="workspaceBrand">
-            PLANIT <i>✦</i>
+            EYRIA <i>✦</i>
           </Link>
           <nav className="termsNav">
             <Link href="/">새 여행</Link>
             <Link href="/trips">내 여행</Link>
-            <Link href="/about">PLANIT 소개</Link>
+            <Link href="/about">EYRIA 소개</Link>
             <Link href="/contact">고객센터</Link>
             <AccountActions />
           </nav>
@@ -31,7 +31,7 @@ export default function TermsPage() {
           </div>
           <h1 className="termsHeroTitle">서비스 이용약관</h1>
           <p className="termsHeroSubtitle">
-            PLANIT 서비스를 이용해주셔서 감사합니다. 본 약관은 PLANIT이 제공하는 여행 일정 설계 서비스의
+            EYRIA 서비스를 이용해주셔서 감사합니다. 본 약관은 EYRIA가 제공하는 여행 일정 설계 서비스의
             이용 조건 및 절차, 이용자와 서비스 간의 권리와 의무 사항을 안내합니다.
           </p>
           <span className="lastUpdated">최종 수정일: 2026년 7월 27일</span>
@@ -49,7 +49,7 @@ export default function TermsPage() {
                 </div>
               </div>
               <p className="policyDesc">
-                PLANIT은 목적지 및 여행 조건을 바탕으로 장소 큐레이션 및 경로 최적화 알고리즘을 활용하여
+                EYRIA는 목적지 및 여행 조건을 바탕으로 장소 큐레이션 및 경로 최적화 알고리즘을 활용하여
                 사용자에게 맞춤형 여행 일정 초안을 제공하고 편집할 수 있도록 돕는 서비스입니다.
               </p>
             </div>
@@ -77,7 +77,7 @@ export default function TermsPage() {
                 </div>
               </div>
               <p className="policyDesc">
-                PLANIT에서 제공되는 장소 운영시간, 예상 이동시간, 추정 비용 등의 정보는 정적 데이터베이스에 기반한
+                EYRIA에서 제공되는 장소 운영시간, 예상 이동시간, 추정 비용 등의 정보는 정적 데이터베이스에 기반한
                 <strong>참고용 데이터</strong>입니다.
               </p>
               <ul className="policyList">
@@ -95,11 +95,11 @@ export default function TermsPage() {
                 </div>
               </div>
               <p className="policyDesc">
-                PLANIT은 일정 기획 및 동선 구성 도구이며, 항공권, 숙박, 티켓 등의 <strong>직접적인 결제나 예약 중개 서비스를 제공하지 않습니다.</strong>
+                EYRIA는 일정 기획 및 동선 구성 도구이며, 항공권, 숙박, 티켓 등의 <strong>직접적인 결제나 예약 중개 서비스를 제공하지 않습니다.</strong>
               </p>
               <ul className="policyList">
                 <li>예약 및 결제 건은 각 항공사, 호텔, 여행사 등 해당 공식 판매처를 이용하셔야 합니다.</li>
-                <li>PLANIT은 제3자 예약 거래 시 발생하는 분쟁에 대해 책임을 지지 않습니다.</li>
+                <li>EYRIA는 제3자 예약 거래 시 발생하는 분쟁에 대해 책임을 지지 않습니다.</li>
               </ul>
             </div>
 
@@ -112,7 +112,7 @@ export default function TermsPage() {
                 </div>
               </div>
               <p className="policyDesc">
-                PLANIT은 향상된 서비스 제공을 위해 서비스 내용의 일부 또는 전부를 수정하거나 업데이트할 수 있으며,
+                EYRIA는 향상된 서비스 제공을 위해 서비스 내용의 일부 또는 전부를 수정하거나 업데이트할 수 있으며,
                 중대한 변경 사항이 있는 경우 웹사이트 공지를 통해 안내합니다.
               </p>
             </div>
@@ -128,7 +128,7 @@ export default function TermsPage() {
                 본 이용약관에 대해 문의 사항이나 개선 의견이 있으신 경우 언제든 고객지원 팀으로 연락주시기 바랍니다.
               </p>
               <div className="contactEmailPill">
-                <strong>문의 이메일:</strong> support@planit.app
+                <strong>문의 이메일:</strong> support@eyria.app
               </div>
             </div>
           </div>

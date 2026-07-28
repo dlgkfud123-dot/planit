@@ -41,7 +41,7 @@ export default function BrandOpeningIntro({
 
   if (stage === "done") return null;
 
-  const letters = ["P", "L", "A", "N", "I", "T"];
+  const letters = ["E", "Y", "R", "I", "A"];
 
   return (
     <div
@@ -77,7 +77,7 @@ export default function BrandOpeningIntro({
             transform: stage === "subtitle" || stage === "fadeout" ? "translateY(0)" : "translateY(4px)",
           }}
         >
-          Plan your journey.
+          Personal AI Travel Companion.
         </div>
       </div>
     </div>

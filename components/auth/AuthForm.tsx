@@ -43,7 +43,7 @@ export default function AuthForm() {
         <span>ACCOUNT</span>
         <h1>계정 저장은 설정 후 사용할 수 있어요.</h1>
         <p>현재는 기존처럼 이 브라우저에 안전하게 일정을 저장합니다.</p>
-        <Link href="/">PLANIT으로 돌아가기</Link>
+        <Link href="/">EYRIA으로 돌아가기</Link>
       </div>
     );
 
@@ -62,7 +62,7 @@ export default function AuthForm() {
 
   return (
     <form className="authCard" onSubmit={submit}>
-      <span>PLANIT ACCOUNT</span>
+      <span>EYRIA ACCOUNT</span>
       <h1>
         {mode === "login"
           ? "다시 여행을 이어가세요."

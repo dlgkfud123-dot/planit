@@ -12,7 +12,7 @@ export default function Footer() {
           <Link href="/contact">고객센터</Link>
         </div>
         <div className="footerCopyright">
-          © 2026 PLANIT. All rights reserved.
+          © 2026 EYRIA. All rights reserved.
         </div>
       </div>
     </footer>

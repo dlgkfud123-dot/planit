@@ -9,7 +9,7 @@ export default function GlobalError({ reset }: { error: Error & { digest?: strin
         <main className="servicePage releaseStatePage">
           <section className="savedEmpty releaseState" role="alert" aria-labelledby="global-error-title">
             <i aria-hidden="true">!</i>
-            <span>PLANIT</span>
+            <span>EYRIA</span>
             <h1 id="global-error-title">서비스를 불러오지 못했습니다.</h1>
             <p>잠시 후 다시 시도하거나 홈으로 이동해주세요.</p>
             <div className="releaseStateActions">

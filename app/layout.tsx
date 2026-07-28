@@ -3,9 +3,18 @@ import "./globals.css";
 import {AuthProvider} from "../components/auth/AuthProvider";
 
 export const metadata: Metadata = {
-  title: "PLANIT — 여행의 시작",
-  description: "목적지를 고르면 AI가 나만의 여행 일정을 설계합니다.",
-  openGraph: { title: "PLANIT", description: "여행의 시작을 더 가볍게", images: ["/og.png"] },
+  title: "EYRIA — Personal AI Travel Companion",
+  description: "Personal AI Travel Companion. EYRIA가 당신의 취향과 동선을 분석하여 완벽한 여행 일정을 인공지능으로 자동 생성합니다.",
+  openGraph: {
+    title: "EYRIA — Personal AI Travel Companion",
+    description: "Global AI Travel Planner & Personal Companion",
+    images: ["/og.png"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "EYRIA — Personal AI Travel Companion",
+    description: "Global AI Travel Planner & Personal Companion",
+  },
   icons: {
     icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
     shortcut: "/favicon.svg",

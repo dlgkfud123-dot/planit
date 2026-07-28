@@ -57,7 +57,7 @@ function checkShouldShowIntro(): boolean {
   try {
     const navEntries = performance.getEntriesByType("navigation");
     const isReload = navEntries.length > 0 && (navEntries[0] as PerformanceNavigationTiming).type === "reload";
-    const hasSeenSession = sessionStorage.getItem("planit_intro_seen_session");
+    const hasSeenSession = sessionStorage.getItem("eyria_intro_seen_session");
     if (!hasSeenSession || isReload) {
       return true;
     }
@@ -70,7 +70,7 @@ export default function InteractiveMapIntro() {
 
   const handleIntroComplete = useCallback(() => {
     if (typeof window !== "undefined") {
-      sessionStorage.setItem("planit_intro_seen_session", "true");
+      sessionStorage.setItem("eyria_intro_seen_session", "true");
     }
     setShowIntro(false);
   }, []);
@@ -185,12 +185,12 @@ export default function InteractiveMapIntro() {
     <main className="landingWrapper">
       <header className="mapHeader">
         <div className="headerContainer">
-          <Link href="/" className="mapBrand" aria-label="PLANIT 홈">
-            PLANIT <i>✦</i>
+          <Link href="/" className="mapBrand" aria-label="EYRIA 홈">
+            EYRIA <i>✦</i>
           </Link>
           <nav className="homeServiceNav">
             <Link href="/trips" className="navPill">내 여행</Link>
-            <Link href="/about" className="navPill active">PLANIT 소개</Link>
+            <Link href="/about" className="navPill active">EYRIA 소개</Link>
           </nav>
         </div>
       </header>

@@ -11,12 +11,12 @@ export default function PrivacyPage() {
       <header className="serviceHeader privacyHeader">
         <div className="privacyHeaderContainer">
           <Link href="/" className="workspaceBrand">
-            PLANIT <i>✦</i>
+            EYRIA <i>✦</i>
           </Link>
           <nav className="privacyNav">
             <Link href="/">새 여행</Link>
             <Link href="/trips">내 여행</Link>
-            <Link href="/about">PLANIT 소개</Link>
+            <Link href="/about">EYRIA 소개</Link>
             <Link href="/contact">고객센터</Link>
             <AccountActions />
           </nav>
@@ -31,7 +31,7 @@ export default function PrivacyPage() {
           </div>
           <h1 className="privacyHeroTitle">개인정보 처리방침</h1>
           <p className="privacyHeroSubtitle">
-            PLANIT은 사용자의 개인정보를 소중히 다루며, 투명하고 안전한 서비스를 제공하기 위해 최선을 다합니다.
+            EYRIA는 사용자의 개인정보를 소중히 다루며, 투명하고 안전한 서비스를 제공하기 위해 최선을 다합니다.
             본 방침은 Google OAuth 로그인 및 Supabase 기반 서비스 이용 시 수집되는 데이터와 보호 정책을 안내합니다.
           </p>
           <span className="lastUpdated">최종 수정일: 2026년 7월 27일</span>
@@ -49,7 +49,7 @@ export default function PrivacyPage() {
                 </div>
               </div>
               <p className="policyDesc">
-                PLANIT은 원활한 회원 서비스 제공 및 기기 간 여행 데이터 동기화를 위해
+                EYRIA는 원활한 회원 서비스 제공 및 기기 간 여행 데이터 동기화를 위해
                 Google OAuth 로그인 시 아래 최소한의 정보만을 수집합니다.
               </p>
               <ul className="policyList">
@@ -87,7 +87,7 @@ export default function PrivacyPage() {
                 </div>
               </div>
               <p className="policyDesc">
-                PLANIT은 세계적인 클라우드 인프라 기반의 보안 환경을 활용하여 회원 데이터를 암호화하여 저장합니다.
+                EYRIA는 세계적인 클라우드 인프라 기반의 보안 환경을 활용하여 회원 데이터를 암호화하여 저장합니다.
               </p>
               <ul className="policyList">
                 <li><strong>인증 처리 (Supabase Authentication)</strong>: Google OAuth 토큰 인증 및 보안 처리</li>
@@ -105,7 +105,7 @@ export default function PrivacyPage() {
                 </div>
               </div>
               <p className="policyDesc">
-                PLANIT은 사용자의 개인정보를 제3자에게 판매, 임대, 마케팅 용도로 제공하거나 공유하지 않습니다.
+                EYRIA는 사용자의 개인정보를 제3자에게 판매, 임대, 마케팅 용도로 제공하거나 공유하지 않습니다.
               </p>
               <ul className="policyList">
                 <li>원칙적으로 이용자의 개인정보를 외부에 판매하거나 상업적 용도로 제공하지 않습니다.</li>
@@ -125,7 +125,7 @@ export default function PrivacyPage() {
                 개인정보 처리방침에 관한 질문이나 데이터 삭제 요청은 아래 문의 채널로 연락주시면 즉시 조치해드립니다.
               </p>
               <div className="contactEmailPill">
-                <strong>문의 이메일:</strong> privacy@planit.app / support@planit.app
+                <strong>문의 이메일:</strong> privacy@eyria.app / support@eyria.app
               </div>
             </div>
           </div>

@@ -5,7 +5,7 @@ export type TripSnapshot={
   schemaVersion:typeof tripSchemaVersion;id:string;title:string;destination:string;origin:string;start:string;end:string;people:number;budget:number;tempo:string;interest:string;food:string;stay:string;pace:1|2|3;plan:GeneratedDay[];createdAt:string;updatedAt:string;
 };
 
-const savedKey="planit:saved-trips:v1",draftKey="planit:auto-draft:v1";
+const savedKey="eyria:saved-trips:v1",draftKey="eyria:auto-draft:v1";
 let lastRestoreError:string|null=null;
 export const getLastTripRestoreError=()=>lastRestoreError;
 

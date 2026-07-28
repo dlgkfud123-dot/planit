@@ -27,14 +27,14 @@ test("v1 저장 데이터를 schema v2로 마이그레이션한다",()=>{
 });
 
 test("손상된 자동 저장 데이터는 제거하고 복원 실패를 기록한다",()=>{
-  localStorage.setItem("planit:auto-draft:v1","{broken-json");
+  localStorage.setItem("eyria:auto-draft:v1","{broken-json");
   assert.equal(readDraft(),null);
-  assert.equal(localStorage.getItem("planit:auto-draft:v1"),null);
+  assert.equal(localStorage.getItem("eyria:auto-draft:v1"),null);
   assert.match(getLastTripRestoreError()??"",/손상|복원/);
 });
 
 test("저장 목록에서 유효하지 않은 항목만 제외한다",()=>{
-  localStorage.setItem("planit:saved-trips:v1",JSON.stringify([snapshot,{...snapshot,id:"bad",plan:[{label:"DAY 1"}]}]));
+  localStorage.setItem("eyria:saved-trips:v1",JSON.stringify([snapshot,{...snapshot,id:"bad",plan:[{label:"DAY 1"}]}]));
   const restored=readSavedTrips();
   assert.equal(restored.length,1);
   assert.equal(restored[0].id,"trip-1");

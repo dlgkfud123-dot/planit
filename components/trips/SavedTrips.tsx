@@ -63,8 +63,8 @@ export default function SavedTrips() {
       Boolean(
         user &&
           local.length &&
-          !localStorage.getItem(`planit:local-only:${user.id}`) &&
-          !sessionStorage.getItem(`planit:import-later:${user.id}`)
+          !localStorage.getItem(`eyria:local-only:${user.id}`) &&
+          !sessionStorage.getItem(`eyria:import-later:${user.id}`)
       )
     );
   }, [authReady, list, user]);
@@ -98,12 +98,12 @@ export default function SavedTrips() {
   };
 
   const deferImport = () => {
-    if (user) sessionStorage.setItem(`planit:import-later:${user.id}`, "1");
+    if (user) sessionStorage.setItem(`eyria:import-later:${user.id}`, "1");
     setShowImport(false);
   };
 
   const keepLocal = () => {
-    if (user) localStorage.setItem(`planit:local-only:${user.id}`, "1");
+    if (user) localStorage.setItem(`eyria:local-only:${user.id}`, "1");
     setShowImport(false);
   };
 
@@ -119,7 +119,7 @@ export default function SavedTrips() {
       <header className="serviceHeader myJourneysHeader">
         <div className="myJourneysHeaderContainer">
           <Link href="/" className="workspaceBrand">
-            PLANIT <i>✦</i>
+            EYRIA <i>✦</i>
           </Link>
           <nav className="myJourneysNav">
             <Link href="/">새 여행</Link>
@@ -154,7 +154,7 @@ export default function SavedTrips() {
               <div className="cloudIconBadge">☁️</div>
               <div className="loginValueText">
                 <h2>로그인하고 더 편리하게 여행을 관리하세요</h2>
-                <p>여행은 소중하니까, PLANIT이 안전하게 보관해 드릴게요.</p>
+                <p>여행은 소중하니까, EYRIA이 안전하게 보관해 드릴게요.</p>
               </div>
               <div className="loginFeatureGrid">
                 <div className="featureCard">

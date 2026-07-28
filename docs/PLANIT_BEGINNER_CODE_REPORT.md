@@ -1,13 +1,13 @@
-# PLANIT 초보 개발자를 위한 프로젝트 코드 분석 및 학습 가이드 보고서
+# EYRIA 초보 개발자를 위한 프로젝트 코드 분석 및 학습 가이드 보고서
 
-> **문서 안내**: 본 보고서는 React, Next.js, TypeScript를 처음 공부하는 초보 개발자가 **PLANIT** 서비스의 실제 코드를 통해 현대적인 웹 애플리케이션 구조, 상태 관리, AI 여행 일정 생성 알고리즘, 인터랙티브 세계지도 렌더링, 모바일 반응형 UX 설계 방식을 완벽하게 파악할 수 있도록 작성된 종합 학습 교재입니다.
+> **문서 안내**: 본 보고서는 React, Next.js, TypeScript를 처음 공부하는 초보 개발자가 **EYRIA** 서비스의 실제 코드를 통해 현대적인 웹 애플리케이션 구조, 상태 관리, AI 여행 일정 생성 알고리즘, 인터랙티브 세계지도 렌더링, 모바일 반응형 UX 설계 방식을 완벽하게 파악할 수 있도록 작성된 종합 학습 교재입니다.
 
 ---
 
 ## 1. 프로젝트 한눈에 보기
 
-### PLANIT 소개 및 서비스 목적
-**PLANIT(플랜잇)**은 여행자가 원하는 국가와 도시, 여행 기간, 예산, 인원, 여행 취향(미식, 자연, 쇼핑, 문화 등)을 선택하면 **AI 엔진 및 큐레이션 데이터베이스**를 기반으로 3초 만에 이동 동선과 장소별 추천 방문 시간대가 포함된 맞춤형 여행 일정 초안을 자동으로 생성해 주는 웹 서비스입니다.
+### EYRIA 소개 및 서비스 목적
+**EYRIA(플랜잇)**은 여행자가 원하는 국가와 도시, 여행 기간, 예산, 인원, 여행 취향(미식, 자연, 쇼핑, 문화 등)을 선택하면 **AI 엔진 및 큐레이션 데이터베이스**를 기반으로 3초 만에 이동 동선과 장소별 추천 방문 시간대가 포함된 맞춤형 여행 일정 초안을 자동으로 생성해 주는 웹 서비스입니다.
 
 ### 사용자 이용 흐름 (User Journey)
 1. **오프닝 브랜드 인트로**: 서비스 첫 진입 및 새로고침(F5) 시 Apple/Stripe 스타일의 미니멀 `P L A N I T` 알파벳 순차 등장 애니메이션 노출 (약 2초).
@@ -29,12 +29,12 @@
 ## 2. 프로젝트 폴더 구조
 
 ```text
-PLANIT_v1.0_pre_supabase/
+EYRIA_v1.0_pre_supabase/
 ├── app/                              # Next.js App Router (페이지 라우팅 & 최상위 레이아웃)
 │   ├── layout.tsx                    # 앱 전체 공통 HTML 구조 및 AuthProvider 감싸기
 │   ├── page.tsx                      # 메인 랜딩 페이지 (/)
 │   ├── globals.css                   # 전역 CSS 스타일 및 모바일 미디어 쿼리
-│   ├── about/page.tsx                # PLANIT 브랜드 소개 페이지 (/about)
+│   ├── about/page.tsx                # EYRIA 브랜드 소개 페이지 (/about)
 │   ├── contact/page.tsx              # 고객센터 문의 폼 및 채널 페이지 (/contact)
 │   ├── privacy/page.tsx              # 개인정보 처리방침 페이지 (/privacy)
 │   ├── terms/page.tsx                # 서비스 이용약관 페이지 (/terms)
@@ -81,7 +81,7 @@ PLANIT_v1.0_pre_supabase/
 │   ├── tripStorage.ts                # LocalStorage 읽기/쓰기 & JSON 압축
 │   └── tripPersistence.ts            # Supabase DB와 LocalStorage 듀얼 저장소 처리
 └── docs/                             # 프로젝트 가이드 및 학습 보고서
-    └── PLANIT_BEGINNER_CODE_REPORT.md
+    └── EYRIA_BEGINNER_CODE_REPORT.md
 ```
 
 ### 새로운 기능을 추가할 때 살펴볼 가이드
@@ -100,7 +100,7 @@ PLANIT_v1.0_pre_supabase/
 ### 서버 컴포넌트(RSC) vs 클라이언트 컴포넌트(`"use client"`)
 - Next.js App Router는 기본적으로 모든 컴포넌트를 **서버 컴포넌트**로 동작시킵니다.
 - 하지만 브라우저 상태(`useState`), 이벤트 처리(`onClick`), DOM 액세스(`window`, `sessionStorage`, `Leaflet`)가 필요한 컴포넌트 최상단에는 **`"use client"`** 구문을 작성하여 **클라이언트 컴포넌트**로 지정해야 합니다.
-- PLANIT의 `InteractiveMapIntro.tsx`, `PlannerApp.tsx`, `BrandOpeningIntro.tsx` 등은 모두 `"use client"`가 적용된 클라이언트 컴포넌트입니다.
+- EYRIA의 `InteractiveMapIntro.tsx`, `PlannerApp.tsx`, `BrandOpeningIntro.tsx` 등은 모두 `"use client"`가 적용된 클라이언트 컴포넌트입니다.
 
 ### Dynamic Import (`dynamic`)와 `ssr: false`
 - Leaflet.js 지도 라이브러리는 브라우저 전용 객체인 `window` 및 `document`를 직접 참조하므로, 서버 사이드 렌더링(SSR) 도중 실행되면 `window is not defined` 에러가 발생합니다.
@@ -113,7 +113,7 @@ const MapCanvas = dynamic(() => import("./MapCanvas"), {
 ```
 
 ### 접속 유형별 진입 타임라인
-1. **최초 접속 (First Visit)**: 브라우저가 HTML/CSS 다운로드 → `sessionStorage` 확인 → `planit_intro_seen_session` 없음 → `<BrandOpeningIntro>` 2.4초 오프닝 애니메이션 재생 → 메인 지도 화면 등장.
+1. **최초 접속 (First Visit)**: 브라우저가 HTML/CSS 다운로드 → `sessionStorage` 확인 → `eyria_intro_seen_session` 없음 → `<BrandOpeningIntro>` 2.4초 오프닝 애니메이션 재생 → 메인 지도 화면 등장.
 2. **새로고침 (F5 / Reload)**: `performance.getEntriesByType("navigation")[0].type === "reload"` 감지 → 오프닝 인트로 재재생 후 메인 화면 진입.
 3. **내부 페이지 이동 (SPA Link Navigation)**: `<Link href="/about">` 등으로 이동 시 윈도우 전체 재로드가 없으므로 세션 값이 유지되어 인트로 없이 즉시 해당 페이지로 이동.
 
@@ -277,10 +277,10 @@ useEffect(() => {
   if (typeof window === "undefined") return;
   const navEntries = performance.getEntriesByType("navigation");
   const isReload = navEntries.length > 0 && (navEntries[0] as PerformanceNavigationTiming).type === "reload";
-  const hasSeenSession = sessionStorage.getItem("planit_intro_seen_session");
+  const hasSeenSession = sessionStorage.getItem("eyria_intro_seen_session");
 
   if (!hasSeenSession || isReload) {
-    sessionStorage.setItem("planit_intro_seen_session", "true");
+    sessionStorage.setItem("eyria_intro_seen_session", "true");
     setShowIntro(true);
   }
 }, []);
@@ -441,7 +441,7 @@ export interface Place {
 
 ## 19. 프로젝트 최종 요약
 
-PLANIT은 **Next.js App Router**, **TypeScript**, **Leaflet.js**, **Supabase**를 활용하여 초보 개발자가 모던 웹 프론트엔드의 필수 개념(상태 관리, 클라이언트/서버 컴포넌트 구분, 지도 APIs, 모바일 반응형 UX)을 모두 배울 수 있는 우수한 실전 프로젝트 표준 교재입니다.
+EYRIA은 **Next.js App Router**, **TypeScript**, **Leaflet.js**, **Supabase**를 활용하여 초보 개발자가 모던 웹 프론트엔드의 필수 개념(상태 관리, 클라이언트/서버 컴포넌트 구분, 지도 APIs, 모바일 반응형 UX)을 모두 배울 수 있는 우수한 실전 프로젝트 표준 교재입니다.
 
 ---
 

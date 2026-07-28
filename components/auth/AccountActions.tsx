@@ -83,7 +83,7 @@ export default function AccountActions() {
         <div className="userDropdownMenu" role="menu">
           <div className="dropdownHeader">
             <span className="dropdownEmail">{user.email}</span>
-            <span className="dropdownBadge">PLANIT Member</span>
+            <span className="dropdownBadge">EYRIA Member</span>
           </div>
           <hr className="dropdownDivider" />
           <Link

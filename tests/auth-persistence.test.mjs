@@ -18,10 +18,10 @@ beforeEach(()=>localStorage.clear());
 test("이메일 회원가입·로그인·로그아웃은 비밀번호를 Supabase Auth에만 전달한다",async()=>{
   const calls=[];
   const client={auth:{signUp:async input=>{calls.push(["signup",input]);return{error:null}},signInWithPassword:async input=>{calls.push(["login",input]);return{error:null}},signOut:async()=>{calls.push(["logout"]);return{error:null}}}};
-  assert.equal((await signUpWithEmail(client,"a@planit.test","secret12")).error,null);
-  assert.equal((await signInWithEmail(client,"a@planit.test","secret12")).error,null);
+  assert.equal((await signUpWithEmail(client,"a@eyria.test","secret12")).error,null);
+  assert.equal((await signInWithEmail(client,"a@eyria.test","secret12")).error,null);
   assert.equal((await signOutUser(client)).error,null);
-  assert.deepEqual(calls,[['signup',{email:"a@planit.test",password:"secret12"}],['login',{email:"a@planit.test",password:"secret12"}],['logout']]);
+  assert.deepEqual(calls,[['signup',{email:"a@eyria.test",password:"secret12"}],['login',{email:"a@eyria.test",password:"secret12"}],['logout']]);
 });
 
 test("비로그인 Repository는 기존 localStorage 저장을 유지한다",async()=>{
