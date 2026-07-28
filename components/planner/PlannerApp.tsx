@@ -43,7 +43,31 @@ export default function PlannerApp(){
   const{status,setStatus,loadingStep,setLoadingStep,plan,setPlan,generationError,setGenerationError,activeDay,setActiveDay,activeStop,setActiveStop,mobileTab,setMobileTab,addOpen,setAddOpen,placeQuery,setPlaceQuery,editNotice,setEditNotice,historyDepth,setHistoryDepth,editingStop,setEditingStop,openStopMenu,setOpenStopMenu,savedTripId,setSavedTripId,saveStatus,setSaveStatus,shareUrl,setShareUrl,source,setSource}=usePlannerUiState();
   const{authReady,isRemote,ensureId,save,find}=useTripPersistence();
   const historyRef=useRef<GeneratedDay[][]>([]),dragRef=useRef<{day:number;placeId:string}|null>(null),addedIdRef=useRef(0),initializedRef=useRef(false);
-  useEffect(()=>{if(!authReady||initializedRef.current)return;initializedRef.current=true;let active=true;const timer=window.setTimeout(async()=>{const q=new URLSearchParams(location.search),shared=q.get("share"),saved=q.get("saved"),draft=q.get("draft");setSource(shared?"shared":saved?"saved":draft?"draft":"new");const snapshot:TripSnapshot|null=shared?await decodeSharedTrip(shared):saved?await find(saved):draft?readDraft():null;if(!active)return;if(snapshot){setSavedTripId(saved?snapshot.id:null);hydrate({destination:snapshot.destination,origin:snapshot.origin,start:snapshot.start,end:snapshot.end,people:snapshot.people,budget:snapshot.budget,interest:snapshot.interest,food:snapshot.food,stay:snapshot.stay,wish:"",pace:snapshot.pace});setPlan(snapshot.plan);setStatus("complete");setMobileTab("schedule");return}const dest=q.get("destination"),duration=q.get("duration"),p=q.get("people"),b=q.get("budget"),s=q.get("style"),n=nightsFrom(duration||"4");hydrate({...(dest?{destination:dest}:{}),end:new Date(new Date("2026-08-14").getTime()+n*86400000).toISOString().slice(0,10),...(p?{people:parseInt(p)||2}:{}),...(b?{budget:parseInt(b)||120}:{}),...(s?{interest:s}:{})})},0);return()=>{active=false;window.clearTimeout(timer)}},[authReady,find,hydrate,setMobileTab,setPlan,setSavedTripId,setSource,setStatus]);
+  useEffect(()=>{
+    if(!authReady||initializedRef.current)return;
+    initializedRef.current=true;
+    let active=true;
+    const timer=window.setTimeout(async()=>{
+      const q=new URLSearchParams(location.search);
+      const shared=q.get("share"),saved=q.get("saved"),draftParam=q.get("draft");
+      const isExistingTrip=Boolean(shared||saved||draftParam);
+      setSource(shared?"shared":saved?"saved":draftParam?"draft":"new");
+      const snapshot:TripSnapshot|null=shared?await decodeSharedTrip(shared):saved?await find(saved):draftParam?readDraft():null;
+      if(!active)return;
+      if(snapshot&&isExistingTrip){
+        setSavedTripId(saved?snapshot.id:null);
+        hydrate({destination:snapshot.destination,origin:snapshot.origin,start:snapshot.start,end:snapshot.end,people:snapshot.people,budget:snapshot.budget,interest:snapshot.interest,food:snapshot.food,stay:snapshot.stay,wish:"",pace:snapshot.pace});
+        setPlan(snapshot.plan);
+        setStatus("complete");
+        setMobileTab("schedule");
+        return;
+      }
+      const dest=q.get("destination"),p=q.get("people"),b=q.get("budget"),s=q.get("style");
+      hydrate({destination:dest||"",origin:"",start:"",end:"",people:p?parseInt(p)||0:0,budget:b?parseInt(b)||0:0,wish:"",...(s?{interest:s}:{})});
+      setStatus("empty");
+    },0);
+    return()=>{active=false;window.clearTimeout(timer)};
+  },[authReady,find,hydrate,setMobileTab,setPlan,setSavedTripId,setSource,setStatus]);
   useEffect(()=>{if(!editNotice)return;const timer=window.setTimeout(()=>setEditNotice(""),3200);return()=>window.clearTimeout(timer)},[editNotice,setEditNotice]);
   useEffect(()=>{
     if(!openStopMenu||window.matchMedia("(max-width: 700px)").matches)return;
@@ -215,7 +239,7 @@ export default function PlannerApp(){
                 min="1"
                 max="100"
                 placeholder="예: 2명"
-                value={people || ""}
+                value={people === 0 ? "" : people}
                 onChange={e => setPeople(e.target.value ? Math.max(1, +e.target.value) : 0)}
               />
             </label>
@@ -226,7 +250,7 @@ export default function PlannerApp(){
                 min="1"
                 step="5"
                 placeholder="예: 120"
-                value={budget || ""}
+                value={budget === 0 ? "" : budget}
                 onChange={e => setBudget(e.target.value ? Math.max(1, +e.target.value) : 0)}
               />
             </label>
