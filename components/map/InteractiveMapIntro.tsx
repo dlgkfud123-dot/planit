@@ -10,9 +10,7 @@ const MapCanvas = dynamic(() => import("./MapCanvas"), {
   loading: () => <div className="travelMap" style={{ width: "100%", height: "100%", background: "#f8fafc", borderRadius: "20px" }} />
 });
 
-const BrandOpeningIntro = dynamic(() => import("../intro/BrandOpeningIntro"), {
-  ssr: false,
-});
+import BrandOpeningIntro from "../intro/BrandOpeningIntro";
 
 export { cities } from "../../data/cities";
 
@@ -54,19 +52,27 @@ const continentGroups: { continent: string; countries: string[] }[] = [
   }
 ];
 
-export default function InteractiveMapIntro() {
-  const [showIntro, setShowIntro] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
+function checkShouldShowIntro(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
     const navEntries = performance.getEntriesByType("navigation");
     const isReload = navEntries.length > 0 && (navEntries[0] as PerformanceNavigationTiming).type === "reload";
     const hasSeenSession = sessionStorage.getItem("planit_intro_seen_session");
-
     if (!hasSeenSession || isReload) {
-      sessionStorage.setItem("planit_intro_seen_session", "true");
-      setShowIntro(true);
+      return true;
     }
+  } catch {}
+  return false;
+}
+
+export default function InteractiveMapIntro() {
+  const [showIntro, setShowIntro] = useState<boolean>(checkShouldShowIntro);
+
+  const handleIntroComplete = useCallback(() => {
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("planit_intro_seen_session", "true");
+    }
+    setShowIntro(false);
   }, []);
 
   const [selectedCountry, setSelectedCountry] = useState<string>("");
@@ -171,11 +177,12 @@ export default function InteractiveMapIntro() {
     window.location.href = `/planner?${p}`;
   };
 
+  if (showIntro) {
+    return <BrandOpeningIntro onComplete={handleIntroComplete} />;
+  }
+
   return (
     <main className="landingWrapper">
-      {showIntro && (
-        <BrandOpeningIntro onComplete={() => setShowIntro(false)} />
-      )}
       <header className="mapHeader">
         <div className="headerContainer">
           <Link href="/" className="mapBrand" aria-label="PLANIT 홈">
