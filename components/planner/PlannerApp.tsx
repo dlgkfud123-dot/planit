@@ -238,7 +238,7 @@ export default function PlannerApp(){
                 type="number"
                 min="1"
                 max="100"
-                placeholder="예: 2명"
+                placeholder="-"
                 value={people === 0 ? "" : people}
                 onChange={e => setPeople(e.target.value ? Math.max(1, +e.target.value) : 0)}
               />
@@ -249,7 +249,7 @@ export default function PlannerApp(){
                 type="number"
                 min="1"
                 step="5"
-                placeholder="예: 120"
+                placeholder="-"
                 value={budget === 0 ? "" : budget}
                 onChange={e => setBudget(e.target.value ? Math.max(1, +e.target.value) : 0)}
               />
