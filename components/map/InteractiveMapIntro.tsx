@@ -454,12 +454,6 @@ export default function InteractiveMapIntro() {
             </div>
           </div>
 
-          {!isFormValid && (
-            <p className="hifiNoticeText">
-              국가, 도시, 시작일, 종료일, 인원(명), 예산(만원)을 모두 입력하면 AI 일정을 생성할 수 있습니다.
-            </p>
-          )}
-
           {generationError && <p className="hifiErrorText">{generationError}</p>}
         </section>
       </div>
