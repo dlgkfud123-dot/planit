@@ -608,6 +608,70 @@ button,a,input,select{font-family:inherit}button,a{ -webkit-tap-highlight-color:
 @media(prefers-reduced-motion:reduce){.mapBrand,.mapBrand i,.homeServiceNav a,.countryMarker>span,.countryPreview,.mapSearchBox>span,.mapSearchBox:after{transition:none!important}}
 @media(min-width:701px){.stopActionMenu.opensAbove{top:auto;bottom:48px}.stopActionMenu:not(.opensAbove){top:48px;bottom:auto}}
 .planMain:has(.stopActionMenu){transform:none}.timelineList li{position:relative;z-index:0}.timelineList li:has(.stopActionMenu){z-index:60;overflow:visible}.timelineList li:has(.stopActionMenu) .stopMenuWrap{z-index:61}.timelineList li:has(.stopActionMenu) .stopActionMenu{z-index:62}
+
+/* EYRIA v1.4 Place Detail Redesign */
+.detailContextBar{background:#fff;border-bottom:1px solid #e2e8f0;padding:12px clamp(20px,5vw,72px)}
+.detailContextContainer{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:1180px;margin:0 auto}
+.backBtnLink{border:none;background:transparent;color:#326cff;font-size:13px;font-weight:700;cursor:pointer;padding:4px 8px;border-radius:8px;transition:all .18s ease}
+.backBtnLink:hover{background:#f0f5ff}
+.contextTagGroup{display:flex;align-items:center;gap:6px}
+.contextTagGroup span{padding:4px 10px;border-radius:8px;font-size:11.5px;font-weight:700}
+.destTag{background:#edf4ff;color:#2563eb}
+.dayTag{background:#fef3c7;color:#b45309}
+.orderTag{background:#f1f5f9;color:#475569}
+
+.placeVisualHasImage{position:relative;height:min(48vh,460px);overflow:hidden;background:#0f172a}
+.placeVisualHasImage .heroImg{object-fit:cover;opacity:.88}
+.placeVisualHasImage:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 20%,rgba(15,23,42,.85))}
+.visualOverlayContent{position:absolute;z-index:2;left:clamp(20px,5vw,72px);right:20px;bottom:36px;color:#fff}
+.badgeRow{display:flex;gap:8px;margin-bottom:8px}
+.categoryBadge{padding:4px 10px;border-radius:8px;background:#326cff;color:#fff;font-size:11.5px;font-weight:700}
+.districtBadge{padding:4px 10px;border-radius:8px;background:rgba(255,255,255,.2);color:#fff;backdrop-filter:blur(8px);font-size:11.5px;font-weight:600}
+.visualOverlayContent h1,.noImgVisualContent h1{margin:4px 0 8px;font-size:clamp(28px,4.5vw,46px);font-weight:800;letter-spacing:-.02em}
+.descSummary{max-width:720px;font-size:14.5px;line-height:1.65;opacity:.92;margin:0}
+
+.placeVisualNoImage{padding:40px clamp(20px,5vw,72px) 28px;background:#fff;border-bottom:1px solid #e2e8f0}
+.noImgVisualContent{max-width:1180px;margin:0 auto;color:#0f172a}
+.noImgVisualContent .districtBadge{background:#f1f5f9;color:#475569}
+
+.placeFactsGrid{width:min(1180px,calc(100% - 32px));margin:24px auto 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.factCard{padding:18px 20px;border:1px solid #e2e8f0;border-radius:14px;background:#fff;box-shadow:0 4px 16px rgba(15,23,42,.03)}
+.factCard small{font-size:11px;color:#64748b;font-weight:700;display:block;margin-bottom:4px}
+.factCard strong{font-size:15px;color:#0f172a;font-weight:700;display:block;margin-bottom:3px}
+.factCard p{font-size:11.5px;color:#64748b;margin:0}
+
+.placeGallerySection{width:min(1180px,calc(100% - 32px));margin:28px auto 0}
+.placeGallerySection h2{font-size:16px;font-weight:700;color:#0f172a;margin-bottom:12px}
+.galleryGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.galleryThumb{position:relative;height:120px;border-radius:12px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:all .18s ease}
+.galleryThumb.active,.galleryThumb:hover{border-color:#326cff;transform:scale(1.02)}
+.galleryThumb img{object-fit:cover}
+
+.placeDetailInfoGrid{width:min(1180px,calc(100% - 32px));margin:28px auto 70px;display:grid;grid-template-columns:1fr 340px;gap:24px}
+.mainGuideColumn{display:flex;flex-direction:column;gap:16px}
+.guideBlock{padding:22px 24px;border:1px solid #e2e8f0;border-radius:16px;background:#fff;box-shadow:0 4px 16px rgba(15,23,42,.03)}
+.guideBlock h3{font-size:15px;font-weight:700;color:#0f172a;margin:0 0 8px}
+.guideBlock p{font-size:13.5px;color:#334155;line-height:1.65;margin:0}
+.guideBlock .subTip{margin-top:8px;font-size:12.5px;color:#64748b}
+
+.sideActionColumn{display:flex;flex-direction:column;gap:18px}
+.detailActionTray,.nearbyPlacesBlock,.externalMapBlock{padding:20px;border:1px solid #e2e8f0;border-radius:16px;background:#fff}
+.detailActionTray h3,.nearbyPlacesBlock h3,.externalMapBlock h3{font-size:14px;font-weight:700;color:#0f172a;margin:0 0 12px}
+.primaryBackAction{width:100%;padding:12px;border:none;border-radius:10px;background:#326cff;color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:background .18s ease}
+.primaryBackAction:hover{background:#2563eb}
+.secondaryAction{display:block;width:100%;margin-top:8px;padding:10px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:#334155;font-size:12px;font-weight:700;text-align:center;text-decoration:none;transition:all .18s ease}
+.secondaryAction:hover{border-color:#326cff;color:#326cff;background:#f0f5ff}
+.nearbyList{display:flex;flex-direction:column;gap:8px}
+.nearbyItemCard{padding:10px 12px;border:1px solid #f1f5f9;border-radius:10px;background:#f8fafc;text-decoration:none;display:flex;flex-direction:column;gap:2px;transition:all .15s ease}
+.nearbyItemCard:hover{border-color:#326cff;background:#f0f5ff}
+.nearbyItemCard strong{font-size:12.5px;color:#0f172a}
+.nearbyItemCard small{font-size:11px;color:#64748b}
+.mapSearchLink{display:inline-block;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;color:#2563eb;font-size:12.5px;font-weight:700;text-decoration:none;transition:all .18s ease}
+.mapSearchLink:hover{background:#edf4ff;border-color:#326cff}
+
+@media(max-width:840px){
+  .placeDetailInfoGrid{grid-template-columns:1fr}
+}
 .cityPhotoFallback{display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(145deg,#dcecff,#f7fbff);color:#17314f;text-align:center}.cityPhotoFallback small{color:#4776d8!important;font-size:8px!important;font-weight:850;letter-spacing:1px}.cityPhotoFallback strong{margin-top:4px!important;font-size:12px!important}.countryMood>.cityPhotoFallback{position:absolute;inset:0;width:100%;height:100%}.cityChoiceCard>.cityPhotoFallback{width:86px;height:102px;border-radius:10px}.landmarkPreview.imageUnavailable:before,.countryPreview.imageUnavailable:before{content:"EYRIA";display:grid;place-items:center;width:100%;height:54px;border-radius:9px;background:linear-gradient(145deg,#dcecff,#f7fbff);color:#4776d8;font-size:8px;font-weight:850;letter-spacing:1px}@media(max-width:700px){.cityChoiceCard>.cityPhotoFallback{width:76px;height:92px}}
 
 /* Shared Desktop Application Shell for Planner Workspace (min-width: 1100px) */

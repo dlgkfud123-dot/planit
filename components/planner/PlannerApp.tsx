@@ -529,7 +529,7 @@ export default function PlannerApp(){
               <div className="stopTimeCard">{editingStop===stop.id?<input className="stopTime" value={stop.time} onChange={e=>updateStop(i,"time",e.target.value)} aria-label={`${stop.name} 시간 수정`}/>:<strong>{stop.time}</strong>}<small>{stop.recommendedTime==="morning"?"오전":stop.recommendedTime==="evening"?"저녁":"오후"}</small></div>
               <i>{i+1}</i>
               <div className="stopCardBody">
-                {editingStop===stop.id?<input className="stopName stopEditInput" value={stop.name} onChange={e=>updateStop(i,"name",e.target.value)} aria-label="장소명 수정"/>:<div className="stopTitleRow"><strong>{stop.name}</strong><span>{categoryNames[stop.category]}</span></div>}
+                {editingStop===stop.id?<input className="stopName stopEditInput" value={stop.name} onChange={e=>updateStop(i,"name",e.target.value)} aria-label="장소명 수정"/>:<div className="stopTitleRow"><Link href={`/place?id=${stop.placeId}&day=${activeDay+1}&stop=${i}&dest=${destination}`}><strong>{stop.name}</strong></Link><span>{categoryNames[stop.category]}</span></div>}
                 <p className="stopMeta">{stop.transportFromPrevious&&`${stop.transportFromPrevious} ${stop.travelMinutes}분 · `}{stop.duration} · 약 {stop.costBreakdown ? formatCurrency(stop.costBreakdown.localTotalPerPerson, stop.costBreakdown.localCurrency) : `${stop.cost.toLocaleString()}원`}{stop.userAdded?" · 직접 추가":""}</p>
                 <em className="recommendationReason">✦ {recommendationReason(stop,interest,food)}</em>
 
