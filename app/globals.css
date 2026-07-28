@@ -764,9 +764,17 @@ button,a,input,select{font-family:inherit}button,a{ -webkit-tap-highlight-color:
 .hifiGradientCtaBtn.active{background:linear-gradient(135deg,#326CFF,#2563EB)!important;color:#FFFFFF!important;box-shadow:0 8px 24px rgba(50,108,255,0.38)!important}
 .hifiGradientCtaBtn.active:hover{transform:translateY(-1.5px)!important;box-shadow:0 12px 30px rgba(50,108,255,0.45)!important}
 
-.hifiIntegratedMapSection{width:100%!important;height:540px!important;min-height:540px!important;border-radius:24px!important;overflow:hidden!important;border:1px solid #E2E8F0!important;box-shadow:0 16px 40px rgba(15,23,42,0.06)!important;margin-top:24px!important;position:relative!important;background:#F8FAFC!important;display:block!important}
-.travelMap{width:100%!important;height:100%!important;min-height:540px!important;position:relative!important;z-index:1!important;display:block!important}
-.leaflet-container{width:100%!important;height:100%!important;min-height:540px!important;background:#F8FAFC!important}
+/* Hero Stage: Card Overlapping Seamlessly On Top of Background Map Canvas */
+.hifiHeroStage{position:relative;width:100%;max-width:1200px;min-height:600px;border-radius:28px;overflow:hidden;margin-top:16px;border:1px solid rgba(226,232,240,.9);box-shadow:0 20px 50px rgba(15,23,42,.09);background:#F8FAFC}
+.hifiHeroMapBackground{position:absolute;inset:0;width:100%!important;height:100%!important;min-height:600px!important;z-index:1!important}
+.hifiHeroMapBackground .travelMap,.hifiHeroMapBackground .leaflet-container{width:100%!important;height:100%!important;min-height:600px!important;background:#F8FAFC!important}
+
+.hifiFloatingOverlayCard{position:absolute!important;top:24px!important;left:24px!important;right:24px!important;width:calc(100% - 48px)!important;z-index:20!important;background:rgba(255,255,255,.95)!important;backdrop-filter:blur(16px)!important;border:1px solid rgba(255,255,255,.8)!important;box-shadow:0 24px 60px -10px rgba(15,23,42,.16)!important;border-radius:20px!important;padding:14px 20px!important;display:grid!important;grid-template-columns:1.8fr auto 1.6fr auto 1.2fr auto 1.2fr 1.6fr!important;align-items:center!important;gap:12px!important}
+
+@media(max-width:1024px){
+  .hifiHeroStage{min-height:520px}
+  .hifiFloatingOverlayCard{position:relative!important;top:16px!important;left:16px!important;right:16px!important;width:calc(100% - 32px)!important;grid-template-columns:1fr!important;padding:18px!important}
+}
 
 .hifiQuickChipsRow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:16px}
 .quickCityChip{padding:8px 16px;border-radius:999px;border:1px solid #E2E8F0;background:#FFFFFF;color:#334155;font-size:12.5px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(15,23,42,0.04);transition:all .18s ease}
