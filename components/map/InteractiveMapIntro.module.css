@@ -1,0 +1,619 @@
+.desktopLanding {
+  --landing-ink: #111827;
+  --landing-muted: #5f6978;
+  --landing-blue: #1879d9;
+  --landing-map-ocean: #f2f7fa;
+  min-height: 100svh;
+  background:
+    linear-gradient(180deg, #f8fbfd 0, #f5f9fc 42%, #f1f6f9 100%);
+}
+
+.desktopLanding :global(.mapHeader) {
+  height: 68px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid rgba(214, 223, 230, 0.82);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(18px);
+}
+
+.desktopLanding :global(.headerContainer) {
+  width: min(1320px, calc(100% - 80px));
+  max-width: none;
+  padding: 0;
+}
+
+.desktopLanding :global(.brandLogoText) {
+  color: var(--landing-ink);
+  font-size: 21px;
+  letter-spacing: -0.04em;
+}
+
+.desktopLanding :global(.homeServiceNav) {
+  gap: 28px;
+}
+
+.desktopLanding :global(.navPill) {
+  padding: 4px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.desktopLanding :global(.navPill:hover),
+.desktopLanding :global(.navPill.active) {
+  border: 0;
+  background: transparent;
+  color: var(--landing-blue);
+  box-shadow: none;
+  transform: none;
+}
+
+.desktopLanding :global(.landingMainContent) {
+  flex: 0 0 calc(100svh - 114px);
+  height: calc(100svh - 114px);
+  justify-content: flex-start;
+  width: 100%;
+  padding: 8px 0 24px;
+}
+
+.desktopLanding :global(.heroHeaderSection) {
+  width: min(980px, calc(100% - 48px));
+  max-width: none;
+  height: 86px;
+  margin: 0 auto;
+  padding: 0;
+  gap: 0;
+}
+
+.desktopLanding :global(.heroBadge) {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 10px;
+  padding: 6px 11px;
+  border: 1px solid #dbe5ec;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.74);
+  color: #526274;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  box-shadow: 0 2px 8px rgba(40, 61, 80, 0.035);
+}
+
+.desktopLanding :global(.heroBadge span) {
+  color: var(--landing-blue);
+}
+
+.desktopLanding :global(.hifiHeroTitle) {
+  margin: 0;
+  color: var(--landing-ink);
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1.18;
+  letter-spacing: -0.045em;
+  word-break: keep-all;
+}
+
+.desktopLanding :global(.hifiHeroSubtitle) {
+  margin: 12px 0 0;
+  color: var(--landing-muted);
+  font-size: 15px;
+  font-weight: 450;
+  line-height: 1.62;
+  letter-spacing: -0.015em;
+}
+
+.desktopLanding :global(.hifiHeroStage) {
+  position: relative;
+  width: 100%;
+  max-width: none;
+  min-height: 644px;
+  height: 644px;
+  margin: 24px 0 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.desktopLanding :global(.hifiHeroMapBackground) {
+  position: absolute;
+  top: 104px;
+  left: 50%;
+  right: auto;
+  bottom: auto;
+  z-index: 1;
+  width: min(1210px, calc(100vw - 40px)) !important;
+  height: 540px !important;
+  min-height: 0 !important;
+  overflow: hidden;
+  border: 0;
+  background: transparent !important;
+  pointer-events: auto;
+  transform: translateX(-50%);
+}
+
+.desktopLanding :global(.hifiHeroMapBackground .travelMap--intro),
+.desktopLanding :global(.hifiHeroMapBackground .travelMap--intro.leaflet-container) {
+  width: 100%;
+  height: 100%;
+  min-height: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+}
+
+.desktopLanding :global(.hifiHeroMapBackground .travelMap--intro .leaflet-pane),
+.desktopLanding :global(.hifiHeroMapBackground .travelMap--intro .leaflet-tile-pane),
+.desktopLanding :global(.hifiHeroMapBackground .travelMap--intro .leaflet-tile-container) {
+  background: transparent !important;
+}
+
+.desktopLanding :global(.travelMap--intro .leaflet-tile-pane) {
+  display: none;
+}
+
+.desktopLanding :global(.travelMap--intro .introVectorPane) {
+  background: transparent !important;
+}
+
+.desktopLanding :global(.travelMap--intro .introVectorPane svg) {
+  overflow: visible;
+  shape-rendering: geometricPrecision;
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, #000 6%, #000 94%, transparent 100%),
+    linear-gradient(to bottom, #000 0%, #000 95%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent 0%, #000 6%, #000 94%, transparent 100%),
+    linear-gradient(to bottom, #000 0%, #000 95%, transparent 100%);
+  mask-composite: intersect;
+}
+
+.desktopLanding :global(.travelMap--intro .introDetailPane) {
+  background: transparent !important;
+}
+
+.desktopLanding :global(.travelMap--intro .introDetailPane svg) {
+  overflow: visible;
+  shape-rendering: geometricPrecision;
+}
+
+.desktopLanding :global(.travelMap--intro .introDetailPane path) {
+  animation: introDetailIn 240ms ease-out both;
+}
+
+@keyframes introDetailIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.desktopLanding :global(.travelMap--intro .leaflet-control-container) {
+  display: none;
+}
+
+.desktopLanding :global(.travelMap--intro .countryMarkerShell),
+.desktopLanding :global(.travelMap--intro .cityMarkerShell) {
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.desktopLanding :global(.travelMap--intro .introCountryMarker),
+.desktopLanding :global(.travelMap--intro .introCityMarker) {
+  height: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0.92;
+  filter: none;
+  animation: introPinIn 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: opacity 180ms ease;
+}
+
+.desktopLanding :global(.travelMap--intro .introCountryMarker) {
+  width: 44px;
+}
+
+.desktopLanding :global(.travelMap--intro .introCityMarker) {
+  width: 96px;
+}
+
+.desktopLanding :global(.travelMap--intro .introCountryMarker > span),
+.desktopLanding :global(.travelMap--intro .introCityMarker > span) {
+  position: relative;
+  width: 8px !important;
+  min-width: 8px !important;
+  height: 8px !important;
+  min-height: 8px !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.92);
+  border-radius: 50%;
+  background: #8e9aa6;
+  box-shadow: 0 1px 4px rgba(62, 75, 87, 0.16);
+  transform: none;
+  animation: none;
+}
+
+.desktopLanding :global(.travelMap--intro .introCountryMarker > span::before),
+.desktopLanding :global(.travelMap--intro .introCountryMarker > span::after),
+.desktopLanding :global(.travelMap--intro .introCityMarker > span::before),
+.desktopLanding :global(.travelMap--intro .introCityMarker > span::after) {
+  display: none;
+  animation: none;
+}
+
+.desktopLanding :global(.travelMap--intro .introCountryMarker > b),
+.desktopLanding :global(.travelMap--intro .introCityMarker > b) {
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #596673;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.95),
+    0 0 5px rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity 160ms ease, transform 180ms ease, color 180ms ease;
+}
+
+.desktopLanding :global(.travelMap--intro .introCountryMarker.hasDefaultLabel > b),
+.desktopLanding :global(.travelMap--intro .introCityMarker > b) {
+  opacity: 0.9;
+  transform: translateY(0);
+}
+
+.desktopLanding :global(.travelMap--intro .introCityMarker > b) {
+  margin-top: 5px;
+  padding: 2px 5px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #1f2d3d;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.2;
+  transform: translate(var(--label-x, 0), var(--label-y, 0));
+}
+
+.desktopLanding :global(.travelMap--intro .introCityMarker.label-left > b) {
+  align-self: flex-start;
+}
+
+.desktopLanding :global(.travelMap--intro .introCityMarker.label-right > b) {
+  align-self: flex-end;
+}
+
+.desktopLanding :global(.travelMap--intro .introCityMarker.label-above) {
+  flex-direction: column-reverse;
+}
+
+.desktopLanding :global(.travelMap--intro .introCityMarker.label-above > b) {
+  margin-top: 0;
+  margin-bottom: 5px;
+}
+
+.desktopLanding :global(.travelMap--intro .introCityMarkerShell) {
+  opacity: 1;
+  transition: opacity 180ms ease;
+}
+
+.desktopLanding :global(.travelMap--intro .introMarkerLeaving) {
+  opacity: 0 !important;
+}
+
+.desktopLanding :global(.travelMap--intro .introCountryMarker:hover),
+.desktopLanding :global(.travelMap--intro .introCountryMarker.active),
+.desktopLanding :global(.travelMap--intro .introCityMarker:hover),
+.desktopLanding :global(.travelMap--intro .introCityMarker.active),
+.desktopLanding :global(.travelMap--intro .countryMarkerShell:focus .introCountryMarker),
+.desktopLanding :global(.travelMap--intro .cityMarkerShell:focus .introCityMarker) {
+  opacity: 1;
+}
+
+.desktopLanding :global(.travelMap--intro .introCountryMarker:hover > b),
+.desktopLanding :global(.travelMap--intro .introCountryMarker.active > b),
+.desktopLanding :global(.travelMap--intro .introCityMarker:hover > b),
+.desktopLanding :global(.travelMap--intro .introCityMarker.active > b),
+.desktopLanding :global(.travelMap--intro .countryMarkerShell:focus .introCountryMarker > b),
+.desktopLanding :global(.travelMap--intro .cityMarkerShell:focus .introCityMarker > b) {
+  opacity: 1;
+  transform: translate(var(--label-x, 0), var(--label-y, 0));
+}
+
+.desktopLanding :global(.travelMap--intro .introCountryMarker:hover > span),
+.desktopLanding :global(.travelMap--intro .introCountryMarker.active > span),
+.desktopLanding :global(.travelMap--intro .introCityMarker:hover > span),
+.desktopLanding :global(.travelMap--intro .introCityMarker.active > span),
+.desktopLanding :global(.travelMap--intro .countryMarkerShell:focus .introCountryMarker > span),
+.desktopLanding :global(.travelMap--intro .cityMarkerShell:focus .introCityMarker > span) {
+  width: 9px !important;
+  min-width: 9px !important;
+  height: 9px !important;
+  min-height: 9px !important;
+  background: #2f7df4;
+  box-shadow: 0 0 0 4px rgba(47, 125, 244, 0.1), 0 2px 7px rgba(47, 125, 244, 0.24);
+  transform: none;
+}
+
+.desktopLanding :global(.travelMap--intro .introCountryMarker:hover > b),
+.desktopLanding :global(.travelMap--intro .introCountryMarker.active > b),
+.desktopLanding :global(.travelMap--intro .introCityMarker:hover > b),
+.desktopLanding :global(.travelMap--intro .introCityMarker.active > b),
+.desktopLanding :global(.travelMap--intro .countryMarkerShell:focus .introCountryMarker > b),
+.desktopLanding :global(.travelMap--intro .cityMarkerShell:focus .introCityMarker > b) {
+  color: #2f65af;
+  font-weight: 700;
+}
+
+@keyframes introPinIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.desktopLanding :global(.hifiHorizontalSearchCard.hifiFloatingOverlayCard) {
+  position: relative;
+  top: 0 !important;
+  left: auto !important;
+  right: auto !important;
+  z-index: 20;
+  width: min(1180px, calc(100vw - 80px)) !important;
+  height: 88px;
+  margin: 0 auto;
+  padding: 13px 16px;
+  display: grid;
+  grid-template-columns:
+    minmax(292px, 1.75fr) 1px
+    minmax(274px, 1.55fr) 1px
+    minmax(146px, 0.82fr) 1px
+    minmax(136px, 0.76fr)
+    minmax(164px, 0.92fr);
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(220, 227, 233, 0.96);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow:
+    0 22px 48px rgba(35, 53, 69, 0.14),
+    0 4px 12px rgba(35, 53, 69, 0.07);
+  backdrop-filter: blur(16px);
+}
+
+.desktopLanding :global(.hifiSearchCol) {
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.desktopLanding :global(.colLabel) {
+  display: block;
+  width: 100%;
+  margin: 0 0 8px;
+  color: #253040;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.desktopLanding :global(.fieldWithIcon) {
+  width: 100%;
+  height: 38px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #d8e0e6;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.desktopLanding :global(.inputIcon) {
+  min-width: 14px;
+  color: #5f6d7c;
+  font-family: Inter, "Noto Sans KR", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  opacity: 1;
+}
+
+.desktopLanding :global(.destSelectGroup) {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(108px, 1fr) minmax(108px, 1fr);
+  gap: 5px;
+}
+
+.desktopLanding :global(.customSelectWrapper) {
+  min-width: 0;
+}
+
+.desktopLanding :global(.hifiPillTrigger) {
+  width: 100%;
+  min-width: 0;
+  padding: 0 7px;
+  justify-content: space-between;
+  border: 0;
+  background: #f6f8fa;
+  color: #263445;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.desktopLanding :global(.hifiPillTrigger span) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.desktopLanding :global(.chevronIcon) {
+  flex: 0 0 auto;
+  color: #8a97a5;
+  font-size: 8px;
+}
+
+.desktopLanding :global(.hifiColDivider) {
+  width: 1px;
+  height: 50px;
+  background: #e3e8ec;
+}
+
+.desktopLanding :global(.dateRangeInputsGroup) {
+  min-width: 0;
+  flex: 1;
+  gap: 5px;
+}
+
+.desktopLanding :global(.hifiPillInput) {
+  min-width: 0;
+  color: #273445;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.desktopLanding :global(.dateRangeInputsGroup .hifiPillInput) {
+  width: 112px;
+}
+
+.desktopLanding :global(.dateDash) {
+  flex: 0 0 auto;
+  color: #91a0ad;
+  font-size: 11px;
+}
+
+.desktopLanding :global(.counterPillGroup) {
+  gap: 5px;
+}
+
+.desktopLanding :global(.counterSmallBtn) {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  border-color: #d4dce3;
+  color: #314050;
+  font-size: 12px;
+}
+
+.desktopLanding :global(.peopleValText) {
+  min-width: 57px;
+  color: #273445;
+  font-size: 11.5px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.desktopLanding :global(.budgetPillWrap) {
+  min-width: 0;
+  flex: 1;
+}
+
+.desktopLanding :global(.budgetPillInput) {
+  width: 100%;
+  text-align: left;
+}
+
+.desktopLanding :global(.kwTag) {
+  flex: 0 0 auto;
+  color: #536170;
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.desktopLanding :global(.ctaCol) {
+  align-self: end;
+}
+
+.desktopLanding :global(.hifiGradientCtaBtn) {
+  width: 100%;
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.desktopLanding :global(.hifiGradientCtaBtn.active) {
+  background: linear-gradient(135deg, #2586df, #1874cd);
+  box-shadow: 0 7px 16px rgba(24, 116, 205, 0.26);
+}
+
+.desktopLanding :global(.hifiGradientCtaBtn.disabled) {
+  background: #dce5ec;
+  color: #82909e;
+}
+
+.desktopLanding :global(.customDropdownPanel) {
+  z-index: 80;
+  margin-top: 8px;
+  border-color: #dce4ea;
+  border-radius: 10px;
+  box-shadow: 0 18px 36px rgba(34, 53, 69, 0.16);
+}
+
+.desktopLanding :global(.hifiErrorText) {
+  position: relative;
+  z-index: 25;
+  margin: -404px auto 0;
+}
+
+.desktopLanding :global(.globalFooter) {
+  position: relative;
+  z-index: 5;
+  flex: 0 0 46px;
+  height: 46px;
+  margin-top: 0;
+  padding: 3px 20px 4px;
+  border-top: 0;
+  background: transparent;
+}
+
+.desktopLanding :global(.footerContainer) {
+  max-width: 1320px;
+  gap: 2px;
+}
+
+.desktopLanding :global(.footerLinks) {
+  gap: 12px;
+}
+
+.desktopLanding :global(.footerLinks a) {
+  font-size: 11px;
+}
+
+.desktopLanding :global(.footerCopyright) {
+  font-size: 0;
+}
+
+.desktopLanding :global(.footerCopyright::after) {
+  content: "© 2026 EYRIA. 모든 권리 보유.";
+  font-size: 10px;
+}

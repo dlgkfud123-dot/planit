@@ -8,10 +8,11 @@ import dynamic from "next/dynamic";
 import { cities, supportedCityIds, type TravelCity } from "../../data/cities";
 import { generateItinerary } from "../../utils/itineraryGenerator";
 import { writeDraftById, type TripSnapshot } from "../../utils/tripStorage";
+import styles from "./InteractiveMapIntro.module.css";
 
 const MapCanvas = dynamic(() => import("./MapCanvas"), {
   ssr: false,
-  loading: () => <div className="travelMap" style={{ width: "100%", height: "100%", background: "#f8fafc", borderRadius: "24px" }} />
+  loading: () => <div className="travelMap" style={{ width: "100%", height: "100%", background: "transparent" }} />
 });
 
 import BrandOpeningIntro from "../intro/BrandOpeningIntro";
@@ -262,7 +263,7 @@ export default function InteractiveMapIntro() {
   }
 
   return (
-    <main className="landingWrapper hifiHeroLayout">
+    <main className={`landingWrapper hifiHeroLayout ${styles.desktopLanding}`}>
       <Header />
 
       {/* AI Generation Loading Transition Screen */}
@@ -288,14 +289,11 @@ export default function InteractiveMapIntro() {
         {/* Sleek Hero Header */}
         <section className="heroHeaderSection centeredHeroHeader">
           <div className="heroBadge">
-            <span>✦</span> Intelligent Itinerary Builder
+            <span>✦</span> AI 여행 플래너
           </div>
           <h1 className="heroTitle hifiHeroTitle">
             AI가 설계하는 나만의 완벽한 여행
           </h1>
-          <p className="heroSubtitle hifiHeroSubtitle">
-            국가, 도시, 날짜, 인원, 예산을 한곳에서 바로 입력하여 완벽한 여행 일정을 만드세요.
-          </p>
         </section>
 
         {/* Hero Stage: Floating Card Overlapping Directly On Top of Seamless Map Canvas */}
@@ -450,7 +448,7 @@ export default function InteractiveMapIntro() {
             <div className="hifiSearchCol budgetCol">
               <span className="colLabel">여행 예산</span>
               <div className="fieldWithIcon">
-                <span className="inputIcon">💶</span>
+                <span className="inputIcon">₩</span>
                 <div className="budgetPillWrap">
                   <input
                     type="number"
@@ -483,6 +481,7 @@ export default function InteractiveMapIntro() {
           <div className="hifiHeroMapBackground">
             <MapCanvas
               cities={availableCities}
+              variant="intro"
               focusedCountry={focusedCountry}
               citiesVisible={citiesVisible}
               hoveredCity={hoveredCity}
