@@ -3,8 +3,6 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import BrandLogo from "../common/BrandLogo";
-import Header from "../layout/Header";
 import { cities, supportedCityIds, type TravelCity } from "../../data/cities";
 import { placesByCity, type Place } from "../../data/places";
 import { fetchWeatherData, type WeatherDataResponse } from "../../utils/weatherService";
@@ -43,8 +41,10 @@ import {
 } from "../../utils/tripStorage";
 import { usePlannerState, usePlannerUiState } from "./usePlannerState";
 import { useTripPersistence } from "./useTripPersistence";
-import AccountActions from "../auth/AccountActions";
 import { saveWithFallback } from "../../utils/tripPersistence";
+import PlannerRefinementMenu from "./PlannerRefinementMenu";
+import PlannerSummaryCard from "./PlannerSummaryCard";
+import styles from "./PlannerDesktop.module.css";
 
 function nightsFrom(value: string) {
   const n = parseInt(value);
@@ -104,10 +104,48 @@ export default function PlannerApp() {
   const [weatherResult, setWeatherResult] = useState<WeatherDataResponse | null>(null);
   const [showCostDetails, setShowCostDetails] = useState(false);
   const [smartReplaceStopId, setSmartReplaceStopId] = useState<string | null>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const timelinePanelRef = useRef<HTMLDivElement>(null);
+  const [mapInsets, setMapInsets] = useState({ top: 102, right: 24, bottom: 24, left: 468 });
 
   const nights = nightsFrom(end);
   const current = plan[activeDay] || plan[0];
   const currentStops = current?.stops || [];
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const summary = summaryRef.current;
+    const panel = timelinePanelRef.current;
+    if (!canvas || !summary || !panel) return;
+    const updateInsets = () => {
+      if (window.innerWidth < 1024) return;
+      const canvasRect = canvas.getBoundingClientRect();
+      const summaryRect = summary.getBoundingClientRect();
+      const panelRect = panel.getBoundingClientRect();
+      const next = {
+        top: Math.round(summaryRect.bottom - canvasRect.top + 14),
+        right: Math.round(canvasRect.right - summaryRect.right),
+        bottom: Math.round(canvasRect.bottom - panelRect.bottom),
+        left: Math.round(panelRect.right - canvasRect.left + 14),
+      };
+      setMapInsets((currentInsets) =>
+        Object.keys(next).every((key) => currentInsets[key as keyof typeof next] === next[key as keyof typeof next])
+          ? currentInsets
+          : next
+      );
+    };
+    updateInsets();
+    const observer = new ResizeObserver(updateInsets);
+    observer.observe(canvas);
+    observer.observe(summary);
+    observer.observe(panel);
+    window.addEventListener("resize", updateInsets);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateInsets);
+    };
+  }, []);
 
   const snapshotFor = useCallback(
     (id: string): TripSnapshot => ({
@@ -409,7 +447,7 @@ export default function PlannerApp() {
       if (commitEdit(next, `${label}에 맞춰 보완 장소를 반영했습니다.`)) setActiveStop(0);
       return;
     }
-    setEditNotice(`${label.replace(/^\S+\s/, "")}에 추천할 인접 장소가 이미 일정에 모두 반영되어 있습니다.`);
+    setEditNotice(`${label} 추천 장소가 이미 일정에 모두 반영되어 있습니다.`);
   };
 
   const saveCurrentTrip = async () => {
@@ -469,29 +507,7 @@ export default function PlannerApp() {
   };
 
   return (
-    <main className="plannerWorkspace v2PureEditor">
-      {/* 1. Header with Compact Summary Bar */}
-      <header className="workspaceHeader v2Header">
-        <BrandLogo />
-        <div className="v2SummaryBar">
-          <span className="destPill">{destination || "여행지"}</span>
-          <span className="datePill">{start && end ? `${start} ~ ${end}` : "기간 미지정"}</span>
-          <span className="peoplePill">{people > 0 ? `${people}명` : "-명"}</span>
-          <span className="budgetPill">{budget > 0 ? `${budget}만원` : "-만원"}</span>
-          <button type="button" onClick={() => setShowSettingsModal(true)} className="tweakSettingsBtn">
-            ⚙ 설정 변경
-          </button>
-        </div>
-        <div className="headerActionsGroup">
-          <button type="button" onClick={saveCurrentTrip} className="saveTripBtn">
-            {saveStatus === "saving" ? "저장 중..." : "일정 저장"}
-          </button>
-          <button type="button" onClick={shareCurrentTrip} className="shareBtn">
-            공유
-          </button>
-          <AccountActions />
-        </div>
-      </header>
+    <main className={`plannerWorkspace v2PureEditor ${styles.plannerRoot}`}>
 
       {/* Settings Modal (Secondary Tweak Tray) */}
       {showSettingsModal && (
@@ -554,9 +570,36 @@ export default function PlannerApp() {
         </div>
       )}
 
-      {/* 2. Main Pure Itinerary Workspace */}
-      <div className="workspaceBody v2FullEditorBody">
-        <div className="timelineColumn">
+      {/* 2. Desktop map canvas and flex-positioned overlay layer */}
+      <div ref={canvasRef} className={`workspaceBody v2FullEditorBody ${styles.canvas}`}>
+        <div className={`plannerMapColumn ${styles.mapLayer}`}>
+          <PlannerMap
+            stops={currentStops}
+            allDays={plan}
+            activeDay={activeDay}
+            activeIndex={activeStop}
+            onSelect={setActiveStop}
+            viewportPadding={mapInsets}
+          />
+        </div>
+
+        <div className={styles.overlayLayer}>
+          <div ref={summaryRef}>
+            <PlannerSummaryCard
+              destination={destination}
+              start={start}
+              end={end}
+              people={people}
+              budget={budget}
+              saveStatus={saveStatus}
+              onOpenSettings={() => setShowSettingsModal(true)}
+              onSave={saveCurrentTrip}
+              onShare={shareCurrentTrip}
+            />
+          </div>
+
+          <div className={styles.overlayContent}>
+            <div ref={timelinePanelRef} className={`timelineColumn ${styles.timelinePanel}`}>
           {/* DAY Tabs */}
           <div className="dayScroller">
             {plan.map((d, i) => (
@@ -577,16 +620,28 @@ export default function PlannerApp() {
           </div>
 
           {/* DAY Intro & Add Place */}
-          <div className="dayIntro">
+          <div className={styles.panelHeadingRow}>
             <div>
               <h3>{current?.theme || `${activeDay + 1}일차 일정`}</h3>
-              <p>{currentStops.length}개 장소 · 손잡이를 끌어 순서를 바꿔보세요</p>
+              <p>{currentStops.length}개 장소 · 카드를 끌어 순서를 바꿔보세요</p>
             </div>
-            <button onClick={() => setAddOpen((open) => !open)}>＋ 장소 검색</button>
+            <div className={styles.panelActions}>
+              <button
+                type="button"
+                className={styles.desktopUndo}
+                disabled={!historyDepth}
+                onClick={undoEdit}
+              >
+                되돌리기{historyDepth > 1 ? ` (${historyDepth})` : ""}
+              </button>
+              <button type="button" onClick={() => setAddOpen((open) => !open)}>＋ 장소 검색</button>
+            </div>
           </div>
 
-          {/* 1-Tap Style Refinement Action Chips */}
-          <div className="hifiActionChipsBar">
+          <PlannerRefinementMenu onSelect={applyQuickStyle} />
+
+          {/* Existing mobile quick actions remain unchanged outside the Desktop overlay experience. */}
+          <div className={`hifiActionChipsBar ${styles.legacyRefinement}`}>
             <span className="chipsBarLabel">일정 취향 보완:</span>
             {quickRefinementActionChips.map((chip) => (
               <button
@@ -603,9 +658,10 @@ export default function PlannerApp() {
             </button>
           </div>
 
-          {/* Add Place Drawer */}
-          {addOpen && (
-            <div className="placeFinder">
+          <div className={styles.timelineScrollArea}>
+            {/* Add Place Drawer */}
+            {addOpen && (
+              <div className="placeFinder">
               <input
                 autoFocus
                 value={placeQuery}
@@ -620,11 +676,11 @@ export default function PlannerApp() {
                   </button>
                 ))}
               </div>
-            </div>
-          )}
+              </div>
+            )}
 
-          {/* Timeline Stop Card List */}
-          <ol className="timelineList">
+            {/* Timeline Stop Card List */}
+            <ol className="timelineList">
             {currentStops.map((stop, i) => {
               const validation = validateStopOpening(stop, current?.date || "", currentStops, i, destination);
               const candidates =
@@ -635,6 +691,17 @@ export default function PlannerApp() {
               return (
                 <li
                   className={`${i === activeStop ? "active" : ""} ${editingStop === stop.id ? "editing" : ""}`}
+                  draggable={editingStop !== stop.id}
+                  onDragStart={(event) => {
+                    dragRef.current = { day: activeDay, placeId: stop.placeId };
+                    event.dataTransfer.effectAllowed = "move";
+                  }}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "move";
+                  }}
+                  onDrop={(event) => handleDrop(event, activeDay, i)}
+                  onDragEnd={() => { dragRef.current = null; }}
                   onClick={() => setActiveStop(i)}
                   onMouseEnter={() => setActiveStop(i)}
                   key={stop.id}
@@ -649,7 +716,7 @@ export default function PlannerApp() {
                     ⠿
                   </span>
 
-                  <div className="stopTimeCard">
+                  <div className={`stopTimeCard ${styles.legacyStopTime}`}>
                     {editingStop === stop.id ? (
                       <input className="stopTime" value={stop.time} onChange={(e) => updateStop(i, "time", e.target.value)} />
                     ) : (
@@ -673,14 +740,23 @@ export default function PlannerApp() {
                         >
                           <strong>{stop.name}</strong>
                         </Link>
-                        <span>{categoryNames[stop.category]}</span>
                       </div>
                     )}
 
-                    <p className="stopMeta">
-                      {stop.transportFromPrevious && `${stop.transportFromPrevious} ${stop.travelMinutes}분 · `}
-                      {stop.duration} · 약 {stop.costBreakdown ? formatCurrency(stop.costBreakdown.localTotalPerPerson, stop.costBreakdown.localCurrency) : `${stop.cost.toLocaleString()}원`}
-                    </p>
+                    <div className={styles.stopDetailsRow}>
+                      <div className={`${styles.desktopStopTime} stopTimeCard`}>
+                        {editingStop === stop.id ? (
+                          <input className="stopTime" value={stop.time} onChange={(e) => updateStop(i, "time", e.target.value)} />
+                        ) : (
+                          <strong>{stop.time}</strong>
+                        )}
+                        <small>{stop.recommendedTime === "morning" ? "오전" : stop.recommendedTime === "evening" ? "저녁" : "오후"}</small>
+                      </div>
+                      <p className="stopMeta">
+                        {stop.transportFromPrevious && `${stop.transportFromPrevious} ${stop.travelMinutes}분 · `}
+                        {stop.duration} · 약 {stop.costBreakdown ? formatCurrency(stop.costBreakdown.localTotalPerPerson, stop.costBreakdown.localCurrency) : `${stop.cost.toLocaleString()}원`}
+                      </p>
+                    </div>
 
                     <em className="recommendationReason">✦ {recommendationReason(stop, interest, food)}</em>
 
@@ -761,12 +837,10 @@ export default function PlannerApp() {
                 </li>
               );
             })}
-          </ol>
-        </div>
-
-        {/* 3. Interactive Map Column */}
-        <div className="plannerMapColumn">
-          <PlannerMap stops={currentStops} allDays={plan} activeDay={activeDay} activeIndex={activeStop} onSelect={setActiveStop} />
+            </ol>
+          </div>
+            </div>
+          </div>
         </div>
       </div>
     </main>

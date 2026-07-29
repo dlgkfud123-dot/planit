@@ -22,6 +22,7 @@ type Props = {
   activeDay: number;
   activeIndex: number;
   onSelect: (index: number) => void;
+  viewportPadding?: { top: number; right: number; bottom: number; left: number };
 };
 
 const valid = (stop: PlanStop) => Number.isFinite(stop.lat) && Number.isFinite(stop.lng);
@@ -95,7 +96,7 @@ async function fetchSegmentRoute(
   return null;
 }
 
-export default function PlannerMap({ stops, allDays, activeDay, activeIndex, onSelect }: Props) {
+export default function PlannerMap({ stops, allDays, activeDay, activeIndex, onSelect, viewportPadding }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const inactiveLayerRef = useRef<LayerGroup | null>(null);
@@ -105,6 +106,10 @@ export default function PlannerMap({ stops, allDays, activeDay, activeIndex, onS
   const selectRef = useRef(onSelect);
   const stopsRef = useRef(stops);
   const activeRef = useRef(activeIndex);
+  const userInteractedRef = useRef(false);
+  const programmaticMoveRef = useRef(false);
+  const framedDayRef = useRef<number | null>(null);
+  const framedStopsRef = useRef("");
   const [approximate, setApproximate] = useState(false);
   const [mapReady, setMapReady] = useState(false);
 
@@ -130,6 +135,9 @@ export default function PlannerMap({ stops, allDays, activeDay, activeIndex, onS
         13
       );
       L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { subdomains: "abcd" }).addTo(map);
+      map.on("dragstart zoomstart", () => {
+        if (!programmaticMoveRef.current) userInteractedRef.current = true;
+      });
       mapRef.current = map;
       map.invalidateSize({ pan: false });
       setMapReady(true);
@@ -201,15 +209,47 @@ export default function PlannerMap({ stops, allDays, activeDay, activeIndex, onS
           .on("click", () => selectRef.current(index))
       );
       const active = stopsRef.current[activeRef.current];
-      if (active && valid(active)) {
+      if (validStops.length === 1 && active && valid(active)) {
         map.invalidateSize({ pan: false });
+        programmaticMoveRef.current = true;
         map.setView([active.lat, active.lng], 15, { animate: false });
+        programmaticMoveRef.current = false;
       }
     });
     return () => {
       cancelled = true;
     };
   }, [stops, mapReady]);
+
+  // Frame a DAY only when it is first shown or its actual stop composition changes.
+  // Card selection continues to use the existing panTo behavior below.
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current;
+    const validStops = stops.filter(valid);
+    if (!map || validStops.length < 2) return;
+    const signature = validStops.map((stop) => `${stop.id}:${stop.lat}:${stop.lng}`).join("|");
+    const dayChanged = framedDayRef.current !== activeDay;
+    const stopsChanged = framedStopsRef.current !== signature;
+    if (!dayChanged && (!stopsChanged || userInteractedRef.current)) return;
+
+    void import("leaflet").then(({ default: L }) => {
+      if (!mapRef.current) return;
+      const bounds = L.latLngBounds(validStops.map((stop) => L.latLng(stop.lat, stop.lng)));
+      const padding = viewportPadding ?? { top: 24, right: 24, bottom: 24, left: 24 };
+      programmaticMoveRef.current = true;
+      mapRef.current.fitBounds(bounds, {
+        animate: false,
+        maxZoom: 15,
+        paddingTopLeft: [padding.left, padding.top],
+        paddingBottomRight: [padding.right, padding.bottom],
+      });
+      programmaticMoveRef.current = false;
+      framedDayRef.current = activeDay;
+      framedStopsRef.current = signature;
+      userInteractedRef.current = false;
+    });
+  }, [activeDay, mapReady, stops, viewportPadding]);
 
   // Route generation: Segment-by-segment ORS / OSRM routing with per-segment fallback.
   useEffect(() => {
@@ -300,7 +340,9 @@ export default function PlannerMap({ stops, allDays, activeDay, activeIndex, onS
     const container = el.current;
     if (active && map && container && container.offsetWidth > 0 && container.offsetHeight > 0 && valid(active)) {
       map.stop();
+      programmaticMoveRef.current = true;
       map.panTo([active.lat, active.lng], { animate: false });
+      programmaticMoveRef.current = false;
     }
   }, [activeIndex, stops, mapReady]);
 

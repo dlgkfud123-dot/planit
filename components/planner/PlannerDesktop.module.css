@@ -1,0 +1,459 @@
+.plannerRoot {
+  min-width: 0;
+}
+
+.canvas,
+.mapLayer,
+.overlayLayer,
+.overlayContent,
+.timelinePanel,
+.timelineScrollArea {
+  min-width: 0;
+  min-height: 0;
+}
+
+.summaryCard,
+.timelinePanel {
+  box-sizing: border-box;
+}
+
+.tripIdentity,
+.tripMeta,
+.summaryActions {
+  display: flex;
+  align-items: center;
+}
+
+.tripIdentity {
+  min-width: 0;
+  gap: 12px;
+}
+
+.tripIdentity strong {
+  overflow: hidden;
+  color: #102746;
+  font-size: 18px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tripIdentity span,
+.tripMeta span {
+  color: #607488;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tripMeta {
+  gap: 6px;
+}
+
+.tripMeta span {
+  padding: 6px 9px;
+  border-radius: 9px;
+  background: #f1f5f8;
+}
+
+.summaryActions {
+  gap: 6px;
+}
+
+.summaryActions > button {
+  height: 34px;
+  padding: 0 11px;
+  border: 1px solid #d8e3ea;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #526a80;
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.summaryActions > button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.panelTop {
+  flex: 0 0 auto;
+}
+
+.panelHeadingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 2px 10px;
+}
+
+.panelHeadingRow > div {
+  min-width: 0;
+}
+
+.panelHeadingRow h3 {
+  margin: 0 0 3px;
+  overflow: hidden;
+  color: #17314f;
+  font-size: 17px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panelHeadingRow p {
+  margin: 0;
+  color: #7b8d9d;
+  font-size: 11px;
+}
+
+.panelActions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+}
+
+.panelActions button {
+  min-height: 34px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #607488;
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.panelActions button:hover {
+  background: #f1f5f8;
+  color: #17314f;
+}
+
+.panelActions button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.desktopUndo {
+  display: none;
+}
+
+.legacyRefinement {
+  display: flex;
+}
+
+.desktopStopTime {
+  display: none;
+}
+
+.stopDetailsRow {
+  min-width: 0;
+}
+
+.refinementMenu {
+  position: relative;
+  z-index: 80;
+  flex: 0 0 auto;
+  margin-bottom: 10px;
+}
+
+.refinementTrigger {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid #dce5eb;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #405971;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.refinementTrigger i {
+  color: #8493a1;
+  font-style: normal;
+}
+
+.refinementPopover {
+  position: absolute;
+  z-index: 90;
+  top: calc(100% + 6px);
+  right: 0;
+  left: 0;
+  padding: 6px;
+  border: 1px solid #dce5eb;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 14px 34px rgba(24, 52, 78, 0.16);
+}
+
+.refinementPopover button {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #344f68;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.refinementPopover button:hover,
+.refinementPopover button:focus-visible {
+  outline: 0;
+  background: #f2f6f9;
+}
+
+.refinementPopover button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.timelineScrollArea {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: clip;
+  scrollbar-width: thin;
+}
+
+@media (min-width: 1024px) {
+  .plannerRoot {
+    position: relative;
+    height: 100dvh !important;
+    min-height: 0 !important;
+    display: block !important;
+    overflow: hidden !important;
+    background: #d8e0e8;
+  }
+
+  .canvas {
+    position: relative;
+    width: 100%;
+    height: 100dvh !important;
+    min-height: 0 !important;
+    display: block !important;
+    overflow: hidden !important;
+  }
+
+  .mapLayer {
+    position: absolute !important;
+    z-index: 0;
+    inset: 0;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    border: 0 !important;
+  }
+
+  .overlayLayer {
+    position: absolute;
+    z-index: 600;
+    inset: 0;
+    padding: clamp(14px, 1.7vw, 24px);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    pointer-events: none;
+  }
+
+  .summaryCard {
+    width: 100%;
+    height: 64px !important;
+    min-height: 64px;
+    padding: 0 16px !important;
+    display: grid !important;
+    grid-template-columns: auto minmax(220px, 1fr) auto auto;
+    align-items: center;
+    gap: 16px;
+    border: 1px solid rgba(216, 227, 234, 0.94) !important;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.96) !important;
+    box-shadow: 0 12px 34px rgba(28, 57, 82, 0.12);
+    pointer-events: auto;
+  }
+
+  .overlayContent {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: stretch;
+    pointer-events: none;
+  }
+
+  .timelinePanel {
+    width: clamp(480px, 39vw, 500px);
+    height: 100% !important;
+    max-height: 100%;
+    padding: 14px !important;
+    display: flex !important;
+    flex-direction: column;
+    overflow: visible !important;
+    border: 1px solid rgba(216, 227, 234, 0.94) !important;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.96) !important;
+    box-shadow: 0 18px 44px rgba(28, 57, 82, 0.14);
+    pointer-events: auto;
+  }
+
+  .timelinePanel :global(.dayScroller) {
+    position: static !important;
+    flex: 0 0 auto;
+    margin: 0 0 10px !important;
+    padding: 0 0 8px !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  .timelinePanel :global(.dayScroller button) {
+    min-width: 86px;
+    border: 1px solid #e0e8ee;
+    background: #f4f7f9;
+  }
+
+  .timelinePanel :global(.dayScroller button.active) {
+    border-color: #17314f;
+    background: #17314f;
+  }
+
+  .timelinePanel :global(.placeFinder) {
+    margin: 0 0 10px;
+  }
+
+  .timelinePanel :global(.timelineList) {
+    min-width: 0;
+    margin: 0;
+    padding: 0 1px 2px;
+  }
+
+  .timelinePanel :global(.timelineList li) {
+    min-width: 0;
+    grid-template-columns: 28px minmax(0, 1fr) 44px;
+  }
+
+  .timelinePanel :global(.dragHandle) {
+    display: none !important;
+  }
+
+  .timelinePanel :global(.stopTitleRow),
+  .timelinePanel :global(.stopCardBody) {
+    min-width: 0;
+  }
+
+  .timelinePanel :global(.stopTitleRow > a) {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .timelinePanel :global(.stopTitleRow > a > strong) {
+    display: -webkit-box;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    overflow-wrap: break-word;
+    text-overflow: ellipsis;
+    text-wrap: balance;
+    white-space: normal;
+    word-break: keep-all;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+
+  .timelinePanel :global(.stopTitleRow > span) {
+    flex: 0 0 auto;
+  }
+
+  .timelinePanel :global(.stopMenuWrap) {
+    min-width: 44px;
+    justify-self: end;
+  }
+
+  .desktopUndo {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .legacyRefinement {
+    display: none !important;
+  }
+
+  .legacyStopTime {
+    display: none !important;
+  }
+
+  .desktopStopTime {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: baseline;
+    gap: 4px;
+    padding: 0;
+  }
+
+  .desktopStopTime strong {
+    font-size: 13px;
+  }
+
+  .desktopStopTime small {
+    margin: 0;
+    font-size: 10px;
+  }
+
+  .stopDetailsRow {
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .stopDetailsRow :global(.stopMeta) {
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 1023px) {
+  .canvas {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .overlayLayer,
+  .overlayContent {
+    display: contents;
+  }
+
+  .summaryCard {
+    order: 0;
+  }
+
+  .timelinePanel {
+    order: 1;
+  }
+
+  .mapLayer {
+    order: 2;
+  }
+
+  .panelHeadingRow {
+    padding-right: 2px;
+    padding-left: 2px;
+  }
+
+  .refinementMenu {
+    display: none;
+  }
+}
