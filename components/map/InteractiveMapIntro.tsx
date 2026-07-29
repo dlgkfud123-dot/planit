@@ -10,10 +10,7 @@ import { generateItinerary } from "../../utils/itineraryGenerator";
 import { writeDraftById, type TripSnapshot } from "../../utils/tripStorage";
 import styles from "./InteractiveMapIntro.module.css";
 
-const MapCanvas = dynamic(() => import("./MapCanvas"), {
-  ssr: false,
-  loading: () => <div className="travelMap" style={{ width: "100%", height: "100%", background: "transparent" }} />
-});
+import VectorWorldMap from "./VectorWorldMap";
 
 import BrandOpeningIntro from "../intro/BrandOpeningIntro";
 
@@ -477,20 +474,17 @@ export default function InteractiveMapIntro() {
             </div>
           </div>
 
-          {/* Background Map Canvas Layer (Extends Seamlessly Behind Card) */}
+          {/* Background Vector World Map Layer */}
           <div className="hifiHeroMapBackground">
-            <MapCanvas
+            <VectorWorldMap
               cities={availableCities}
-              variant="intro"
               focusedCountry={focusedCountry}
               citiesVisible={citiesVisible}
               hoveredCity={hoveredCity}
               selected={selectedCity}
-              showRoute={false}
               onCountrySelect={handleMapCountrySelect}
               onSelect={handleMapCitySelect}
               onCityHover={setHoveredCity}
-              onMoveComplete={() => {}}
             />
           </div>
         </section>

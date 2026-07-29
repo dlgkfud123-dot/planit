@@ -765,9 +765,19 @@ button,a,input,select{font-family:inherit}button,a{ -webkit-tap-highlight-color:
 .hifiGradientCtaBtn.active:hover{transform:translateY(-1.5px)!important;box-shadow:0 12px 30px rgba(50,108,255,0.45)!important}
 
 /* Hero Stage: Card Overlapping Seamlessly On Top of Background Map Canvas */
-.hifiHeroStage{position:relative;width:100%;max-width:1200px;min-height:600px;border-radius:28px;overflow:hidden;margin-top:16px;border:1px solid rgba(226,232,240,.9);box-shadow:0 20px 50px rgba(15,23,42,.09);background:#F8FAFC}
+.hifiHeroStage{position:relative;width:100%;max-width:1200px;min-height:600px;border-radius:28px;overflow:hidden;margin-top:16px;border:1px solid rgba(226,232,240,.9);box-shadow:0 20px 50px rgba(15,23,42,.09);background:#FFFFFF}
 .hifiHeroMapBackground{position:absolute;inset:0;width:100%!important;height:100%!important;min-height:600px!important;z-index:1!important}
-.hifiHeroMapBackground .travelMap,.hifiHeroMapBackground .leaflet-container{width:100%!important;height:100%!important;min-height:600px!important;background:#F8FAFC!important}
+
+/* High-Precision Warm Ivory Vector World Map Styling */
+.vectorWorldMapWrapper{width:100%;height:100%;min-height:580px;background:#FFFFFF;display:flex;align-items:center;justify-content:center;position:relative}
+.vectorWorldSvg{width:100%;height:100%;min-height:580px;display:block}
+
+.countryPath{transition:all .22s cubic-bezier(.16,1,.3,1)}
+.countryGroupItem:hover .countryPath{fill:#E2F0F9!important;stroke:#326CFF!important;filter:drop-shadow(0 4px 12px rgba(50,108,255,0.18))}
+.countryGroupItem:hover .countryLabelText{fill:#2563EB!important;font-weight:800}
+
+.cityPinGroup{transition:all .2s ease}
+.cityPinGroup:hover{transform:scale(1.15)}
 
 .hifiFloatingOverlayCard{position:absolute!important;top:24px!important;left:24px!important;right:24px!important;width:calc(100% - 48px)!important;z-index:20!important;background:rgba(255,255,255,.95)!important;backdrop-filter:blur(16px)!important;border:1px solid rgba(255,255,255,.8)!important;box-shadow:0 24px 60px -10px rgba(15,23,42,.16)!important;border-radius:20px!important;padding:14px 20px!important;display:grid!important;grid-template-columns:1.8fr auto 1.6fr auto 1.2fr auto 1.2fr 1.6fr!important;align-items:center!important;gap:12px!important}
 
