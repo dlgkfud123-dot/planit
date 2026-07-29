@@ -607,6 +607,7 @@ button,a,input,select{font-family:inherit}button,a{ -webkit-tap-highlight-color:
 @media(max-width:700px){.mapSearchBox:after{left:18px;top:calc(100% + 8px);font-size:10px}}
 @media(prefers-reduced-motion:reduce){.mapBrand,.mapBrand i,.homeServiceNav a,.countryMarker>span,.countryPreview,.mapSearchBox>span,.mapSearchBox:after{transition:none!important}}
 @media(min-width:701px){.stopActionMenu.opensAbove{top:auto;bottom:48px}.stopActionMenu:not(.opensAbove){top:48px;bottom:auto}}
+@media(min-width:701px){.stopTitleRow{min-width:0}.stopTitleRow>a{display:block;flex:1 1 auto;min-width:0;overflow:hidden}.stopTitleRow>a>strong{display:block;width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.stopTitleRow>span{flex:0 0 auto}.stopMenuWrap{min-width:44px;justify-self:end}}
 .planMain:has(.stopActionMenu){transform:none}.timelineList li{position:relative;z-index:0}.timelineList li:has(.stopActionMenu){z-index:60;overflow:visible}.timelineList li:has(.stopActionMenu) .stopMenuWrap{z-index:61}.timelineList li:has(.stopActionMenu) .stopActionMenu{z-index:62}
 
 /* EYRIA v1.4 Place Detail Redesign */

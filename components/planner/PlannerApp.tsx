@@ -665,7 +665,12 @@ export default function PlannerApp() {
                       <input className="stopName stopEditInput" value={stop.name} onChange={(e) => updateStop(i, "name", e.target.value)} />
                     ) : (
                       <div className="stopTitleRow">
-                        <Link href={getPlaceDetailUrl(stop.placeId, i)} onClick={() => getPlaceDetailUrl(stop.placeId, i)}>
+                        <Link
+                          href={getPlaceDetailUrl(stop.placeId, i)}
+                          title={stop.name}
+                          aria-label={stop.name}
+                          onClick={() => getPlaceDetailUrl(stop.placeId, i)}
+                        >
                           <strong>{stop.name}</strong>
                         </Link>
                         <span>{categoryNames[stop.category]}</span>
