@@ -39,7 +39,7 @@ type IntroPlace = {
 function getWorldView(variant: "default" | "intro" = "default"): WorldView {
   const width = typeof window !== "undefined" ? window.innerWidth : 1200;
   if (variant === "intro" && width > 1200) {
-    return { center: [8, 0], zoom: 1.54, minZoom: 1 };
+    return { center: [8, 0], zoom: 1.45, minZoom: 1 };
   }
   if (width <= 480) return { center: [18, 0], zoom: 0.35, minZoom: 0.25 };
   if (width <= 700) return { center: [18, 10], zoom: 0.75, minZoom: 0.5 };
@@ -144,7 +144,7 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
       const bounds = L.latLngBounds(variant === "intro" ? [[-90, -180], [90, 180]] : [[-85.0511, -180], [85.0511, 180]]);
       map = L.map(containerRef.current, {
         center: worldView.center, zoom: worldView.zoom, minZoom: worldView.minZoom,
-        maxZoom: 9, zoomSnap: variant === "intro" ? 0.01 : 0.1, zoomControl: false, attributionControl: false,
+        maxZoom: 9, zoomSnap: 0.1, zoomControl: false, attributionControl: false,
         crs: variant === "intro" ? L.CRS.EPSG4326 : L.CRS.EPSG3857,
         worldCopyJump: true, maxBounds: bounds, maxBoundsViscosity: 1, tap: true,
       });
@@ -289,7 +289,7 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
         void import("leaflet").then(({ default: L }) => {
           if (!hasUserInteractedRef.current && !hasAppliedInitialBoundsRef.current && !focusedCountry) {
             if (variant === "intro" && window.innerWidth > 1200) {
-              map.setView([8, 0], 1.54, { animate: false });
+              map.setView([8, 0], 1.45, { animate: false });
             } else {
               const isMobile = window.innerWidth <= 640;
               const worldBounds = L.latLngBounds(L.latLng(-60, -170), L.latLng(75, 175));
@@ -532,7 +532,7 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
           }).addTo(map).on("click", () => countryRef.current(country));
         });
         if (variant === "intro" && !hasAppliedInitialBoundsRef.current && !hasUserInteractedRef.current) {
-          map.setView([8, 0], 1.54, { animate: false });
+          map.setView([8, 0], 1.45, { animate: false });
           hasAppliedInitialBoundsRef.current = true;
         } else if (variant === "intro") {
           const worldBounds = L.latLngBounds(L.latLng(-60, -170), L.latLng(75, 175));

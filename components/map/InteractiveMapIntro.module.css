@@ -117,7 +117,7 @@
   max-width: none;
   min-height: 644px;
   height: 644px;
-  margin: 21px 0 0;
+  margin: 24px 0 0;
   overflow: visible;
   border: 0;
   border-radius: 0;
@@ -459,8 +459,8 @@
   border-radius: 13px;
   background: rgba(255, 255, 255, 0.97);
   box-shadow:
-    0 22px 48px rgba(35, 53, 69, 0.115),
-    0 4px 12px rgba(35, 53, 69, 0.058);
+    0 22px 48px rgba(35, 53, 69, 0.14),
+    0 4px 12px rgba(35, 53, 69, 0.07);
   backdrop-filter: blur(16px);
 }
 
