@@ -362,7 +362,7 @@
     overflow: hidden;
     overflow-wrap: break-word;
     text-overflow: ellipsis;
-    text-wrap: balance;
+    text-wrap: pretty;
     white-space: normal;
     word-break: keep-all;
     -webkit-box-orient: vertical;
