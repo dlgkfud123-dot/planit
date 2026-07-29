@@ -304,7 +304,6 @@ export default function InteractiveMapIntro() {
             <div className="hifiSearchCol whereCol">
               <span className="colLabel">여행지 (국가 / 도시)</span>
               <div className="fieldWithIcon">
-                <span className="inputIcon">📍</span>
                 <div className="destSelectGroup">
                   <div className="customSelectWrapper" ref={countryDropdownRef}>
                     <button
@@ -391,7 +390,6 @@ export default function InteractiveMapIntro() {
             <div className="hifiSearchCol whenCol">
               <span className="colLabel">여행 기간</span>
               <div className="fieldWithIcon">
-                <span className="inputIcon">📅</span>
                 <div className="dateRangeInputsGroup">
                   <input
                     type="date"
@@ -420,7 +418,6 @@ export default function InteractiveMapIntro() {
             <div className="hifiSearchCol whoCol">
               <span className="colLabel">여행 인원</span>
               <div className="fieldWithIcon">
-                <span className="inputIcon">👥</span>
                 <div className="counterPillGroup">
                   <button
                     type="button"
@@ -448,7 +445,6 @@ export default function InteractiveMapIntro() {
             <div className="hifiSearchCol budgetCol">
               <span className="colLabel">여행 예산</span>
               <div className="fieldWithIcon">
-                <span className="inputIcon">₩</span>
                 <div className="budgetPillWrap">
                   <input
                     type="number"
@@ -472,7 +468,7 @@ export default function InteractiveMapIntro() {
                 disabled={!isFormValid || isGenerating}
                 onClick={handleCreateItinerary}
               >
-                ✦ AI 일정 만들기
+                AI 일정 만들기
               </button>
             </div>
           </div>

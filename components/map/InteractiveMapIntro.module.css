@@ -178,6 +178,25 @@
   mask-composite: intersect;
 }
 
+.desktopLanding :global(.travelMap--intro .introVectorPane path) {
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.desktopLanding :global(.travelMap--intro .introCountryPath) {
+  transition: fill 160ms ease, stroke 160ms ease;
+}
+
+.desktopLanding :global(.travelMap--intro .introCountryPath:hover) {
+  fill: #f1eeda;
+}
+
+.desktopLanding :global(.travelMap--intro .introCoastlinePath),
+.desktopLanding :global(.travelMap--intro .introLakePath) {
+  pointer-events: none;
+}
+
 .desktopLanding :global(.travelMap--intro .introDetailPane) {
   background: transparent !important;
 }
@@ -188,7 +207,44 @@
 }
 
 .desktopLanding :global(.travelMap--intro .introDetailPane path) {
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+  stroke-linecap: round;
   animation: introDetailIn 240ms ease-out both;
+}
+
+.desktopLanding :global(.travelMap--intro .introPlacePane) {
+  pointer-events: none;
+}
+
+.desktopLanding :global(.travelMap--intro .introPlaceLabelShell) {
+  width: 104px !important;
+  height: 22px !important;
+  margin: 0 !important;
+  border: 0;
+  background: transparent;
+  pointer-events: none;
+}
+
+.desktopLanding :global(.travelMap--intro .introPlaceLabel) {
+  display: block;
+  width: 104px;
+  overflow: hidden;
+  color: rgba(52, 70, 86, 0.68);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 22px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(2px);
+  animation: introPlaceIn 200ms ease-out forwards;
+}
+
+.desktopLanding :global(.travelMap--intro .introPlaceLabel.capital) {
+  color: rgba(35, 54, 73, 0.78);
+  font-weight: 650;
 }
 
 @keyframes introDetailIn {
@@ -197,6 +253,13 @@
   }
   to {
     opacity: 1;
+  }
+}
+
+@keyframes introPlaceIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -421,7 +484,7 @@
 .desktopLanding :global(.fieldWithIcon) {
   width: 100%;
   height: 38px;
-  padding: 0 10px;
+  padding: 0 8px;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -445,7 +508,7 @@
   min-width: 0;
   flex: 1;
   display: grid;
-  grid-template-columns: minmax(108px, 1fr) minmax(108px, 1fr);
+  grid-template-columns: minmax(142px, 1.22fr) minmax(100px, 0.88fr);
   gap: 5px;
 }
 
@@ -457,6 +520,9 @@
   width: 100%;
   min-width: 0;
   padding: 0 7px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   justify-content: space-between;
   border: 0;
   background: #f6f8fa;
@@ -467,10 +533,33 @@
 }
 
 .desktopLanding :global(.hifiPillTrigger span) {
+  display: block;
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.desktopLanding :global(.customSelectWrapper:first-child .customDropdownPanel) {
+  right: auto;
+  width: max(100%, 190px);
+}
+
+.desktopLanding :global(.customSelectWrapper:last-child .customDropdownPanel) {
+  right: auto;
+  width: max(100%, 160px);
+}
+
+.desktopLanding :global(.customDropdownPanel),
+.desktopLanding :global(.continentHeader),
+.desktopLanding :global(.countryOption) {
+  white-space: nowrap;
+}
+
+.desktopLanding :global(.countryOption) {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .desktopLanding :global(.chevronIcon) {

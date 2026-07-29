@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import type {
+  GeoJSON as LeafletGeoJSON,
   Layer as LeafletLayer,
   Map as LeafletMap,
   Marker as LeafletMarker,
+  Path as LeafletPath,
   Polyline as LeafletPolyline,
 } from "leaflet";
 import type { GeoJsonObject } from "geojson";
@@ -26,6 +28,13 @@ type Props = {
   onMoveComplete: () => void;
 };
 type WorldView = { center: [number, number]; zoom: number; minZoom: number };
+type IntroPlace = {
+  name: string;
+  lat: number;
+  lon: number;
+  capital: boolean;
+  population: number;
+};
 
 function getWorldView(variant: "default" | "intro" = "default"): WorldView {
   const width = typeof window !== "undefined" ? window.innerWidth : 1200;
@@ -69,6 +78,16 @@ const introCountryIso: Record<string, string> = {
   중국: "CHN", 몽골: "MNG", 러시아: "RUS",
 };
 
+function escapeMapLabel(value: string) {
+  return value.replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;",
+  })[character] ?? character);
+}
+
 function cityMarkup(city: TravelCity, active: boolean, index: number, variant: "default" | "intro") {
   const variantClass = variant === "intro" ? " introCityMarker" : "";
   const offset = variant === "intro" ? introCityLabelOffsets[city.en] : undefined;
@@ -89,7 +108,9 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
   const mapRef = useRef<LeafletMap | null>(null);
   const markersRef = useRef<LeafletMarker[]>([]);
   const routeRef = useRef<LeafletPolyline | null>(null);
+  const introCountriesLayerRef = useRef<LeafletGeoJSON | null>(null);
   const detailLayersRef = useRef<LeafletLayer[]>([]);
+  const detailPlaceMarkersRef = useRef<LeafletMarker[]>([]);
   const detailRequestIdRef = useRef(0);
   const transitionTimersRef = useRef<number[]>([]);
   const transitionIdRef = useRef(0);
@@ -99,6 +120,7 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
   const moveRef = useRef(onMoveComplete);
   const selectedRef = useRef(selected);
   const hoveredRef = useRef(hoveredCity);
+  const focusedCountryRef = useRef(focusedCountry);
   const hasUserInteractedRef = useRef(false);
   const hasAppliedInitialBoundsRef = useRef(false);
   const [mapReady, setMapReady] = useState(false);
@@ -110,7 +132,8 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
     moveRef.current = onMoveComplete;
     selectedRef.current = selected;
     hoveredRef.current = hoveredCity;
-  }, [onSelect, onCountrySelect, onCityHover, onMoveComplete, selected, hoveredCity]);
+    focusedCountryRef.current = focusedCountry;
+  }, [onSelect, onCountrySelect, onCityHover, onMoveComplete, selected, hoveredCity, focusedCountry]);
 
   useEffect(() => {
     let disposed = false;
@@ -143,46 +166,84 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
         const vectorPane = map.createPane("introVectorPane");
         vectorPane.classList.add("introVectorPane");
         vectorPane.style.zIndex = "200";
-        vectorPane.style.pointerEvents = "none";
+        vectorPane.style.pointerEvents = "auto";
         const detailPane = map.createPane("introDetailPane");
         detailPane.classList.add("introDetailPane");
         detailPane.style.zIndex = "250";
         detailPane.style.pointerEvents = "none";
+        const placePane = map.createPane("introPlacePane");
+        placePane.classList.add("introPlacePane");
+        placePane.style.zIndex = "450";
+        placePane.style.pointerEvents = "none";
 
         void Promise.all([
-          fetch("/maps/world-countries.geojson").then((response) => {
+          fetch("/maps/world-countries-50m.geojson").then((response) => {
             if (!response.ok) throw new Error("국가 경계 데이터를 불러오지 못했습니다.");
             return response.json() as Promise<GeoJsonObject>;
           }),
-          fetch("/maps/world-land.geojson").then((response) => {
+          fetch("/maps/world-coastline-50m.geojson").then((response) => {
             if (!response.ok) throw new Error("해안선 데이터를 불러오지 못했습니다.");
             return response.json() as Promise<GeoJsonObject>;
           }),
-        ]).then(([countries, land]) => {
+          fetch("/maps/world-lakes-50m.geojson").then((response) => {
+            if (!response.ok) throw new Error("호수 데이터를 불러오지 못했습니다.");
+            return response.json() as Promise<GeoJsonObject>;
+          }),
+        ]).then(([countries, coastline, lakes]) => {
           if (disposed || !map) return;
-          L.geoJSON(countries, {
+          const countryByIso = new Map(Object.entries(introCountryIso).map(([country, iso]) => [iso, country]));
+          const getIso = (feature?: { properties?: Record<string, unknown> } | null) => {
+            const properties = feature?.properties;
+            return String(properties?.ADM0_A3 || properties?.ISO_A3 || properties?.ISO_A3_EH || properties?.ADM0_TLC || "");
+          };
+          const countriesLayer = L.geoJSON(countries, {
+            pane: "introVectorPane",
+            interactive: true,
+            style: (feature) => ({
+              pane: "introVectorPane",
+              className: "introCountryPath",
+              fillColor: focusedCountryRef.current && getIso(feature) === introCountryIso[focusedCountryRef.current]
+                ? "#eaf0ff"
+                : "#f6f5ee",
+              fillOpacity: 1,
+              color: "#c5d5dc",
+              opacity: 1,
+              weight: 0.55,
+              lineCap: "round",
+              lineJoin: "round",
+            }),
+            onEachFeature: (feature, layer) => {
+              const country = countryByIso.get(getIso(feature));
+              if (country) layer.on("click", () => countryRef.current(country));
+            },
+          }).addTo(map);
+          introCountriesLayerRef.current = countriesLayer;
+          L.geoJSON(lakes, {
             pane: "introVectorPane",
             interactive: false,
             style: {
               pane: "introVectorPane",
-              fillColor: "#f1e8d7",
-              fillOpacity: 0.96,
-              color: "#9dd1ef",
-              opacity: 0.88,
-              weight: 0.72,
+              className: "introLakePath",
+              fill: true,
+              fillColor: "#edf7fa",
+              fillOpacity: 1,
+              color: "#bcd6e0",
+              opacity: 1,
+              weight: 0.5,
               lineCap: "round",
               lineJoin: "round",
             },
           }).addTo(map);
-          L.geoJSON(land, {
+          L.geoJSON(coastline, {
             pane: "introVectorPane",
             interactive: false,
             style: {
               pane: "introVectorPane",
+              className: "introCoastlinePath",
               fill: false,
-              color: "#62b7e7",
-              opacity: 0.9,
-              weight: 1.05,
+              color: "#a9c4d2",
+              opacity: 1,
+              weight: 0.8,
               lineCap: "round",
               lineJoin: "round",
             },
@@ -208,6 +269,8 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
       transitionIdRef.current += 1;
       detailRequestIdRef.current += 1;
       detailLayersRef.current = [];
+      detailPlaceMarkersRef.current = [];
+      introCountriesLayerRef.current = null;
       markersRef.current = [];
       routeRef.current = null;
       if (map) map.remove();
@@ -245,12 +308,28 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
   }, [mapReady, focusedCountry, variant]);
 
   useEffect(() => {
+    if (variant !== "intro" || !introCountriesLayerRef.current) return;
+    const selectedIso = focusedCountry ? introCountryIso[focusedCountry] : undefined;
+    introCountriesLayerRef.current.eachLayer((layer) => {
+      const path = layer as LeafletPath & { feature?: { properties?: Record<string, unknown> } };
+      const properties = path.feature?.properties;
+      const iso = String(properties?.ADM0_A3 || properties?.ISO_A3 || properties?.ISO_A3_EH || properties?.ADM0_TLC || "");
+      path.setStyle({
+        fillColor: selectedIso && iso === selectedIso ? "#eaf0ff" : "#f6f5ee",
+      });
+    });
+  }, [focusedCountry, variant]);
+
+  useEffect(() => {
     if (!mapReady || variant !== "intro") return;
     let cancelled = false;
     detailRequestIdRef.current += 1;
     const requestId = detailRequestIdRef.current;
+
     detailLayersRef.current.forEach((layer) => layer.remove());
+    detailPlaceMarkersRef.current.forEach((marker) => marker.remove());
     detailLayersRef.current = [];
+    detailPlaceMarkersRef.current = [];
 
     const iso = focusedCountry ? introCountryIso[focusedCountry] : undefined;
     if (!iso) return;
@@ -259,7 +338,11 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
       import("leaflet"),
       fetch(`/maps/detail/${iso}.json`).then((response) => {
         if (!response.ok) throw new Error("상세 지도 데이터를 불러오지 못했습니다.");
-        return response.json() as Promise<{ country: GeoJsonObject; admin1: GeoJsonObject }>;
+        return response.json() as Promise<{
+          country: GeoJsonObject;
+          admin1: GeoJsonObject;
+          places?: IntroPlace[];
+        }>;
       }),
     ]).then(([{ default: L }, detail]) => {
       const map = mapRef.current;
@@ -270,11 +353,12 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
         interactive: false,
         style: {
           pane: "introDetailPane",
-          fillColor: "#eee1ca",
-          fillOpacity: 0.98,
-          color: "#4fafe8",
-          opacity: 0.98,
-          weight: 1.25,
+          className: "introDetailCountryPath",
+          fillColor: "#eaf0ff",
+          fillOpacity: 1,
+          color: "#a9c4d2",
+          opacity: 1,
+          weight: 0.8,
           lineCap: "round",
           lineJoin: "round",
         },
@@ -285,25 +369,45 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
         interactive: false,
         style: {
           pane: "introDetailPane",
+          className: "introAdminPath",
           fill: false,
-          color: "#8fc9e8",
-          opacity: 0.78,
-          weight: 0.58,
+          color: "#c5d5dc",
+          opacity: 0.95,
+          weight: 0.55,
           lineCap: "round",
           lineJoin: "round",
         },
       }).addTo(map);
 
       detailLayersRef.current = [countryLayer, adminLayer];
+
+      const supportedCities = cities.filter((city) => city.country === focusedCountry);
+      const places = (detail.places ?? []).filter((place) =>
+        !supportedCities.some((city) =>
+          Math.abs(city.lat - place.lat) < 0.28 && Math.abs(city.lon - place.lon) < 0.28
+        )
+      );
+      detailPlaceMarkersRef.current = places.map((place, index) =>
+        L.marker([place.lat, place.lon], {
+          pane: "introPlacePane",
+          interactive: false,
+          keyboard: false,
+          icon: L.divIcon({
+            className: "introPlaceLabelShell",
+            html: `<span class="introPlaceLabel${place.capital ? " capital" : ""}" style="animation-delay:${620 + index * 45}ms">${escapeMapLabel(place.name)}</span>`,
+            iconSize: [104, 22],
+            iconAnchor: [52, 11],
+          }),
+        }).addTo(map)
+      );
     }).catch(() => {
-      // Keep the approved low-detail world layer visible if a country detail
-      // file cannot be loaded.
+      // The 50m world layer remains visible if optional country detail fails.
     });
 
     return () => {
       cancelled = true;
     };
-  }, [focusedCountry, mapReady, variant]);
+  }, [cities, focusedCountry, mapReady, variant]);
 
   /* Ambient organic camera drift when idle on home map */
   useEffect(() => {
