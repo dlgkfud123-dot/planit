@@ -1,0 +1,158 @@
+"use client";
+
+import Link from "next/link";
+import dynamic from "next/dynamic";
+import type { TravelCity } from "../../data/cities";
+import styles from "./MobileIntroExperience.module.css";
+
+const MapCanvas = dynamic(() => import("./MapCanvas"), { ssr: false });
+
+type Props = {
+  countries: string[];
+  cities: TravelCity[];
+  selectedCountry: string;
+  selectedCityName: string;
+  selectedCity: TravelCity | null;
+  start: string;
+  end: string;
+  people: number;
+  budget: number;
+  focusedCountry: string | null;
+  citiesVisible: boolean;
+  hoveredCity: string | null;
+  isGenerating: boolean;
+  loadingStep: number;
+  isFormValid: boolean;
+  onCountryChange: (country: string) => void;
+  onCityChange: (city: string) => void;
+  onStartChange: (value: string) => void;
+  onEndChange: (value: string) => void;
+  onPeopleChange: (value: number) => void;
+  onBudgetChange: (value: number) => void;
+  onCreate: () => void;
+  onMapCountrySelect: (country: string) => void;
+  onMapCitySelect: (city: TravelCity) => void;
+  onCityHover: (city: string | null) => void;
+};
+
+const loadingSteps = [
+  "최적의 이동 경로 계산 중",
+  "장소 운영시간 확인 중",
+  "예산 균형 조정 중",
+  "교통수단 확인 중",
+  "일정 세부 조정 중",
+];
+
+export default function MobileIntroExperience(props: Props) {
+  const countryCities = props.cities.filter((city) => city.country === props.selectedCountry);
+  const tripSummary = `${props.selectedCityName || "여행지"} 맞춤 여행 일정을`;
+
+  return (
+    <div className={styles.mobileOnly}>
+      <section className={styles.hero}>
+        <div className={styles.heroShade} />
+        <strong className={styles.brand}>EYRIA</strong>
+        <span className={styles.badge}>AI 여행 플래너</span>
+        <h1>AI가 설계하는<br />나만의 완벽한 여행</h1>
+        <p>새로운 여행을 시작해보세요</p>
+      </section>
+
+      <section className={styles.formPanel} aria-label="여행 일정 입력">
+        <label>
+          <span>여행지</span>
+          <div className={styles.destinationRow}>
+            <select value={props.selectedCountry} onChange={(event) => props.onCountryChange(event.target.value)}>
+              <option value="">국가 선택</option>
+              {props.countries.map((country) => <option key={country}>{country}</option>)}
+            </select>
+            <select
+              value={props.selectedCityName}
+              disabled={!props.selectedCountry}
+              onChange={(event) => props.onCityChange(event.target.value)}
+            >
+              <option value="">도시 선택</option>
+              {countryCities.map((city) => <option key={city.en} value={city.name}>{city.name}</option>)}
+            </select>
+          </div>
+        </label>
+
+        <label>
+          <span>여행 기간</span>
+          <div className={styles.dateRow}>
+            <input type="date" value={props.start} onChange={(event) => props.onStartChange(event.target.value)} />
+            <b>~</b>
+            <input type="date" min={props.start || undefined} value={props.end} onChange={(event) => props.onEndChange(event.target.value)} />
+          </div>
+        </label>
+
+        <div className={styles.controlRow}>
+          <div>
+            <span>여행 인원</span>
+            <strong>{props.people > 0 ? `성인 ${props.people}명` : "인원 선택"}</strong>
+          </div>
+          <div className={styles.counter}>
+            <button type="button" disabled={props.people <= 1} onClick={() => props.onPeopleChange(Math.max(1, props.people - 1))}>−</button>
+            <button type="button" onClick={() => props.onPeopleChange(props.people > 0 ? props.people + 1 : 1)}>＋</button>
+          </div>
+        </div>
+
+        <label>
+          <span>여행 예산</span>
+          <div className={styles.budgetRow}>
+            <input
+              type="number"
+              min="1"
+              placeholder="예산 입력"
+              value={props.budget || ""}
+              onChange={(event) => props.onBudgetChange(event.target.value ? Math.max(1, Number(event.target.value)) : 0)}
+            />
+            <b>만원</b>
+          </div>
+        </label>
+
+        <button className={styles.cta} type="button" disabled={!props.isFormValid || props.isGenerating} onClick={props.onCreate}>
+          AI 일정 만들기
+        </button>
+      </section>
+
+      <section id="mobile-world-map" className={styles.mapSection} aria-label="여행지 세계지도">
+        <MapCanvas
+          cities={props.cities}
+          variant="intro"
+          focusedCountry={props.focusedCountry}
+          citiesVisible={props.citiesVisible}
+          hoveredCity={props.hoveredCity}
+          selected={props.selectedCity}
+          showRoute={false}
+          onCountrySelect={props.onMapCountrySelect}
+          onSelect={props.onMapCitySelect}
+          onCityHover={props.onCityHover}
+          onMoveComplete={() => {}}
+        />
+      </section>
+
+      <nav className={styles.bottomNav} aria-label="모바일 주요 메뉴">
+        <Link className={styles.active} href="/"><b>⌂</b><span>홈</span></Link>
+        <Link href="/trips"><b>▢</b><span>내 여행</span></Link>
+        <a href="#mobile-world-map"><b>◇</b><span>지도</span></a>
+        <Link href="/login"><b>○</b><span>내 정보</span></Link>
+      </nav>
+
+      {props.isGenerating && (
+        <div className={styles.loading} role="status" aria-live="polite">
+          <strong className={styles.loadingBrand}>EYRIA</strong>
+          <div className={styles.ripple}><i /><i /><i /><i /></div>
+          <h2>{tripSummary}<br />만들고 있어요</h2>
+          <p>{props.start || "날짜 미정"} ~ {props.end || "날짜 미정"} · {props.people || 0}명</p>
+          <ol>
+            {loadingSteps.map((step, index) => (
+              <li key={step} className={index === props.loadingStep ? styles.current : index < props.loadingStep ? styles.done : ""}>
+                <span>{index < props.loadingStep ? "✓" : "●"}</span>{step}
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </div>
+  );
+}

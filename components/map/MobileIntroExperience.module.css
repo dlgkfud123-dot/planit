@@ -1,0 +1,142 @@
+.mobileOnly { display: none; }
+
+@media (max-width: 767px) {
+  .mobileOnly {
+    display: block;
+    min-height: 100svh;
+    padding-bottom: calc(74px + env(safe-area-inset-bottom));
+    background: #fff;
+    color: #0f2037;
+  }
+
+  .hero {
+    position: relative;
+    height: 300px;
+    padding: 28px 22px;
+    overflow: hidden;
+    background: url("/mobile-manhattan-sunset.webp") 58% center / cover no-repeat;
+    color: #fff;
+  }
+
+  .heroShade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(7, 24, 45, .68) 0%, rgba(7, 24, 45, .28) 56%, rgba(7, 24, 45, .05) 100%);
+  }
+
+  .brand, .badge, .hero h1, .hero p { position: relative; z-index: 1; }
+  .brand { display: block; font-size: 23px; letter-spacing: .14em; }
+  .badge { display: inline-flex; margin-top: 32px; padding: 7px 11px; border: 1px solid rgba(255,255,255,.85); border-radius: 999px; font-size: 11px; }
+  .hero h1 { margin: 16px 0 0; font-size: clamp(31px, 9vw, 39px); line-height: 1.15; letter-spacing: -.055em; word-break: keep-all; }
+  .hero p { margin: 12px 0 0; font-size: 15px; }
+
+  .formPanel {
+    position: relative;
+    z-index: 3;
+    margin: -2px 0 0;
+    padding: 18px 20px 20px;
+    border-radius: 26px 26px 0 0;
+    background: #fff;
+    box-shadow: 0 -8px 26px rgba(24, 54, 78, .11);
+  }
+
+  .formPanel > label, .controlRow {
+    min-height: 67px;
+    padding: 10px 2px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-bottom: 1px solid #e5ebef;
+  }
+
+  .formPanel label > span, .controlRow span { color: #718091; font-size: 12px; font-weight: 700; }
+  .destinationRow, .dateRow, .budgetRow { margin-top: 5px; display: flex; align-items: center; gap: 7px; }
+  .destinationRow select, .dateRow input, .budgetRow input {
+    min-width: 0;
+    height: 32px;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #101e31;
+    font-size: 15px;
+    font-weight: 750;
+  }
+  .destinationRow select { flex: 1 1 0; }
+  .dateRow input { width: calc(50% - 12px); }
+  .dateRow b, .budgetRow b { color: #64748b; font-size: 12px; white-space: nowrap; }
+  .budgetRow input { flex: 1; }
+
+  .controlRow { flex-direction: row; align-items: center; justify-content: space-between; }
+  .controlRow > div:first-child { display: grid; gap: 5px; }
+  .controlRow strong { font-size: 16px; }
+  .counter { display: flex; gap: 8px; }
+  .counter button { width: 34px; height: 34px; border: 1px solid #dfe7ed; border-radius: 50%; background: #f7fafc; color: #17314f; font-size: 18px; }
+  .counter button:disabled { opacity: .35; }
+
+  .cta {
+    width: 100%;
+    height: 52px;
+    margin-top: 15px;
+    border: 0;
+    border-radius: 13px;
+    background: #126ef5;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 800;
+  }
+  .cta:disabled { background: #dfe6ed; color: #96a4b2; }
+
+  .mapSection {
+    height: 310px;
+    margin: 14px 16px 12px;
+    overflow: hidden;
+    border-radius: 18px;
+    background: #e5f4f8;
+  }
+  .mapSection :global(.travelMap), .mapSection :global(.leaflet-container) { width: 100% !important; height: 100% !important; }
+
+  .bottomNav {
+    position: fixed;
+    z-index: 60;
+    left: 0; right: 0; bottom: 0;
+    height: calc(66px + env(safe-area-inset-bottom));
+    padding: 7px 18px env(safe-area-inset-bottom);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid #e2e8ee;
+    background: rgba(255,255,255,.96);
+    backdrop-filter: blur(18px);
+  }
+  .bottomNav a { display: grid; place-items: center; gap: 2px; color: #748191; text-decoration: none; font-size: 10px; }
+  .bottomNav b { font-size: 21px; line-height: 1; }
+  .bottomNav .active { color: #126ef5; }
+
+  .loading {
+    position: fixed;
+    z-index: 10000;
+    inset: 0;
+    padding: max(32px, env(safe-area-inset-top)) 28px max(28px, env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #fff;
+    color: #102239;
+  }
+  .loadingBrand { margin-top: 18px; font-size: 14px; letter-spacing: .16em; }
+  .ripple { position: relative; width: 210px; height: 210px; margin: 68px 0 22px; }
+  .ripple i { position: absolute; inset: 50%; border: 16px solid rgba(69, 169, 247, .17); border-radius: 50%; transform: translate(-50%,-50%); animation: mobileRipple 2.1s ease-out infinite; }
+  .ripple i:nth-child(2) { animation-delay: -.45s; }
+  .ripple i:nth-child(3) { animation-delay: -.9s; }
+  .ripple i:nth-child(4) { animation-delay: -1.35s; }
+  @keyframes mobileRipple { from { width: 16px; height: 16px; opacity: .9; } to { width: 190px; height: 190px; opacity: 0; } }
+  .loading h2 { margin: 0; text-align: center; font-size: 23px; line-height: 1.35; letter-spacing: -.035em; }
+  .loading > p { margin: 12px 0 28px; color: #5f6f80; font-size: 14px; }
+  .loading ol { width: min(290px, 100%); margin: 0; padding: 0; display: grid; gap: 17px; list-style: none; }
+  .loading li { display: flex; align-items: center; gap: 11px; color: #a4adb7; font-size: 14px; }
+  .loading li span { width: 17px; color: #c4cbd2; font-size: 10px; text-align: center; }
+  .loading li.current { color: #152b44; font-weight: 750; }
+  .loading li.current span { color: #31a9fa; filter: drop-shadow(0 0 5px #64c4ff); animation: loadingDot 1s ease-in-out infinite; }
+  .loading li.done { color: #526779; }
+  .loading li.done span { color: #126ef5; }
+  @keyframes loadingDot { 50% { opacity: .35; } }
+}

@@ -9,6 +9,7 @@ import { cities, supportedCityIds, type TravelCity } from "../../data/cities";
 import { generateItinerary } from "../../utils/itineraryGenerator";
 import { writeDraftById, type TripSnapshot } from "../../utils/tripStorage";
 import styles from "./InteractiveMapIntro.module.css";
+import MobileIntroExperience from "./MobileIntroExperience";
 
 const MapCanvas = dynamic(() => import("./MapCanvas"), {
   ssr: false,
@@ -51,6 +52,7 @@ const continentGroups: { continent: string; countries: string[] }[] = [
 
 function checkShouldShowIntro(): boolean {
   if (typeof window === "undefined") return true;
+  if (window.matchMedia("(max-width: 767px)").matches) return false;
   try {
     const navEntries = performance.getEntriesByType("navigation");
     const isReload = navEntries.length > 0 && (navEntries[0] as PerformanceNavigationTiming).type === "reload";
@@ -97,6 +99,7 @@ export default function InteractiveMapIntro() {
   // Generation & Loading state
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [loadingStepText, setLoadingStepText] = useState<string>("");
+  const [loadingStepIndex, setLoadingStepIndex] = useState<number>(0);
   const [generationError, setGenerationError] = useState<string | null>(null);
 
   const [focusedCountry, setFocusedCountry] = useState<string | null>(null);
@@ -205,11 +208,13 @@ export default function InteractiveMapIntro() {
 
     let currentStep = 0;
     setLoadingStepText(steps[0]);
+    setLoadingStepIndex(0);
 
     const interval = window.setInterval(() => {
       currentStep++;
       if (currentStep < steps.length) {
         setLoadingStepText(steps[currentStep]);
+        setLoadingStepIndex(currentStep);
       } else {
         window.clearInterval(interval);
 
@@ -255,7 +260,7 @@ export default function InteractiveMapIntro() {
           setGenerationError("일정 생성 중 문제가 발생했습니다. 다시 시도해주세요.");
         }
       }
-    }, 380);
+    }, 650);
   };
 
   if (showIntro) {
@@ -266,9 +271,40 @@ export default function InteractiveMapIntro() {
     <main className={`landingWrapper hifiHeroLayout ${styles.desktopLanding}`}>
       <Header />
 
+      <MobileIntroExperience
+        countries={Array.from(new Set(availableCities.map((city) => city.country)))}
+        cities={availableCities}
+        selectedCountry={selectedCountry}
+        selectedCityName={selectedCityName}
+        selectedCity={selectedCity}
+        start={start}
+        end={end}
+        people={people}
+        budget={budget}
+        focusedCountry={focusedCountry}
+        citiesVisible={citiesVisible}
+        hoveredCity={hoveredCity}
+        isGenerating={isGenerating}
+        loadingStep={loadingStepIndex}
+        isFormValid={isFormValid}
+        onCountryChange={handleCountryChange}
+        onCityChange={handleCityChange}
+        onStartChange={(value) => {
+          setStart(value);
+          if (end && value > end) setEnd("");
+        }}
+        onEndChange={setEnd}
+        onPeopleChange={setPeople}
+        onBudgetChange={setBudget}
+        onCreate={handleCreateItinerary}
+        onMapCountrySelect={handleMapCountrySelect}
+        onMapCitySelect={handleMapCitySelect}
+        onCityHover={setHoveredCity}
+      />
+
       {/* AI Generation Loading Transition Screen */}
       {isGenerating && (
-        <div className="hifiLoadingOverlay" aria-live="polite">
+        <div className={`hifiLoadingOverlay ${styles.desktopLoading}`} aria-live="polite">
           <div className="hifiLoadingCard">
             <div className="pulseRingGraphic">
               <div className="pulseCore" />
@@ -285,7 +321,7 @@ export default function InteractiveMapIntro() {
         </div>
       )}
 
-      <div className="landingMainContent hifiCenterContainer">
+      <div className={`landingMainContent hifiCenterContainer ${styles.desktopContent}`}>
         {/* Sleek Hero Header */}
         <section className="heroHeaderSection centeredHeroHeader">
           <div className="heroBadge">
@@ -494,7 +530,7 @@ export default function InteractiveMapIntro() {
         {generationError && <p className="hifiErrorText">{generationError}</p>}
       </div>
 
-      <Footer />
+      <div className={styles.desktopFooter}><Footer /></div>
     </main>
   );
 }

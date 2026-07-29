@@ -8,6 +8,20 @@
     linear-gradient(180deg, #f8fbfd 0, #f5f9fc 42%, #f1f6f9 100%);
 }
 
+@media (max-width: 767px) {
+  .desktopLanding :global(.mapHeader),
+  .desktopContent,
+  .desktopFooter,
+  .desktopLoading {
+    display: none !important;
+  }
+
+  .desktopLanding {
+    min-height: 100svh;
+    background: #fff;
+  }
+}
+
 .desktopLanding :global(.mapHeader) {
   height: 68px;
   padding: 0;
