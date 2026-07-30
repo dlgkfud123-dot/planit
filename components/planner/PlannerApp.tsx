@@ -3,9 +3,9 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { cities, supportedCityIds, type TravelCity } from "../../data/cities";
+import { cities, cityByName, supportedCityIds, type TravelCity } from "../../data/cities";
 import { placesByCity, type Place } from "../../data/places";
-import { fetchWeatherData, type WeatherDataResponse } from "../../utils/weatherService";
+import { fetchWeatherData, formatDayWeather, type WeatherDataResponse } from "../../utils/weatherService";
 import { calculateDayCostSummary, formatCurrency, formatKrwReference, EXCHANGE_RATE_METADATA } from "../../utils/costEngine";
 import { validateStopOpening } from "../../utils/openingHoursValidator";
 import { findSmartCandidates, replaceSingleStop } from "../../utils/smartReplaceEngine";
@@ -113,6 +113,7 @@ export default function PlannerApp() {
   const nights = nightsFrom(end);
   const current = plan[activeDay] || plan[0];
   const currentStops = current?.stops || [];
+  const activeDayWeather = weatherResult?.daily?.[activeDay] ?? null;
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 767px)");
@@ -121,6 +122,26 @@ export default function PlannerApp() {
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
   }, []);
+
+  useEffect(() => {
+    if (status !== "complete" || !destination || !start || !end) {
+      setWeatherResult(null);
+      return;
+    }
+    const city = cityByName[destination];
+    if (!city) {
+      setWeatherResult(null);
+      return;
+    }
+    let cancelled = false;
+    setWeatherResult(null);
+    void fetchWeatherData(city.lat, city.lon, start, end, city.name).then((result) => {
+      if (!cancelled) setWeatherResult(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [destination, end, start, status]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -602,6 +623,7 @@ export default function PlannerApp() {
               people={people}
               budget={budget}
               saveStatus={saveStatus}
+              weather={activeDayWeather}
               onOpenSettings={() => setShowSettingsModal(true)}
               onSave={saveCurrentTrip}
               onShare={shareCurrentTrip}
@@ -636,7 +658,8 @@ export default function PlannerApp() {
           <div className={styles.panelHeadingRow}>
             <div>
               <h3>{current?.theme || `${activeDay + 1}일차 일정`}</h3>
-              <p>{currentStops.length}개 장소 · 카드를 끌어 순서를 바꿔보세요</p>
+              {activeDayWeather && <p className={styles.mobileDayWeather}>{formatDayWeather(activeDayWeather)}</p>}
+              <p className={styles.panelDescription}>{currentStops.length}개 장소 · 카드를 끌어 순서를 바꿔보세요</p>
             </div>
             <div className={styles.panelActions}>
               <button

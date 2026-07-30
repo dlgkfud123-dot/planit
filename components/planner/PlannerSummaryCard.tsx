@@ -2,6 +2,7 @@
 
 import AccountActions from "../auth/AccountActions";
 import BrandLogo from "../common/BrandLogo";
+import { formatDayWeather, type DayWeatherInfo } from "../../utils/weatherService";
 import styles from "./PlannerDesktop.module.css";
 
 type Props = {
@@ -11,6 +12,7 @@ type Props = {
   people: number;
   budget: number;
   saveStatus: string;
+  weather: DayWeatherInfo | null;
   onOpenSettings: () => void;
   onSave: () => void;
   onShare: () => void;
@@ -23,6 +25,7 @@ export default function PlannerSummaryCard({
   people,
   budget,
   saveStatus,
+  weather,
   onOpenSettings,
   onSave,
   onShare,
@@ -38,6 +41,7 @@ export default function PlannerSummaryCard({
         <span>{people > 0 ? `${people}명` : "-명"}</span>
         <span>{budget > 0 ? `${budget}만원` : "-만원"}</span>
       </div>
+      {weather && <span className={styles.summaryWeather}>{formatDayWeather(weather)}</span>}
       <div className={styles.summaryActions}>
         <button type="button" onClick={onOpenSettings}>설정 수정</button>
         <button type="button" onClick={onSave} disabled={saveStatus === "saving"}>

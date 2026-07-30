@@ -1,37 +1,43 @@
 import { NextResponse } from "next/server";
 
-const cityCoordinates: Record<string, { lat: number; lng: number }> = {
-  서울: { lat: 37.5665, lng: 126.9780 },
-  후쿠오카: { lat: 33.5902, lng: 130.4017 },
-  오사카: { lat: 34.6937, lng: 135.5023 },
-  도쿄: { lat: 35.6762, lng: 139.6503 },
-  교토: { lat: 35.0116, lng: 135.7681 },
-  방콕: { lat: 13.7563, lng: 100.5018 },
-  파리: { lat: 48.8566, lng: 2.3522 },
-  런던: { lat: 51.5074, lng: -0.1278 },
-  뉴욕: { lat: 40.7128, lng: -74.0060 },
-  시드니: { lat: -33.8688, lng: 151.2093 },
-  부산: { lat: 35.1796, lng: 129.0756 },
-  제주: { lat: 33.4996, lng: 126.5312 },
-  싱가포르: { lat: 1.3521, lng: 103.8198 },
-  대만: { lat: 25.0330, lng: 121.5654 },
-  다낭: { lat: 16.0544, lng: 108.2022 },
-};
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function parseIsoDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T00:00:00Z`);
+  return Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value ? null : date;
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const city = searchParams.get("city") || "서울";
+  const latitudeValue = searchParams.get("latitude");
+  const longitudeValue = searchParams.get("longitude");
+  const city = searchParams.get("city") || "";
   const start = searchParams.get("start") || new Date().toISOString().slice(0, 10);
   const end = searchParams.get("end") || start;
 
-  const coords = cityCoordinates[city] || cityCoordinates["서울"];
+  if (latitudeValue === null || longitudeValue === null || latitudeValue.trim() === "" || longitudeValue.trim() === "") {
+    return NextResponse.json({ success: false, weatherData: null, reason: "missing_coordinates" });
+  }
 
-  // Validate forecast date range (Open-Meteo supports up to 16 days from today)
-  const today = new Date();
-  const startDate = new Date(start);
-  const diffDays = Math.ceil((startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  const latitude = Number(latitudeValue);
+  const longitude = Number(longitudeValue);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+    return NextResponse.json({ success: false, weatherData: null, reason: "invalid_coordinates" });
+  }
 
-  if (diffDays > 16 || diffDays < -30) {
+  const startDate = parseIsoDate(start);
+  const endDate = parseIsoDate(end);
+  if (!startDate || !endDate || startDate > endDate) {
+    return NextResponse.json({ success: false, weatherData: null, reason: "invalid_date" });
+  }
+
+  // Open-Meteo forecast requests are limited to the supported forecast window.
+  const now = new Date();
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const startDiffDays = Math.round((startDate.getTime() - today) / DAY_MS);
+  const endDiffDays = Math.round((endDate.getTime() - today) / DAY_MS);
+  if (startDiffDays > 16 || startDiffDays < -30 || endDiffDays > 16 || endDiffDays < -30) {
     return NextResponse.json({ success: false, weatherData: null, reason: "date_out_of_range" });
   }
 
@@ -39,29 +45,30 @@ export async function GET(request: Request) {
   const timeoutId = setTimeout(() => controller.abort(), 1500);
 
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lng}&daily=weathercode,precipitation_probability_max,temperature_2m_max,temperature_2m_min&timezone=auto&start_date=${start}&end_date=${end}`;
-    const res = await fetch(url, { signal: controller.signal, next: { revalidate: 1800 } });
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=weathercode,precipitation_probability_max,temperature_2m_max,temperature_2m_min&timezone=auto&start_date=${start}&end_date=${end}`;
+    const response = await fetch(url, { signal: controller.signal, next: { revalidate: 1800 } });
     clearTimeout(timeoutId);
 
-    if (!res.ok) {
+    if (!response.ok) {
       return NextResponse.json({ success: false, weatherData: null, reason: "api_error" });
     }
 
-    const data = await res.json();
+    const data = await response.json();
     const daily = data.daily || {};
     const dates: string[] = daily.time || [];
     const weatherCodes: number[] = daily.weathercode || [];
     const rainProbs: number[] = daily.precipitation_probability_max || [];
+    const temperatureMaxValues: number[] = daily.temperature_2m_max || [];
+    const temperatureMinValues: number[] = daily.temperature_2m_min || [];
 
     let totalRainDays = 0;
     let totalClearDays = 0;
 
-    const parsedDaily = dates.map((dateStr, idx) => {
-      const prob = rainProbs[idx] ?? 0;
-      const code = weatherCodes[idx] ?? 0;
-      // WMO code 51-67, 80-82: Rain, 71-77, 85-86: Snow, 95-99: Thunderstorm
-      const isRainOrSnow = prob >= 50 || (code >= 51 && code <= 99);
-      const isClear = prob < 20 && (code === 0 || code === 1);
+    const parsedDaily = dates.map((dateStr, index) => {
+      const probability = rainProbs[index] ?? 0;
+      const code = weatherCodes[index] ?? 0;
+      const isRainOrSnow = probability >= 50 || (code >= 51 && code <= 99);
+      const isClear = probability < 20 && (code === 0 || code === 1);
 
       if (isRainOrSnow) totalRainDays++;
       if (isClear) totalClearDays++;
@@ -70,13 +77,14 @@ export async function GET(request: Request) {
         date: dateStr,
         isRain: isRainOrSnow,
         isClear,
-        rainProb: prob,
+        rainProb: probability,
         weatherCode: code,
+        temperatureMax: Number.isFinite(temperatureMaxValues[index]) ? temperatureMaxValues[index] : null,
+        temperatureMin: Number.isFinite(temperatureMinValues[index]) ? temperatureMinValues[index] : null,
       };
     });
 
     const summary = totalRainDays > 0 ? "rain" : totalClearDays >= Math.ceil(parsedDaily.length / 2) ? "clear" : "normal";
-
     return NextResponse.json({
       success: true,
       city,

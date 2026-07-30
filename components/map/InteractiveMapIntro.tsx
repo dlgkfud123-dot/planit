@@ -8,6 +8,7 @@ import dynamic from "next/dynamic";
 import { cities, supportedCityIds, type TravelCity } from "../../data/cities";
 import { generateItinerary } from "../../utils/itineraryGenerator";
 import { writeDraftById, type TripSnapshot } from "../../utils/tripStorage";
+import { fetchWeatherData } from "../../utils/weatherService";
 import styles from "./InteractiveMapIntro.module.css";
 import MobileIntroExperience from "./MobileIntroExperience";
 
@@ -197,6 +198,9 @@ export default function InteractiveMapIntro() {
     if (!isFormValid || isGenerating) return;
     setGenerationError(null);
     setIsGenerating(true);
+    const weatherPromise = selectedCity
+      ? fetchWeatherData(selectedCity.lat, selectedCity.lon, start, end, selectedCity.name)
+      : Promise.resolve(null);
 
     const steps = [
       `${selectedCityName} 여행 데이터 확인 중...`,
@@ -210,7 +214,7 @@ export default function InteractiveMapIntro() {
     setLoadingStepText(steps[0]);
     setLoadingStepIndex(0);
 
-    const interval = window.setInterval(() => {
+    const interval = window.setInterval(async () => {
       currentStep++;
       if (currentStep < steps.length) {
         setLoadingStepText(steps[currentStep]);
@@ -220,6 +224,7 @@ export default function InteractiveMapIntro() {
 
         try {
           const daysCount = calculateDays(start, end);
+          const weatherData = await weatherPromise;
           const generatedPlan = generateItinerary({
             destination: selectedCityName,
             start,
@@ -228,6 +233,7 @@ export default function InteractiveMapIntro() {
             foodPreference: "현지 맛집 중심",
             pace: 2,
             wishList: "",
+            weatherData,
           });
 
           const draftId = `draft_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;

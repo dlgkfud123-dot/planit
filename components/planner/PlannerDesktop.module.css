@@ -46,6 +46,19 @@
   white-space: nowrap;
 }
 
+.summaryWeather {
+  overflow: hidden;
+  color: #526a80;
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobileDayWeather {
+  display: none;
+}
+
 .tripMeta {
   gap: 6px;
 }
@@ -272,7 +285,7 @@
     min-height: 64px;
     padding: 0 16px !important;
     display: grid !important;
-    grid-template-columns: auto minmax(220px, 1fr) auto auto;
+    grid-template-columns: auto minmax(180px, 1fr) auto minmax(220px, auto) auto;
     align-items: center;
     gap: 16px;
     border: 1px solid rgba(216, 227, 234, 0.94) !important;
@@ -478,6 +491,7 @@
     box-shadow: 0 10px 28px rgba(24,52,78,.15) !important; backdrop-filter: blur(18px); pointer-events: auto;
   }
   .summaryCard :global(.brandLogoText) { font-size: 15px !important; }
+  .summaryWeather { display: none !important; }
   .tripIdentity { min-width: 0; }
   .tripIdentity strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
   .tripIdentity span { font-size: 9px; }
@@ -544,6 +558,16 @@
   .panelHeadingRow { flex: 0 0 auto; min-height: 58px; padding: 9px 2px 7px !important; }
   .panelHeadingRow h3 { margin: 0 0 2px; font-size: 18px; font-weight: 850; }
   .panelHeadingRow p { font-size: 10px; }
+  .panelDescription { display: none; }
+  .mobileDayWeather {
+    display: block;
+    overflow: hidden;
+    color: #557086 !important;
+    font-size: 10px !important;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .panelActions { gap: 5px; }
   .panelActions button { padding: 7px 8px !important; font-size: 9px !important; }
 
