@@ -292,12 +292,16 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
               map.setView([8, 0], 1.45, { animate: false });
             } else {
               const isMobile = window.innerWidth <= 640;
-              const worldBounds = L.latLngBounds(L.latLng(-60, -170), L.latLng(75, 175));
+              const worldBounds = isMobile
+                ? L.latLngBounds(L.latLng(-90, -180), L.latLng(90, 180))
+                : L.latLngBounds(L.latLng(-60, -170), L.latLng(75, 175));
               map.fitBounds(worldBounds, { padding: isMobile ? [4, 4] : [16, 16], animate: false });
             }
             hasAppliedInitialBoundsRef.current = true;
           } else {
-            const bounds = L.latLngBounds([[-85.0511, -180], [85.0511, 180]]);
+            const bounds = L.latLngBounds(variant === "intro"
+              ? [[-90, -180], [90, 180]]
+              : [[-85.0511, -180], [85.0511, 180]]);
             map.panInsideBounds(bounds, { animate: false });
           }
         });
@@ -533,15 +537,17 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
         });
         if (variant === "intro" && !hasAppliedInitialBoundsRef.current && !hasUserInteractedRef.current) {
           if (mobile) {
-            const worldBounds = L.latLngBounds(L.latLng(-60, -170), L.latLng(75, 175));
+            const worldBounds = L.latLngBounds(L.latLng(-90, -180), L.latLng(90, 180));
             map.fitBounds(worldBounds, { padding: [4, 4], animate: false });
           } else {
             map.setView([8, 0], 1.45, { animate: false });
           }
           hasAppliedInitialBoundsRef.current = true;
         } else if (variant === "intro") {
-          const worldBounds = L.latLngBounds(L.latLng(-60, -170), L.latLng(75, 175));
-          map.flyToBounds(worldBounds, { animate: true, duration: 0.8, easeLinearity: 0.2, padding: [16, 16] });
+          const worldBounds = mobile
+            ? L.latLngBounds(L.latLng(-90, -180), L.latLng(90, 180))
+            : L.latLngBounds(L.latLng(-60, -170), L.latLng(75, 175));
+          map.flyToBounds(worldBounds, { animate: true, duration: 0.8, easeLinearity: 0.2, padding: mobile ? [4, 4] : [16, 16] });
         } else if (!hasAppliedInitialBoundsRef.current && !hasUserInteractedRef.current) {
           const worldBounds = L.latLngBounds(L.latLng(-55, -175), L.latLng(75, 180));
           map.fitBounds(worldBounds, { padding: [16, 16], animate: false });

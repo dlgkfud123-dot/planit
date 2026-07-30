@@ -53,12 +53,8 @@ const continentGroups: { continent: string; countries: string[] }[] = [
 function checkShouldShowIntro(): boolean {
   if (typeof window === "undefined") return true;
   try {
-    const navEntries = performance.getEntriesByType("navigation");
-    const isReload = navEntries.length > 0 && (navEntries[0] as PerformanceNavigationTiming).type === "reload";
     const hasSeenSession = sessionStorage.getItem("eyria_intro_seen_session");
-    if (!hasSeenSession || isReload) {
-      return true;
-    }
+    return !hasSeenSession;
   } catch {}
   return false;
 }
@@ -78,6 +74,11 @@ function calculateDays(start: string, end: string): number {
 
 export default function InteractiveMapIntro() {
   const [showIntro, setShowIntro] = useState<boolean>(checkShouldShowIntro);
+
+  useEffect(() => {
+    if (!showIntro || typeof window === "undefined") return;
+    sessionStorage.setItem("eyria_intro_seen_session", "true");
+  }, [showIntro]);
 
   const handleIntroComplete = useCallback(() => {
     if (typeof window !== "undefined") {
