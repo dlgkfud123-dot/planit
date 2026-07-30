@@ -696,6 +696,17 @@ export default function PlannerApp() {
             <ol className="timelineList">
             {currentStops.map((stop, i) => {
               const validation = validateStopOpening(stop, current?.date || "", currentStops, i, destination);
+              const transportMode = stop.transportFromPrevious || "이동";
+              const transportIcon = transportMode.includes("도보") ? "↗"
+                : transportMode.includes("지하철") ? "M"
+                : transportMode.includes("버스") ? "B"
+                : transportMode.includes("택시") ? "T"
+                : transportMode.includes("기차") || transportMode.includes("열차") ? "R"
+                : "→";
+              const transportCost = stop.costBreakdown?.transportLocal;
+              const transportCostLabel = transportCost !== null && transportCost !== undefined
+                ? ` · 약 ${formatCurrency(transportCost, stop.costBreakdown?.localCurrency || "KRW")}`
+                : "";
               const candidates =
                 smartReplaceStopId === stop.id
                   ? findSmartCandidates(stop, plan, destination, { destination, start, days: nights + 1, style: interest, foodPreference: food, pace, wishList: wish, weatherData: weatherResult }, weatherResult?.daily?.[activeDay], activeDay, i)
@@ -718,8 +729,9 @@ export default function PlannerApp() {
                   onClick={() => setActiveStop(i)}
                   onMouseEnter={() => setActiveStop(i)}
                   key={stop.id}
-                  data-transport={i > 0 ? (stop.transportFromPrevious || "이동") : ""}
-                  data-travel={i > 0 ? `${stop.travelMinutes || 0}분${stop.cost ? ` · 약 ${stop.cost.toLocaleString()}원` : ""}` : ""}
+                  data-transport-icon={i > 0 ? transportIcon : ""}
+                  data-transport={i > 0 ? transportMode : ""}
+                  data-travel={i > 0 ? `${stop.travelMinutes || 0}분${transportCostLabel}` : ""}
                 >
                   <span
                     className="dragHandle"

@@ -11,8 +11,8 @@
 
   .hero {
     position: relative;
-    height: 300px;
-    padding: 28px 22px;
+    height: 246px;
+    padding: 22px 22px;
     overflow: hidden;
     background: url("/mobile-manhattan-sunset.webp") 58% center / cover no-repeat;
     color: #fff;
@@ -26,31 +26,31 @@
 
   .brand, .badge, .hero h1, .hero p { position: relative; z-index: 1; }
   .brand { display: block; font-size: 23px; letter-spacing: .14em; }
-  .badge { display: inline-flex; margin-top: 32px; padding: 7px 11px; border: 1px solid rgba(255,255,255,.85); border-radius: 999px; font-size: 11px; }
-  .hero h1 { margin: 16px 0 0; font-size: clamp(31px, 9vw, 39px); line-height: 1.15; letter-spacing: -.055em; word-break: keep-all; }
-  .hero p { margin: 12px 0 0; font-size: 15px; }
+  .badge { display: inline-flex; margin-top: 18px; padding: 6px 10px; border: 1px solid rgba(255,255,255,.85); border-radius: 999px; font-size: 10px; }
+  .hero h1 { margin: 13px 0 0; font-size: clamp(28px, 8.3vw, 35px); line-height: 1.13; letter-spacing: -.05em; word-break: keep-all; }
+  .hero p { margin: 9px 0 0; font-size: 14px; }
 
   .formPanel {
     position: relative;
     z-index: 3;
     margin: -2px 0 0;
-    padding: 18px 20px 20px;
+    padding: 14px 20px 17px;
     border-radius: 26px 26px 0 0;
     background: #fff;
     box-shadow: 0 -8px 26px rgba(24, 54, 78, .11);
   }
 
   .formPanel > label, .controlRow {
-    min-height: 67px;
-    padding: 10px 2px;
+    min-height: 61px;
+    padding: 7px 2px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     border-bottom: 1px solid #e5ebef;
   }
 
-  .formPanel label > span, .controlRow span { color: #718091; font-size: 12px; font-weight: 700; }
-  .destinationRow, .dateRow, .budgetRow { margin-top: 5px; display: flex; align-items: center; gap: 7px; }
+  .formPanel label > span, .controlRow span { color: #7b8795; font-size: 11px; font-weight: 650; letter-spacing: .01em; }
+  .destinationRow, .dateRow, .budgetRow { margin-top: 3px; display: flex; align-items: center; gap: 7px; }
   .destinationRow select, .dateRow input, .budgetRow input {
     min-width: 0;
     height: 32px;
@@ -58,8 +58,8 @@
     outline: 0;
     background: transparent;
     color: #101e31;
-    font-size: 15px;
-    font-weight: 750;
+    font-size: 16px;
+    font-weight: 800;
   }
   .destinationRow select { flex: 1 1 0; }
   .dateRow input { width: calc(50% - 12px); }
@@ -67,8 +67,8 @@
   .budgetRow input { flex: 1; }
 
   .controlRow { flex-direction: row; align-items: center; justify-content: space-between; }
-  .controlRow > div:first-child { display: grid; gap: 5px; }
-  .controlRow strong { font-size: 16px; }
+  .controlRow > div:first-child { display: grid; gap: 3px; }
+  .controlRow strong { font-size: 16px; font-weight: 800; }
   .counter { display: flex; gap: 8px; }
   .counter button { width: 34px; height: 34px; border: 1px solid #dfe7ed; border-radius: 50%; background: #f7fafc; color: #17314f; font-size: 18px; }
   .counter button:disabled { opacity: .35; }
@@ -76,7 +76,7 @@
   .cta {
     width: 100%;
     height: 52px;
-    margin-top: 15px;
+    margin-top: 12px;
     border: 0;
     border-radius: 13px;
     background: #126ef5;
