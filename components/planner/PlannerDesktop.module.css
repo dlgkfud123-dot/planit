@@ -461,9 +461,11 @@
 .mobileSheetHandle { display: none; }
 
 @media (max-width: 767px) {
-  .plannerRoot { height: 100svh; min-height: 100svh; overflow: hidden; background: #eef5f8; }
+  .plannerRoot { height: 100svh; min-height: 100svh; overflow: hidden; background: #fff; }
   .canvas { position: relative !important; width: 100%; height: 100svh !important; min-height: 100svh !important; display: block !important; overflow: hidden; }
   .mapLayer { position: absolute !important; z-index: 0; inset: 0 !important; width: 100% !important; height: 100% !important; }
+  .mobileMapInactive { display: none !important; }
+  .mobileMapActive { display: block !important; }
   .overlayLayer { position: absolute; z-index: 10; inset: 0; display: block; pointer-events: none; }
   .overlayContent { display: block; }
 
@@ -494,8 +496,37 @@
   .mobileSheet_expanded { height: calc(100svh - 76px - env(safe-area-inset-top)) !important; }
   .mobileSheet_collapsed { height: 138px !important; }
 
-  .mobileSheetHandle { flex: 0 0 28px; width: 100%; padding: 0; display: grid; place-items: center; border: 0; background: transparent; }
+  .mobileSheetHandle { display: none !important; }
   .mobileSheetHandle span { width: 48px; height: 5px; border-radius: 999px; background: #aab4bd; }
+
+  .mobileSchedulePanel {
+    top: calc(max(14px, env(safe-area-inset-top)) + 64px) !important;
+    bottom: calc(64px + env(safe-area-inset-bottom)) !important;
+    height: auto !important;
+    padding-top: 0 !important;
+    border-radius: 0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+
+  .mobileMapPanel {
+    top: calc(max(14px, env(safe-area-inset-top)) + 64px) !important;
+    right: 10px !important;
+    bottom: auto !important;
+    left: 10px !important;
+    width: auto !important;
+    height: 58px !important;
+    padding: 0 10px !important;
+    border: 1px solid rgba(216, 227, 234, .9) !important;
+    border-radius: 17px !important;
+    background: rgba(255,255,255,.94) !important;
+    box-shadow: 0 8px 22px rgba(24,52,78,.11) !important;
+    backdrop-filter: blur(16px);
+  }
+  .mobileMapPanel .panelHeadingRow,
+  .mobileMapPanel .timelineScrollArea,
+  .mobileMapPanel .refinementMenu,
+  .mobileMapPanel .legacyRefinement { display: none !important; }
 
   .timelinePanel :global(.dayScroller) {
     flex: 0 0 56px; margin: 0 -14px !important; padding: 0 8px !important;

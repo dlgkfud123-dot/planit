@@ -104,7 +104,6 @@ export default function PlannerApp() {
   const [weatherResult, setWeatherResult] = useState<WeatherDataResponse | null>(null);
   const [showCostDetails, setShowCostDetails] = useState(false);
   const [smartReplaceStopId, setSmartReplaceStopId] = useState<string | null>(null);
-  const [mobileSheetSnap, setMobileSheetSnap] = useState<"expanded" | "half" | "collapsed">("half");
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
@@ -207,6 +206,7 @@ export default function PlannerApp() {
       const dayParam = q.get("day");
       const stopParam = q.get("stop");
       const replaceParam = q.get("replace");
+      const requestedMobileView = q.get("view");
 
       const isExistingTrip = Boolean(shared || saved || draftParam);
       setSource(shared ? "shared" : saved ? "saved" : draftParam ? "draft" : "new");
@@ -240,7 +240,7 @@ export default function PlannerApp() {
         });
         setPlan(snapshot.plan);
         setStatus("complete");
-        setMobileTab("schedule");
+        setMobileTab(requestedMobileView === "map" ? "map" : "schedule");
 
         const targetDay = dayParam ? Math.max(0, Number(dayParam) - 1) : snapshot.activeDay ?? 0;
         const targetStop = stopParam ? Math.max(0, Number(stopParam)) : snapshot.activeStop ?? 0;
@@ -566,8 +566,8 @@ export default function PlannerApp() {
       <nav className="mobilePlannerNav">
         <Link href="/">홈</Link>
         <Link href="/trips">내 여행</Link>
-        <button className={mobileTab === "schedule" ? "active" : ""} onClick={() => { setMobileTab("schedule"); setMobileSheetSnap("half"); }}>일정</button>
-        <button className={mobileTab === "map" ? "active" : ""} onClick={() => { setMobileTab("map"); setMobileSheetSnap("collapsed"); }}>지도</button>
+        <button className={mobileTab === "schedule" ? "active" : ""} onClick={() => setMobileTab("schedule")}>일정</button>
+        <button className={mobileTab === "map" ? "active" : ""} onClick={() => setMobileTab("map")}>지도</button>
       </nav>
 
       {/* Toast Notice */}
@@ -580,7 +580,7 @@ export default function PlannerApp() {
 
       {/* 2. Desktop map canvas and flex-positioned overlay layer */}
       <div ref={canvasRef} className={`workspaceBody v2FullEditorBody ${styles.canvas}`}>
-        <div className={`plannerMapColumn ${styles.mapLayer}`}>
+        <div className={`plannerMapColumn ${styles.mapLayer} ${mobileTab === "map" ? styles.mobileMapActive : styles.mobileMapInactive}`}>
           <PlannerMap
             stops={currentStops}
             allDays={plan}
@@ -588,7 +588,7 @@ export default function PlannerApp() {
             activeIndex={activeStop}
             onSelect={setActiveStop}
             viewportPadding={isMobileViewport
-              ? { top: 92, right: 18, bottom: mobileSheetSnap === "collapsed" ? 150 : mobileSheetSnap === "expanded" ? 560 : 430, left: 18 }
+              ? { top: mobileTab === "map" ? 156 : 92, right: 18, bottom: mobileTab === "map" ? 82 : 430, left: 18 }
               : mapInsets}
           />
         </div>
@@ -611,16 +611,8 @@ export default function PlannerApp() {
           <div className={styles.overlayContent}>
             <div
               ref={timelinePanelRef}
-              className={`timelineColumn ${styles.timelinePanel} ${styles[`mobileSheet_${mobileSheetSnap}`]}`}
+              className={`timelineColumn ${styles.timelinePanel} ${mobileTab === "map" ? styles.mobileMapPanel : styles.mobileSchedulePanel}`}
             >
-          <button
-            type="button"
-            className={styles.mobileSheetHandle}
-            aria-label="일정 패널 높이 변경"
-            onClick={() => setMobileSheetSnap((snap) => snap === "half" ? "expanded" : snap === "expanded" ? "collapsed" : "half")}
-          >
-            <span />
-          </button>
           {/* DAY Tabs */}
           <div className="dayScroller">
             {plan.map((d, i) => (

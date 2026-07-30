@@ -1,25 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import type { TravelCity } from "../../data/cities";
 import styles from "./MobileIntroExperience.module.css";
-
-const MapCanvas = dynamic(() => import("./MapCanvas"), { ssr: false });
 
 type Props = {
   countries: string[];
   cities: TravelCity[];
   selectedCountry: string;
   selectedCityName: string;
-  selectedCity: TravelCity | null;
   start: string;
   end: string;
   people: number;
   budget: number;
-  focusedCountry: string | null;
-  citiesVisible: boolean;
-  hoveredCity: string | null;
   isGenerating: boolean;
   loadingStep: number;
   isFormValid: boolean;
@@ -30,9 +23,6 @@ type Props = {
   onPeopleChange: (value: number) => void;
   onBudgetChange: (value: number) => void;
   onCreate: () => void;
-  onMapCountrySelect: (country: string) => void;
-  onMapCitySelect: (city: TravelCity) => void;
-  onCityHover: (city: string | null) => void;
 };
 
 const loadingSteps = [
@@ -129,26 +119,10 @@ export default function MobileIntroExperience(props: Props) {
         </button>
       </section>
 
-      <section id="mobile-world-map" className={styles.mapSection} aria-label="여행지 세계지도">
-        <MapCanvas
-          cities={props.cities}
-          variant="intro"
-          focusedCountry={props.focusedCountry}
-          citiesVisible={props.citiesVisible}
-          hoveredCity={props.hoveredCity}
-          selected={props.selectedCity}
-          showRoute={false}
-          onCountrySelect={props.onMapCountrySelect}
-          onSelect={props.onMapCitySelect}
-          onCityHover={props.onCityHover}
-          onMoveComplete={() => {}}
-        />
-      </section>
-
       <nav className={styles.bottomNav} aria-label="모바일 주요 메뉴">
         <Link className={styles.active} href="/"><NavIcon type="home" /><span>홈</span></Link>
         <Link href="/trips"><NavIcon type="trips" /><span>내 여행</span></Link>
-        <a href="#mobile-world-map"><NavIcon type="map" /><span>지도</span></a>
+        <Link href="/planner?view=map"><NavIcon type="map" /><span>지도</span></Link>
         <Link href="/login"><NavIcon type="profile" /><span>내 정보</span></Link>
       </nav>
 

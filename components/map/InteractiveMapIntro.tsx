@@ -276,14 +276,10 @@ export default function InteractiveMapIntro() {
         cities={availableCities}
         selectedCountry={selectedCountry}
         selectedCityName={selectedCityName}
-        selectedCity={selectedCity}
         start={start}
         end={end}
         people={people}
         budget={budget}
-        focusedCountry={focusedCountry}
-        citiesVisible={citiesVisible}
-        hoveredCity={hoveredCity}
         isGenerating={isGenerating}
         loadingStep={loadingStepIndex}
         isFormValid={isFormValid}
@@ -297,9 +293,6 @@ export default function InteractiveMapIntro() {
         onPeopleChange={setPeople}
         onBudgetChange={setBudget}
         onCreate={handleCreateItinerary}
-        onMapCountrySelect={handleMapCountrySelect}
-        onMapCitySelect={handleMapCitySelect}
-        onCityHover={setHoveredCity}
       />
 
       {/* AI Generation Loading Transition Screen */}
