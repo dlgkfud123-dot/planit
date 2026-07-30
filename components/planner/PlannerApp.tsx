@@ -4,7 +4,6 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cities, cityByName, supportedCityIds, type TravelCity } from "../../data/cities";
-import { countryLines } from "../../data/countries";
 import { placesByCity, type Place } from "../../data/places";
 import { fetchWeatherData, formatDayWeather, type WeatherDataResponse } from "../../utils/weatherService";
 import { calculateDayCostSummary, formatCurrency, formatKrwReference, EXCHANGE_RATE_METADATA } from "../../utils/costEngine";
@@ -19,7 +18,7 @@ import {
 } from "../../utils/itineraryGenerator";
 import {
   addRecentDestination,
-  DESTINATION_COUNTRIES,
+  DESTINATION_CONTINENTS,
   getRecentDestinations,
   POPULAR_CITIES,
   searchDestinations,
@@ -129,12 +128,6 @@ export default function PlannerApp() {
   const current = plan[activeDay] || plan[0];
   const currentStops = useMemo(() => current?.stops ?? [], [current]);
   const activeDayWeather = weatherResult?.daily?.[activeDay] ?? null;
-  const supportedCountries = useMemo(() => {
-    const countriesWithCities = new Set(cities.map((city) => city.country));
-    return [...new Set([...Object.keys(countryLines), ...countriesWithCities])]
-      .filter((country) => countriesWithCities.has(country))
-      .sort((a, b) => a.localeCompare(b, "ko"));
-  }, []);
   const settingsCities = useMemo(
     () => cities.filter((city) => city.country === settingsCountry),
     [settingsCountry]
@@ -666,8 +659,12 @@ export default function PlannerApp() {
                     }}
                   >
                     <option value="">국가 선택</option>
-                    {supportedCountries.map((country) => (
-                      <option key={country} value={country}>{country}</option>
+                    {DESTINATION_CONTINENTS.map((continent) => (
+                      <optgroup key={continent.name} label={continent.name}>
+                        {continent.countries.map((country) => (
+                          <option key={country.code} value={country.name}>{country.name}</option>
+                        ))}
+                      </optgroup>
                     ))}
                   </select>
                 </label>

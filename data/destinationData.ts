@@ -92,6 +92,22 @@ export const DESTINATION_COUNTRIES: DestinationCountry[] = COUNTRY_ORDER
     };
   });
 
+const CONTINENT_COUNTRY_CODES = [
+  { name: "아시아", codes: ["KR", "JP", "TH", "VN", "TW", "SG", "ID", "CN", "MN", "AE"] },
+  { name: "유럽", codes: ["FR", "GB", "IT", "CH", "ES", "NL", "TR", "RU"] },
+  { name: "북아메리카", codes: ["US", "CA"] },
+  { name: "남아메리카", codes: ["BR"] },
+  { name: "오세아니아", codes: ["AU", "NZ"] },
+  { name: "아프리카", codes: ["EG", "ZA"] },
+] as const;
+
+export const DESTINATION_CONTINENTS = CONTINENT_COUNTRY_CODES.map((continent) => ({
+  name: continent.name,
+  countries: continent.codes
+    .map((code) => DESTINATION_COUNTRIES.find((country) => country.code === code))
+    .filter((country): country is DestinationCountry => Boolean(country)),
+})).filter((continent) => continent.countries.length > 0);
+
 const RECENT_KEY = "eyria:recent-destinations";
 
 export function getRecentDestinations(): string[] {
