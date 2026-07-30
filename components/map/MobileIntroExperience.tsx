@@ -43,6 +43,20 @@ const loadingSteps = [
   "일정 세부 조정 중",
 ];
 
+function NavIcon({ type }: { type: "home" | "trips" | "map" | "profile" }) {
+  const paths = {
+    home: <><path d="M3.5 10.5 12 3.8l8.5 6.7" /><path d="M5.5 9.5v10h13v-10M9.5 19.5v-6h5v6" /></>,
+    trips: <><rect x="4" y="6.5" width="16" height="13" rx="2.5" /><path d="M8 6.5V4.8h8v1.7M8 11h8M8 15h5" /></>,
+    map: <><path d="m3.5 6 5-2 7 2 5-2v14l-5 2-7-2-5 2Z" /><path d="M8.5 4v14M15.5 6v14" /></>,
+    profile: <><circle cx="12" cy="8" r="3.5" /><path d="M5.5 20c.6-4 2.8-6 6.5-6s5.9 2 6.5 6" /></>,
+  };
+  return (
+    <svg className={styles.navIcon} viewBox="0 0 24 24" aria-hidden="true">
+      {paths[type]}
+    </svg>
+  );
+}
+
 export default function MobileIntroExperience(props: Props) {
   const countryCities = props.cities.filter((city) => city.country === props.selectedCountry);
   const tripSummary = `${props.selectedCityName || "여행지"} 맞춤 여행 일정을`;
@@ -132,10 +146,10 @@ export default function MobileIntroExperience(props: Props) {
       </section>
 
       <nav className={styles.bottomNav} aria-label="모바일 주요 메뉴">
-        <Link className={styles.active} href="/"><b>⌂</b><span>홈</span></Link>
-        <Link href="/trips"><b>▢</b><span>내 여행</span></Link>
-        <a href="#mobile-world-map"><b>◇</b><span>지도</span></a>
-        <Link href="/login"><b>○</b><span>내 정보</span></Link>
+        <Link className={styles.active} href="/"><NavIcon type="home" /><span>홈</span></Link>
+        <Link href="/trips"><NavIcon type="trips" /><span>내 여행</span></Link>
+        <a href="#mobile-world-map"><NavIcon type="map" /><span>지도</span></a>
+        <Link href="/login"><NavIcon type="profile" /><span>내 정보</span></Link>
       </nav>
 
       {props.isGenerating && (

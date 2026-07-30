@@ -93,7 +93,11 @@
     border-radius: 18px;
     background: #e5f4f8;
   }
-  .mapSection :global(.travelMap), .mapSection :global(.leaflet-container) { width: 100% !important; height: 100% !important; }
+  .mapSection :global(.travelMap), .mapSection :global(.leaflet-container) {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+  }
 
   .bottomNav {
     position: fixed;
@@ -107,8 +111,27 @@
     background: rgba(255,255,255,.96);
     backdrop-filter: blur(18px);
   }
-  .bottomNav a { display: grid; place-items: center; gap: 2px; color: #748191; text-decoration: none; font-size: 10px; }
-  .bottomNav b { font-size: 21px; line-height: 1; }
+  .bottomNav a {
+    display: grid;
+    grid-template-rows: 26px 14px;
+    place-items: center;
+    align-content: center;
+    gap: 2px;
+    color: #748191;
+    text-decoration: none;
+    font-size: 10px;
+    line-height: 1;
+  }
+  .navIcon {
+    width: 24px;
+    height: 24px;
+    display: block;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
   .bottomNav .active { color: #126ef5; }
 
   .loading {

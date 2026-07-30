@@ -532,7 +532,12 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
           }).addTo(map).on("click", () => countryRef.current(country));
         });
         if (variant === "intro" && !hasAppliedInitialBoundsRef.current && !hasUserInteractedRef.current) {
-          map.setView([8, 0], 1.45, { animate: false });
+          if (mobile) {
+            const worldBounds = L.latLngBounds(L.latLng(-60, -170), L.latLng(75, 175));
+            map.fitBounds(worldBounds, { padding: [4, 4], animate: false });
+          } else {
+            map.setView([8, 0], 1.45, { animate: false });
+          }
           hasAppliedInitialBoundsRef.current = true;
         } else if (variant === "intro") {
           const worldBounds = L.latLngBounds(L.latLng(-60, -170), L.latLng(75, 175));
@@ -604,7 +609,7 @@ export default function MapCanvas({ cities, focusedCountry, citiesVisible, hover
     <div
       ref={containerRef}
       className={`travelMap${variant === "intro" ? " travelMap--intro" : ""}`}
-      style={{ width: "100%", height: "100%", minHeight: "520px", display: "block", position: "relative", zIndex: 1 }}
+      style={{ width: "100%", height: "100%", minHeight: variant === "intro" ? 0 : "520px", display: "block", position: "relative", zIndex: 1 }}
       aria-label="국가와 도시를 탐색하는 인터랙티브 세계지도"
     />
   );

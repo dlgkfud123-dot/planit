@@ -52,7 +52,6 @@ const continentGroups: { continent: string; countries: string[] }[] = [
 
 function checkShouldShowIntro(): boolean {
   if (typeof window === "undefined") return true;
-  if (window.matchMedia("(max-width: 767px)").matches) return false;
   try {
     const navEntries = performance.getEntriesByType("navigation");
     const isReload = navEntries.length > 0 && (navEntries[0] as PerformanceNavigationTiming).type === "reload";
