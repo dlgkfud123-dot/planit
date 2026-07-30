@@ -84,7 +84,8 @@
     font-size: 16px;
     font-weight: 800;
   }
-  .cta:disabled { background: #dfe6ed; color: #96a4b2; }
+  .cta:disabled,
+  .cta[data-inactive="true"] { background: #dfe6ed; color: #96a4b2; }
 
   .bottomNav {
     position: fixed;

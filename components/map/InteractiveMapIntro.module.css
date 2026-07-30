@@ -707,14 +707,16 @@
 }
 
 .desktopLanding :global(.footerLinks a) {
-  font-size: 11px;
+  color: #536b80;
+  font-size: 12px;
 }
 
 .desktopLanding :global(.footerCopyright) {
+  color: #7f91a2;
   font-size: 0;
 }
 
 .desktopLanding :global(.footerCopyright::after) {
   content: "© 2026 EYRIA. 모든 권리 보유.";
-  font-size: 10px;
+  font-size: 11px;
 }

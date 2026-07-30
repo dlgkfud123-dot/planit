@@ -77,6 +77,7 @@ export default function AccountActions() {
         ) : (
           <DefaultAvatarIcon />
         )}
+        <span className="userMenuChevron" aria-hidden="true">▼</span>
       </button>
 
       {open && (

@@ -102,6 +102,8 @@ export default function InteractiveMapIntro() {
   const [loadingStepText, setLoadingStepText] = useState<string>("");
   const [loadingStepIndex, setLoadingStepIndex] = useState<number>(0);
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [inputNotice, setInputNotice] = useState<string | null>(null);
+  const inputNoticeTimerRef = useRef<number | null>(null);
 
   const [focusedCountry, setFocusedCountry] = useState<string | null>(null);
   const [citiesVisible, setCitiesVisible] = useState(false);
@@ -112,6 +114,10 @@ export default function InteractiveMapIntro() {
 
   const countryDropdownRef = useRef<HTMLDivElement>(null);
   const cityDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => () => {
+    if (inputNoticeTimerRef.current) window.clearTimeout(inputNoticeTimerRef.current);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -269,6 +275,20 @@ export default function InteractiveMapIntro() {
     }, 650);
   };
 
+  const handleCreateRequest = () => {
+    if (isGenerating) return;
+    if (!isFormValid) {
+      const message = !selectedCountry || !selectedCityName
+        ? "국가와 도시를 먼저 선택해주세요."
+        : "여행 정보를 모두 입력해주세요.";
+      setInputNotice(message);
+      if (inputNoticeTimerRef.current) window.clearTimeout(inputNoticeTimerRef.current);
+      inputNoticeTimerRef.current = window.setTimeout(() => setInputNotice(null), 2400);
+      return;
+    }
+    handleCreateItinerary();
+  };
+
   if (showIntro) {
     return <BrandOpeningIntro onComplete={handleIntroComplete} />;
   }
@@ -298,7 +318,7 @@ export default function InteractiveMapIntro() {
         onEndChange={setEnd}
         onPeopleChange={setPeople}
         onBudgetChange={setBudget}
-        onCreate={handleCreateItinerary}
+        onCreate={handleCreateRequest}
       />
 
       {/* AI Generation Loading Transition Screen */}
@@ -500,8 +520,9 @@ export default function InteractiveMapIntro() {
               <button
                 type="button"
                 className={`hifiGradientCtaBtn ${isFormValid ? "active" : "disabled"}`}
-                disabled={!isFormValid || isGenerating}
-                onClick={handleCreateItinerary}
+                disabled={isGenerating}
+                data-inactive={!isFormValid || undefined}
+                onClick={handleCreateRequest}
               >
                 AI 일정 만들기
               </button>
@@ -528,6 +549,13 @@ export default function InteractiveMapIntro() {
 
         {generationError && <p className="hifiErrorText">{generationError}</p>}
       </div>
+
+      {inputNotice && (
+        <div className="plannerToast" role="status" aria-live="polite">
+          <i aria-hidden="true">!</i>
+          <span>{inputNotice}</span>
+        </div>
+      )}
 
       <div className={styles.desktopFooter}><Footer /></div>
     </main>

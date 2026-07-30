@@ -114,7 +114,13 @@ export default function MobileIntroExperience(props: Props) {
           </div>
         </label>
 
-        <button className={styles.cta} type="button" disabled={!props.isFormValid || props.isGenerating} onClick={props.onCreate}>
+        <button
+          className={styles.cta}
+          type="button"
+          disabled={props.isGenerating}
+          data-inactive={!props.isFormValid || undefined}
+          onClick={props.onCreate}
+        >
           AI 일정 만들기
         </button>
       </section>
