@@ -76,15 +76,6 @@ function recommendationReason(stop: GeneratedStop, interest: string, food: strin
   return `${stop.tags[0] || "여행"} 관심사 반영`;
 }
 
-const categoryNames: Record<Place["category"], string> = {
-  landmark: "명소",
-  culture: "문화",
-  food: "미식",
-  nature: "자연",
-  shopping: "쇼핑",
-  market: "시장",
-};
-
 export default function PlannerApp() {
   const {
     destination, setDestination, origin, setOrigin, start, setStart, end, setEnd,
@@ -134,18 +125,12 @@ export default function PlannerApp() {
   );
   const dayCoreSummary = useMemo(() => {
     if (!currentStops.length) return `${activeDay + 1}일차 · 등록된 장소 없음`;
-    const categoryCounts = currentStops.reduce<Partial<Record<Place["category"], number>>>((counts, stop) => {
-      counts[stop.category] = (counts[stop.category] ?? 0) + 1;
-      return counts;
-    }, {});
-    const dominantCategory = (Object.entries(categoryCounts) as [Place["category"], number][])
-      .sort((a, b) => b[1] - a[1])[0]?.[0];
     const travelStops = currentStops.slice(1);
     const walkCount = travelStops.filter((stop) => stop.transportFromPrevious === "도보").length;
     const movement = travelStops.length > 0 && walkCount >= Math.ceil(travelStops.length / 2)
       ? "도보 중심"
       : "동선 최적화";
-    return `${dominantCategory ? `${categoryNames[dominantCategory]} 중심` : "맞춤 일정"} · ${movement} · ${currentStops.length}곳`;
+    return `추천 일정 · ${movement} · ${currentStops.length}곳`;
   }, [activeDay, currentStops]);
 
   const openSettings = () => {
