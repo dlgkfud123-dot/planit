@@ -115,6 +115,60 @@
   white-space: nowrap;
 }
 
+.dayTitleRow {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.dayTitleRow h3 {
+  min-width: 0;
+}
+
+.dayInsight {
+  position: relative;
+  z-index: 95;
+  flex: 0 0 auto;
+}
+
+.dayInsight summary {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  border: 1px solid #d9e3ea;
+  border-radius: 50%;
+  background: #f8fafc;
+  color: #65798b;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  list-style: none;
+  cursor: pointer;
+  place-items: center;
+}
+
+.dayInsight summary::-webkit-details-marker {
+  display: none;
+}
+
+.dayInsight p {
+  position: absolute;
+  z-index: 100;
+  top: calc(100% + 7px);
+  left: 0;
+  width: 240px;
+  padding: 10px 12px;
+  border: 1px solid #dce5eb;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(24, 52, 78, 0.1);
+  color: #405971;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
 .panelHeadingRow p {
   margin: 0;
   color: #7b8d9d;
@@ -558,6 +612,11 @@
   .panelHeadingRow { flex: 0 0 auto; min-height: 58px; padding: 9px 2px 7px !important; }
   .panelHeadingRow h3 { margin: 0 0 2px; font-size: 18px; font-weight: 850; }
   .panelHeadingRow p { font-size: 10px; }
+  .dayInsight p {
+    right: 0;
+    left: auto;
+    width: min(260px, calc(100vw - 36px));
+  }
   .panelDescription { display: none; }
   .mobileDayWeather {
     display: block;

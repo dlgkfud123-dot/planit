@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cities, cityByName, supportedCityIds, type TravelCity } from "../../data/cities";
+import { countryLines } from "../../data/countries";
 import { placesByCity, type Place } from "../../data/places";
 import { fetchWeatherData, formatDayWeather, type WeatherDataResponse } from "../../utils/weatherService";
 import { calculateDayCostSummary, formatCurrency, formatKrwReference, EXCHANGE_RATE_METADATA } from "../../utils/costEngine";
@@ -49,6 +50,13 @@ import styles from "./PlannerDesktop.module.css";
 function nightsFrom(value: string) {
   const n = parseInt(value);
   return Number.isFinite(n) ? Math.min(Math.max(n, 1), 14) : 4;
+}
+
+function tripDayCount(start: string, end: string) {
+  const startDate = new Date(`${start}T12:00:00`);
+  const endDate = new Date(`${end}T12:00:00`);
+  const difference = Math.floor((endDate.getTime() - startDate.getTime()) / 86_400_000);
+  return Number.isFinite(difference) ? Math.min(Math.max(difference + 1, 1), 14) : 1;
 }
 
 const informationReferenceDate = "2026년 7월 22일";
@@ -101,6 +109,13 @@ export default function PlannerApp() {
   const draftIdRef = useRef<string | null>(null);
 
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [settingsCountry, setSettingsCountry] = useState("");
+  const [settingsCity, setSettingsCity] = useState("");
+  const [settingsStart, setSettingsStart] = useState("");
+  const [settingsEnd, setSettingsEnd] = useState("");
+  const [settingsPeople, setSettingsPeople] = useState(0);
+  const [settingsBudget, setSettingsBudget] = useState(0);
+  const [isRegenerating, setIsRegenerating] = useState(false);
   const [weatherResult, setWeatherResult] = useState<WeatherDataResponse | null>(null);
   const [showCostDetails, setShowCostDetails] = useState(false);
   const [smartReplaceStopId, setSmartReplaceStopId] = useState<string | null>(null);
@@ -112,8 +127,99 @@ export default function PlannerApp() {
 
   const nights = nightsFrom(end);
   const current = plan[activeDay] || plan[0];
-  const currentStops = current?.stops || [];
+  const currentStops = useMemo(() => current?.stops ?? [], [current]);
   const activeDayWeather = weatherResult?.daily?.[activeDay] ?? null;
+  const supportedCountries = useMemo(() => {
+    const countriesWithCities = new Set(cities.map((city) => city.country));
+    return [...new Set([...Object.keys(countryLines), ...countriesWithCities])]
+      .filter((country) => countriesWithCities.has(country))
+      .sort((a, b) => a.localeCompare(b, "ko"));
+  }, []);
+  const settingsCities = useMemo(
+    () => cities.filter((city) => city.country === settingsCountry),
+    [settingsCountry]
+  );
+  const dayCoreSummary = useMemo(() => {
+    if (!currentStops.length) return `${activeDay + 1}일차 · 등록된 장소 없음`;
+    const categoryCounts = currentStops.reduce<Partial<Record<Place["category"], number>>>((counts, stop) => {
+      counts[stop.category] = (counts[stop.category] ?? 0) + 1;
+      return counts;
+    }, {});
+    const dominantCategory = (Object.entries(categoryCounts) as [Place["category"], number][])
+      .sort((a, b) => b[1] - a[1])[0]?.[0];
+    const travelStops = currentStops.slice(1);
+    const walkCount = travelStops.filter((stop) => stop.transportFromPrevious === "도보").length;
+    const movement = travelStops.length > 0 && walkCount >= Math.ceil(travelStops.length / 2)
+      ? "도보 중심"
+      : "동선 최적화";
+    return `${dominantCategory ? `${categoryNames[dominantCategory]} 중심` : "맞춤 일정"} · ${movement} · ${currentStops.length}곳`;
+  }, [activeDay, currentStops]);
+
+  const openSettings = () => {
+    const selectedCity = cityByName[destination];
+    setSettingsCountry(selectedCity?.country ?? "");
+    setSettingsCity(selectedCity?.name ?? "");
+    setSettingsStart(start);
+    setSettingsEnd(end);
+    setSettingsPeople(people);
+    setSettingsBudget(budget);
+    setShowSettingsModal(true);
+  };
+
+  const regenerateFromSettings = async () => {
+    const city = cityByName[settingsCity];
+    if (!city || !settingsStart || !settingsEnd || settingsPeople < 1 || settingsBudget < 1) {
+      setEditNotice("국가, 도시, 날짜, 인원, 예산을 모두 확인해주세요.");
+      return;
+    }
+    if (new Date(settingsEnd) < new Date(settingsStart)) {
+      setEditNotice("종료일은 시작일보다 빠를 수 없습니다.");
+      return;
+    }
+
+    setIsRegenerating(true);
+    try {
+      const weatherData = await fetchWeatherData(
+        city.lat,
+        city.lon,
+        settingsStart,
+        settingsEnd,
+        city.name
+      );
+      const nextPlan = generateItinerary({
+        destination: city.name,
+        start: settingsStart,
+        days: tripDayCount(settingsStart, settingsEnd),
+        style: interest,
+        foodPreference: food,
+        pace,
+        wishList: wish,
+        weatherData,
+      });
+      if (!nextPlan.length) {
+        setEditNotice("선택한 도시의 일정을 생성할 수 없습니다.");
+        return;
+      }
+
+      setDestination(city.name);
+      setStart(settingsStart);
+      setEnd(settingsEnd);
+      setPeople(settingsPeople);
+      setBudget(settingsBudget);
+      setWeatherResult(weatherData);
+      setPlan(nextPlan);
+      setActiveDay(0);
+      setActiveStop(0);
+      setEditingStop(null);
+      setOpenStopMenu(null);
+      historyRef.current = [];
+      setHistoryDepth(0);
+      setShowSettingsModal(false);
+      setEditNotice(`${city.name} 여행 조건으로 AI 일정을 다시 생성했습니다.`);
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 767px)");
@@ -549,34 +655,65 @@ export default function PlannerApp() {
               <button type="button" onClick={() => setShowSettingsModal(false)}>×</button>
             </div>
             <div className="modalBody">
-              <label>
-                목적지
-                <input value={destination} onChange={(e) => setDestination(e.target.value)} />
-              </label>
+              <div className="modalRow">
+                <label>
+                  국가
+                  <select
+                    value={settingsCountry}
+                    onChange={(event) => {
+                      setSettingsCountry(event.target.value);
+                      setSettingsCity("");
+                    }}
+                  >
+                    <option value="">국가 선택</option>
+                    {supportedCountries.map((country) => (
+                      <option key={country} value={country}>{country}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  도시
+                  <select
+                    value={settingsCity}
+                    disabled={!settingsCountry}
+                    onChange={(event) => setSettingsCity(event.target.value)}
+                  >
+                    <option value="">도시 선택</option>
+                    {settingsCities.map((city) => (
+                      <option key={city.name} value={city.name}>{city.name}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
               <div className="modalRow">
                 <label>
                   시작일
-                  <input type="date" value={start} onChange={(e) => setStart(e.target.value)} />
+                  <input type="date" value={settingsStart} onChange={(e) => setSettingsStart(e.target.value)} />
                 </label>
                 <label>
                   종료일
-                  <input type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
+                  <input type="date" value={settingsEnd} onChange={(e) => setSettingsEnd(e.target.value)} />
                 </label>
               </div>
               <div className="modalRow">
                 <label>
                   인원 (명)
-                  <input type="number" min="1" step="1" value={people || ""} onChange={(e) => setPeople(+e.target.value || 0)} />
+                  <input type="number" min="1" step="1" value={settingsPeople || ""} onChange={(e) => setSettingsPeople(+e.target.value || 0)} />
                 </label>
                 <label>
                   예산 (만원)
-                  <input type="number" min="1" step="1" value={budget || ""} onChange={(e) => setBudget(+e.target.value || 0)} />
+                  <input type="number" min="1" step="1" value={settingsBudget || ""} onChange={(e) => setSettingsBudget(+e.target.value || 0)} />
                 </label>
               </div>
             </div>
             <div className="modalFooter">
-              <button type="button" onClick={() => setShowSettingsModal(false)} className="closeModalBtn">
-                닫기
+              <button
+                type="button"
+                onClick={() => void regenerateFromSettings()}
+                className="closeModalBtn"
+                disabled={isRegenerating}
+              >
+                {isRegenerating ? "일정 생성 중..." : "AI 일정 다시 생성"}
               </button>
             </div>
           </div>
@@ -624,7 +761,7 @@ export default function PlannerApp() {
               budget={budget}
               saveStatus={saveStatus}
               weather={activeDayWeather}
-              onOpenSettings={() => setShowSettingsModal(true)}
+              onOpenSettings={openSettings}
               onSave={saveCurrentTrip}
               onShare={shareCurrentTrip}
             />
@@ -657,7 +794,15 @@ export default function PlannerApp() {
           {/* DAY Intro & Add Place */}
           <div className={styles.panelHeadingRow}>
             <div>
-              <h3>{current?.theme || `${activeDay + 1}일차 일정`}</h3>
+              <div className={styles.dayTitleRow}>
+                <h3>{dayCoreSummary}</h3>
+                {current?.theme && (
+                  <details className={styles.dayInsight}>
+                    <summary aria-label="AI 일정 설명 보기">i</summary>
+                    <p>{current.theme}</p>
+                  </details>
+                )}
+              </div>
               {activeDayWeather && <p className={styles.mobileDayWeather}>{formatDayWeather(activeDayWeather)}</p>}
               <p className={styles.panelDescription}>{currentStops.length}개 장소 · 카드를 끌어 순서를 바꿔보세요</p>
             </div>
