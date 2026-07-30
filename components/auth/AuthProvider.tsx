@@ -22,6 +22,7 @@ import {
 } from "../../utils/supabaseAuth";
 
 type AuthResult = { error: string | null };
+type AccountUpdate = { displayName?: string; password?: string };
 type AuthContextValue = {
   user: User | null;
   ready: boolean;
@@ -29,6 +30,7 @@ type AuthContextValue = {
   signUp: (email: string, password: string) => Promise<AuthResult>;
   signIn: (email: string, password: string) => Promise<AuthResult>;
   signInWithGoogle: (redirectTo?: string) => Promise<AuthResult>;
+  updateAccount: (input: AccountUpdate) => Promise<AuthResult>;
   signOut: () => Promise<AuthResult>;
 };
 
@@ -103,6 +105,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       : { error: null };
   }, []);
 
+  const updateAccount = useCallback(async ({ displayName, password }: AccountUpdate) => {
+    const client = getSupabaseBrowserClient();
+    if (!client) return { error: "Supabase 환경변수가 설정되지 않았습니다." };
+    const attributes: {
+      data?: { full_name: string; name: string };
+      password?: string;
+    } = {};
+    const trimmedName = displayName?.trim();
+    if (trimmedName) attributes.data = { full_name: trimmedName, name: trimmedName };
+    if (password) attributes.password = password;
+    if (!attributes.data && !attributes.password) return { error: "변경할 정보를 입력해주세요." };
+    const { data, error } = await client.auth.updateUser(attributes);
+    if (data.user) setUser(data.user);
+    return { error: error?.message ?? null };
+  }, []);
+
   const value = useMemo(
     () => ({
       user,
@@ -111,9 +129,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUp,
       signIn,
       signInWithGoogle: signInGoogle,
+      updateAccount,
       signOut,
     }),
-    [user, ready, configured, signUp, signIn, signInGoogle, signOut]
+    [user, ready, configured, signUp, signIn, signInGoogle, updateAccount, signOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

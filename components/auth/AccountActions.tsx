@@ -19,7 +19,7 @@ function DefaultAvatarIcon() {
 }
 
 export default function AccountActions() {
-  const { user, configured, signOut } = useAuth();
+  const { user, ready, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -34,7 +34,7 @@ export default function AccountActions() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  if (!configured) return null;
+  if (!ready) return <span className="accountActionsPlaceholder" aria-hidden="true" />;
 
   if (!user) {
     return (
@@ -91,14 +91,21 @@ export default function AccountActions() {
             className="dropdownItem"
             onClick={() => setOpen(false)}
           >
-            🧳 내 여행 (My Journeys)
+            내 여행
+          </Link>
+          <Link
+            href="/account"
+            className="dropdownItem"
+            onClick={() => setOpen(false)}
+          >
+            계정 정보 수정
           </Link>
           <Link
             href="/"
             className="dropdownItem"
             onClick={() => setOpen(false)}
           >
-            ✦ 새 여행 만들기
+            새 여행 만들기
           </Link>
           <hr className="dropdownDivider" />
           <button
@@ -109,7 +116,7 @@ export default function AccountActions() {
               void signOut();
             }}
           >
-            🚪 로그아웃
+            로그아웃
           </button>
         </div>
       )}

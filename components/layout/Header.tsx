@@ -33,18 +33,7 @@ export default function Header({ activeNav }: HeaderProps) {
         <div className="headerContainer">
           <BrandLogo />
           <nav className="homeServiceNav">
-            <Link
-              href="/trips"
-              className={`navPill ${currentActive === "trips" ? "active" : ""}`}
-            >
-              내 여행
-            </Link>
-            <Link
-              href="/about"
-              className={`navPill ${currentActive === "about" ? "active" : ""}`}
-            >
-              EYRIA 소개
-            </Link>
+            <AccountActions />
           </nav>
         </div>
       </header>
@@ -59,9 +48,6 @@ export default function Header({ activeNav }: HeaderProps) {
           <Link href="/">새 여행</Link>
           <Link href="/trips" className={currentActive === "trips" ? "active" : ""}>
             내 여행
-          </Link>
-          <Link href="/about" className={currentActive === "about" ? "active" : ""}>
-            EYRIA 소개
           </Link>
           <Link href="/contact" className={currentActive === "contact" ? "active" : ""}>
             고객센터
