@@ -18,6 +18,25 @@ function DefaultAvatarIcon() {
   );
 }
 
+function ChevronDownIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="14"
+      height="14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="userMenuChevron"
+    >
+      <path d="m7 10 5 5 5-5" />
+    </svg>
+  );
+}
+
 export default function AccountActions() {
   const { user, ready, signOut } = useAuth();
   const [open, setOpen] = useState(false);
@@ -77,7 +96,7 @@ export default function AccountActions() {
         ) : (
           <DefaultAvatarIcon />
         )}
-        <span className="userMenuChevron" aria-hidden="true">▼</span>
+        <ChevronDownIcon />
       </button>
 
       {open && (

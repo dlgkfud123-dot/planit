@@ -1350,23 +1350,23 @@ html, body {
 }
 
 .userAvatarTrigger {
-  width: 40px !important;
-  height: 36px !important;
-  min-width: 40px !important;
-  min-height: 36px !important;
-  max-width: 40px !important;
-  max-height: 36px !important;
+  width: 48px !important;
+  height: 40px !important;
+  min-width: 48px !important;
+  min-height: 40px !important;
+  max-width: 48px !important;
+  max-height: 40px !important;
   border-radius: 9999px !important;
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  background: rgba(255, 255, 255, 0.82);
-  color: #526a80;
-  padding: 3px 4px !important;
+  border: 0;
+  background: transparent;
+  color: #52677a;
+  padding: 4px 0 !important;
   margin: 0 !important;
   cursor: pointer;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 1px;
+  gap: 6px;
   overflow: visible !important;
   flex-shrink: 0 !important;
   box-sizing: border-box !important;
@@ -1377,21 +1377,19 @@ html, body {
 }
 
 .userAvatarTrigger:hover {
-  border-color: rgba(15, 23, 42, 0.11);
-  background: #fff;
-  transform: translateY(-1px);
-  box-shadow: 0 3px 10px rgba(23, 49, 79, 0.07);
+  background: rgba(15, 23, 42, 0.045);
+  transform: none;
+  box-shadow: none;
 }
 
 .userAvatarTrigger:focus-visible {
-  border-color: #7ea1ef;
   outline: 3px solid rgba(50, 108, 255, 0.14);
   outline-offset: 2px;
 }
 
 .userAvatarImg {
-  width: 26px !important;
-  height: 26px !important;
+  width: 28px !important;
+  height: 28px !important;
   object-fit: cover !important;
   object-position: center !important;
   display: block !important;
@@ -1402,8 +1400,8 @@ html, body {
 }
 
 .userAvatarInitial {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   display: grid;
   border-radius: 50%;
   background: #316bff;
@@ -1415,8 +1413,8 @@ html, body {
 }
 
 .defaultAvatarSvg {
-  width: 25px;
-  height: 25px;
+  width: 28px;
+  height: 28px;
   padding: 4px;
   border-radius: 50%;
   background: #316bff;
@@ -1426,11 +1424,10 @@ html, body {
 }
 
 .userMenuChevron {
+  width: 14px;
+  height: 14px;
   flex: 0 0 auto;
-  color: #7b8d9d;
-  font-size: 6px;
-  line-height: 1;
-  transform: translateY(0.5px);
+  color: #52677a;
 }
 
 .userDropdownMenu {

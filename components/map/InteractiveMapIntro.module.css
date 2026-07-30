@@ -154,6 +154,14 @@
   background: transparent !important;
   pointer-events: auto;
   transform: translateX(-50%);
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, #000 10%, #000 90%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, #000 4%, #000 88%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent 0%, #000 10%, #000 90%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, #000 4%, #000 88%, transparent 100%);
+  mask-composite: intersect;
 }
 
 .desktopLanding :global(.hifiHeroMapBackground .travelMap--intro),
@@ -182,14 +190,6 @@
 .desktopLanding :global(.travelMap--intro .introVectorPane svg) {
   overflow: visible;
   shape-rendering: geometricPrecision;
-  -webkit-mask-image:
-    linear-gradient(to right, transparent 0%, #000 6%, #000 94%, transparent 100%),
-    linear-gradient(to bottom, transparent 0%, #000 5%, #000 95%, transparent 100%);
-  -webkit-mask-composite: source-in;
-  mask-image:
-    linear-gradient(to right, transparent 0%, #000 6%, #000 94%, transparent 100%),
-    linear-gradient(to bottom, transparent 0%, #000 5%, #000 95%, transparent 100%);
-  mask-composite: intersect;
 }
 
 .desktopLanding :global(.travelMap--intro .introVectorPane path) {
@@ -218,14 +218,6 @@
 .desktopLanding :global(.travelMap--intro .introDetailPane svg) {
   overflow: visible;
   shape-rendering: geometricPrecision;
-  -webkit-mask-image:
-    linear-gradient(to right, transparent 0%, #000 6%, #000 94%, transparent 100%),
-    linear-gradient(to bottom, transparent 0%, #000 5%, #000 95%, transparent 100%);
-  -webkit-mask-composite: source-in;
-  mask-image:
-    linear-gradient(to right, transparent 0%, #000 6%, #000 94%, transparent 100%),
-    linear-gradient(to bottom, transparent 0%, #000 5%, #000 95%, transparent 100%);
-  mask-composite: intersect;
 }
 
 .desktopLanding :global(.travelMap--intro .introDetailPane path) {
