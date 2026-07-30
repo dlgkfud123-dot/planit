@@ -469,12 +469,12 @@
     minmax(164px, 0.92fr);
   align-items: center;
   gap: 12px;
-  border: 1px solid rgba(220, 227, 233, 0.96);
+  border: 1px solid rgba(15, 23, 42, 0.06);
   border-radius: 13px;
   background: rgba(255, 255, 255, 0.97);
   box-shadow:
-    0 22px 48px rgba(35, 53, 69, 0.115),
-    0 4px 12px rgba(35, 53, 69, 0.058);
+    0 16px 38px rgba(15, 23, 42, 0.08),
+    0 3px 9px rgba(15, 23, 42, 0.04);
   backdrop-filter: blur(16px);
 }
 
