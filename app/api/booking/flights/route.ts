@@ -48,6 +48,43 @@ type SerpApiResponseRaw = {
   baggage_prices?: unknown;
 };
 
+type BookingLookupEntry = {
+  bookingToken: string;
+  departureAirport: string;
+  destinationAirport: string;
+  checkIn: string;
+  checkOut: string;
+  adults: number;
+  travelClass: string;
+  currency: string;
+  fallbackPrice: number | null;
+  expiresAt: number;
+  cachedOptions: FlightBookingOption[] | undefined;
+};
+
+const BOOKING_LOOKUP_TTL_MS = 5 * 60 * 1000;
+const bookingLookupCache = new Map<string, BookingLookupEntry>();
+
+function registerBookingLookup(entry: Omit<BookingLookupEntry, "expiresAt" | "cachedOptions">): string {
+  const lookupId = crypto.randomUUID();
+  bookingLookupCache.set(lookupId, {
+    ...entry,
+    expiresAt: Date.now() + BOOKING_LOOKUP_TTL_MS,
+    cachedOptions: undefined,
+  });
+  return lookupId;
+}
+
+function getBookingLookup(lookupId: string): BookingLookupEntry | null {
+  const entry = bookingLookupCache.get(lookupId);
+  if (!entry) return null;
+  if (entry.expiresAt <= Date.now()) {
+    bookingLookupCache.delete(lookupId);
+    return null;
+  }
+  return entry;
+}
+
 async function readSerpResponse(response: Response, stage: "STEP_1" | "STEP_2" | "STEP_3"): Promise<SerpApiResponseRaw> {
   let body: unknown;
   try {
@@ -404,9 +441,7 @@ export async function GET(request: Request) {
       let inboundSlice: FlightSlice | null = null;
       let finalComboPrice = initialPrice;
       let bookingToken: string | null = null;
-      let bookingOptionsList: FlightBookingOption[] | null = null;
-      let bookingUrl: string | null = null;
-      let stepBaggagePrices: unknown = null;
+      let bookingOptionsLookupId: string | null = null;
 
       const initialCollection = i < rawBest.length ? "best_flights" : "other_flights";
       const initialIdx = i < rawBest.length ? i : i - rawBest.length;
@@ -481,45 +516,20 @@ export async function GET(request: Request) {
       // Only real SerpAPI inbound segments can make a selectable round-trip.
       if (!inboundSlice || inboundSlice.segments.length === 0) continue;
 
-      // STEP 3: QUERY BOOKING OPTIONS USING BOOKING_TOKEN
+      // Step 3 is deliberately lazy. The opaque lookup id keeps booking_token
+      // server-side and lets the base round-trip render as soon as Step 2 succeeds.
       if (bookingToken) {
-        try {
-          const step3Params = new URLSearchParams({
-            engine: "google_flights",
-            departure_id: departureAirport,
-            arrival_id: destinationAirport,
-            outbound_date: checkIn,
-            return_date: checkOut,
-            type: "1",
-            adults: String(adults),
-            travel_class: travelClass,
-            currency,
-            hl: "ko",
-            gl: "kr",
-            booking_token: bookingToken,
-            api_key: serpApiKey,
-          });
-
-          const step3Res = await fetchWithTimeout(`https://serpapi.com/search.json?${step3Params.toString()}`, {}, routeSignal);
-          if (!step3Res.ok) throw providerErrorFromStatus(step3Res.status, "SerpAPI");
-          if (step3Res.ok) {
-            const step3Json = await readSerpResponse(step3Res, "STEP_3");
-            stepBaggagePrices = step3Json.baggage_prices || null;
-
-            const rawOptions = step3Json.booking_options || [];
-            if (rawOptions.length > 0) {
-              const normalizedBookingOptions: FlightBookingOption[] = rawOptions.map((opt: unknown, optionIndex: number) =>
-                normalizeFlightBookingOption(opt, optionIndex, finalComboPrice)
-              );
-              bookingOptionsList = normalizedBookingOptions;
-              bookingUrl = normalizedBookingOptions.find((option) => option.bookingRequestMethod === "get")?.url || null;
-            }
-          }
-        } catch {
-          // The round-trip remains real, but booking options stay unavailable.
-          bookingOptionsList = null;
-          bookingUrl = null;
-        }
+        bookingOptionsLookupId = registerBookingLookup({
+          bookingToken,
+          departureAirport,
+          destinationAirport,
+          checkIn,
+          checkOut,
+          adults,
+          travelClass,
+          currency,
+          fallbackPrice: finalComboPrice,
+        });
       }
 
       // Strict Price Normalization (NO 85/15 Split!)
@@ -548,7 +558,7 @@ export async function GET(request: Request) {
 
       const { amenities, baggageDetails, baggageInfo } = parseAmenitiesAndBaggage(
         rawOutbound.flights || [],
-        stepBaggagePrices
+        null
       );
 
       // Score Breakdown
@@ -597,8 +607,9 @@ export async function GET(request: Request) {
         recommendationReasons: recommendationReasons.slice(0, 3),
         scoreBreakdown,
         expiresAt: null,
-        bookingUrl,
-        bookingOptions: bookingOptionsList,
+        bookingUrl: null,
+        bookingOptions: null,
+        bookingOptionsLookupId,
         departureToken: null,
         bookingToken: null,
         searchMetadataId: metadataId,
@@ -654,7 +665,7 @@ export async function GET(request: Request) {
       providerAvailable: true,
       liveSearchEnabled: true,
       status: "ACTIVE",
-      reason: "SerpAPI Google Flights API key verified and 3-step token pipeline executed successfully.",
+      reason: "SerpAPI Google Flights API key verified; base round trips completed through return selection.",
       message: `SerpAPI Google Flights에서 총 ${normalizedOffers.length}개의 라이브 왕복 항공권을 수신하였습니다.`,
       offers: normalizedOffers,
       budgetMatchedOffers: budgetMatchedOffers.slice(0, 3),
@@ -680,5 +691,57 @@ export async function GET(request: Request) {
       message: `SerpAPI 연동 처리 중 오류가 발생하였습니다: ${errorMessage}`,
       offers: [],
     }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  const serpApiKey = process.env.SERPAPI_API_KEY || "";
+  if (!serpApiKey) {
+    return NextResponse.json({ success: false, providerStatus: "UNAVAILABLE", message: "항공 판매처 정보를 불러올 수 없습니다." }, { status: 503 });
+  }
+
+  try {
+    const body: unknown = await request.json();
+    const lookupId = body && typeof body === "object" && "lookupId" in body && typeof body.lookupId === "string"
+      ? body.lookupId
+      : "";
+    if (!/^[0-9a-f-]{36}$/i.test(lookupId)) {
+      return NextResponse.json({ success: false, providerStatus: "INVALID_INPUT", message: "예약 옵션 요청이 올바르지 않습니다." }, { status: 400 });
+    }
+
+    const entry = getBookingLookup(lookupId);
+    if (!entry) {
+      return NextResponse.json({ success: false, providerStatus: "EXPIRED", message: "예약 옵션 조회 시간이 만료되었습니다. 항공편을 다시 조회해주세요." }, { status: 410 });
+    }
+    if (entry.cachedOptions !== undefined) {
+      return NextResponse.json({ success: true, bookingOptions: entry.cachedOptions, cached: true });
+    }
+
+    const params = new URLSearchParams({
+      engine: "google_flights",
+      departure_id: entry.departureAirport,
+      arrival_id: entry.destinationAirport,
+      outbound_date: entry.checkIn,
+      return_date: entry.checkOut,
+      type: "1",
+      adults: String(entry.adults),
+      travel_class: entry.travelClass,
+      currency: entry.currency,
+      hl: "ko",
+      gl: "kr",
+      booking_token: entry.bookingToken,
+      api_key: serpApiKey,
+    });
+    const response = await fetchWithTimeout(`https://serpapi.com/search.json?${params.toString()}`, {}, AbortSignal.timeout(ROUTE_DEADLINE_MS));
+    if (!response.ok) throw providerErrorFromStatus(response.status, "SerpAPI");
+    const json = await readSerpResponse(response, "STEP_3");
+    const options = (json.booking_options || []).map((option, index) =>
+      normalizeFlightBookingOption(option, index, entry.fallbackPrice)
+    );
+    entry.cachedOptions = options;
+    return NextResponse.json({ success: true, bookingOptions: options, cached: false });
+  } catch (error) {
+    const mapped = apiErrorResponse(error);
+    return NextResponse.json(mapped.body, { status: mapped.status });
   }
 }

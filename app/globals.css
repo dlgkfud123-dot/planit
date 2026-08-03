@@ -7073,6 +7073,8 @@ p, label, strong, b,
   animation: spin 0.8s linear infinite;
 }
 
+.bookingSkeletonList{display:grid;gap:12px;margin-top:16px}.bookingCardSkeleton{min-height:180px;border:1px solid #e2e8f0;border-radius:12px;background:linear-gradient(90deg,#f8fafc 25%,#eef2f7 50%,#f8fafc 75%);background-size:200% 100%;animation:bookingSkeletonPulse 1.4s ease-in-out infinite}.bookingSkeletonList p{margin:0;color:#64748b;font-size:13px;font-weight:600}.sellerOptionsSkeleton{min-height:58px;margin-top:12px;padding:18px 12px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;color:#64748b;font-size:12px}@keyframes bookingSkeletonPulse{to{background-position:-200% 0}}@media(prefers-reduced-motion:reduce){.bookingCardSkeleton{animation:none}}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
@@ -7206,7 +7208,6 @@ p, label, strong, b,
   line-height: 1.5;
   color: #475569;
 }
-
 
 
 

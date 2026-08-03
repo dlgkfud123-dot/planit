@@ -116,6 +116,7 @@ export default function BookingApp() {
   const [flightsError, setFlightsError] = useState<string | null>(null);
   const [flightsStatus, setFlightsStatus] = useState<string | null>(null);
   const [flightRetryKey, setFlightRetryKey] = useState(0);
+  const [sellerOptionStates, setSellerOptionStates] = useState<Record<string, { status: "idle" | "loading" | "loaded" | "empty" | "error"; message?: string }>>({});
 
   const [requeryStatus, setRequeryStatus] = useState<string | null>(null);
   const [requeryMessage, setRequeryMessage] = useState<string | null>(null);
@@ -476,6 +477,40 @@ export default function BookingApp() {
     setRequeryMessage(`'${option.seller}' 판매처 가격(₩${option.price.toLocaleString()}원)으로 예산이 재계산되었습니다.`);
   };
 
+  const handleLoadSellerOptions = async (flight: FlightOffer) => {
+    const lookupId = flight.bookingOptionsLookupId;
+    const currentStatus = sellerOptionStates[flight.providerOfferId]?.status;
+    if (!lookupId || currentStatus === "loading") return;
+    setSellerOptionStates((states) => ({ ...states, [flight.providerOfferId]: { status: "loading" } }));
+    try {
+      const response = await fetch("/api/booking/flights", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lookupId }),
+      });
+      const data: unknown = await response.json();
+      if (!response.ok || !data || typeof data !== "object" || !("success" in data) || data.success !== true) {
+        const message = data && typeof data === "object" && "message" in data && typeof data.message === "string"
+          ? data.message
+          : "판매처 정보를 불러올 수 없습니다.";
+        setSellerOptionStates((states) => ({ ...states, [flight.providerOfferId]: { status: "error", message } }));
+        return;
+      }
+      const options = "bookingOptions" in data && Array.isArray(data.bookingOptions) ? data.bookingOptions : [];
+      const replace = (offers: FlightOffer[]) => offers.map((item) =>
+        item.providerOfferId === flight.providerOfferId ? { ...item, bookingOptions: options } : item
+      );
+      setBudgetMatchedFlights(replace);
+      setBudgetExceededFlights(replace);
+      setSellerOptionStates((states) => ({
+        ...states,
+        [flight.providerOfferId]: { status: options.length > 0 ? "loaded" : "empty" },
+      }));
+    } catch {
+      setSellerOptionStates((states) => ({ ...states, [flight.providerOfferId]: { status: "error", message: "판매처 정보를 불러올 수 없습니다." } }));
+    }
+  };
+
   const totalNights = Math.max(1, nights);
 
   const buildQueryParams = () => {
@@ -548,9 +583,9 @@ export default function BookingApp() {
 
           {/* 세부 지표 분리 블록 */}
           <div style={{ background: "#F1F5F9", padding: "8px 12px", borderRadius: "6px", fontSize: "12px", color: "#475569", display: "flex", gap: "12px", flexWrap: "wrap" }}>
-            <span>📍 도심: {offer.distanceFromCenterKm}km</span>
-            <span>📍 일정 평균: {offer.avgItineraryDistanceKm}km</span>
-            <span>⏱️ 이동시간: 약 {offer.avgItineraryTimeMinutes}분</span>
+            <span>도심: {offer.distanceFromCenterKm}km</span>
+            <span>일정 평균: {offer.avgItineraryDistanceKm}km</span>
+            <span>이동시간: 약 {offer.avgItineraryTimeMinutes}분</span>
           </div>
 
           <div className="hotelFooterRow" style={{ marginTop: "12px" }}>
@@ -596,6 +631,7 @@ export default function BookingApp() {
   };
 
   const renderFlightCard = (flight: FlightOffer, isOverBudget: boolean) => {
+    const sellerState = sellerOptionStates[flight.providerOfferId] || { status: "idle" as const };
     const isSelected = flight.providerOfferId === selectedFlightId;
     const party = flight.partyPrice;
     const outbound = flight.outbound;
@@ -725,11 +761,36 @@ export default function BookingApp() {
           )}
         </div>
 
+        {flight.bookingOptionsLookupId && sellerState.status === "idle" && (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              void handleLoadSellerOptions(flight);
+            }}
+            style={{ minHeight: "44px", marginTop: "12px", padding: "8px 12px", borderRadius: "8px", border: "1px solid #CBD5E1", background: "#FFFFFF", color: "#0F172A", fontWeight: 700, cursor: "pointer" }}
+          >
+            예약 옵션 보기
+          </button>
+        )}
+        {sellerState.status === "loading" && (
+          <div className="sellerOptionsSkeleton" aria-label="예약 옵션 불러오는 중">
+            <span>예약 옵션을 불러오는 중입니다.</span>
+          </div>
+        )}
+        {sellerState.status === "empty" && <p style={{ margin: "12px 0 0", fontSize: "12px", color: "#64748B" }}>현재 제공되는 판매처 옵션이 없습니다.</p>}
+        {sellerState.status === "error" && (
+          <div style={{ marginTop: "12px" }}>
+            <p style={{ margin: 0, fontSize: "12px", color: "#B91C1C" }}>{sellerState.message}</p>
+            <button type="button" onClick={(event) => { event.stopPropagation(); void handleLoadSellerOptions(flight); }} style={{ minHeight: "44px", marginTop: "8px", padding: "8px 12px" }}>예약 옵션 다시 조회</button>
+          </div>
+        )}
+
         {/* Seller Options Box */}
         {flight.bookingOptions && flight.bookingOptions.length > 0 && (
           <div style={{ marginTop: "12px", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: "8px", padding: "12px" }}>
             <span style={{ fontSize: "12px", fontWeight: 800, color: "#0F172A", display: "block", marginBottom: "8px" }}>
-              🛒 판매처별 가격 및 예약 옵션 목록 ({flight.bookingOptions.length}개)
+              판매처별 가격 및 예약 옵션 목록 ({flight.bookingOptions.length}개)
             </span>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               {flight.bookingOptions.slice(0, 4).map((opt, optIdx) => (
@@ -757,7 +818,7 @@ export default function BookingApp() {
                         onClick={(e) => e.stopPropagation()}
                         style={{ background: "#2563EB", color: "#FFFFFF", fontSize: "11px", fontWeight: 700, padding: "3px 8px", borderRadius: "4px", textDecoration: "none" }}
                       >
-                        예약 이동 ↗
+                        예약 이동
                       </a>
                     ) : (
                       <button type="button" disabled title="판매처 이동 방식 확인 필요" style={{ fontSize: "11px", padding: "3px 8px" }}>
@@ -787,30 +848,6 @@ export default function BookingApp() {
           </div>
 
           <div className="flightBtns" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            {flight.bookingUrl && (
-              <a
-                href={flight.bookingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  background: "#EFF6FF",
-                  color: "#1D4ED8",
-                  border: "1px solid #BFDBFE",
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  padding: "8px 12px",
-                  borderRadius: "8px",
-                  textDecoration: "none"
-                }}
-              >
-                외부 사이트에서 예약 옵션 보기 ↗
-              </a>
-            )}
-
             <button
               type="button"
               className={`selectFlightBtn ${isSelected ? "selected" : ""}`}
@@ -896,7 +933,7 @@ export default function BookingApp() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
             <div>
               <span style={{ fontSize: "14px", fontWeight: 800, color: "#0F172A" }}>
-                🎯 AI 여행 스타일 가중치 선택
+                AI 여행 스타일 가중치 선택
               </span>
               <p style={{ margin: 0, fontSize: "12.5px", color: "#64748B" }}>
                 스타일에 따라 숙소/항공 가격, 동선/시간, 품질 가중치가 자동 조율됩니다.
@@ -1013,10 +1050,10 @@ export default function BookingApp() {
                       {/* Card Middle: Selected Flight, Selected Hotel, Estimated Grand Total & Excess */}
                       <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", padding: "12px", borderRadius: "8px", marginBottom: "12px" }}>
                         <div style={{ fontSize: "13px", color: "#0F172A", fontWeight: 700, marginBottom: "4px" }}>
-                          ✈️ 항공: {combo.flight.ownerAirlineName} ({combo.flight.outbound.isDirect ? "직항" : "경유"})
+                          항공: {combo.flight.ownerAirlineName} ({combo.flight.outbound.isDirect ? "직항" : "경유"})
                         </div>
                         <div style={{ fontSize: "13px", color: "#0F172A", fontWeight: 700 }}>
-                          🏨 숙소: {combo.hotel.hotelName}
+                          숙소: {combo.hotel.hotelName}
                         </div>
                       </div>
 
@@ -1050,9 +1087,9 @@ export default function BookingApp() {
 
                       {/* Distance Metrics Block (Separated from reasons) */}
                       <div style={{ background: "#F1F5F9", padding: "8px 12px", borderRadius: "6px", fontSize: "11.5px", color: "#475569", display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "14px" }}>
-                        <span>📍 도심: {combo.distanceFromCityCenterKm}km</span>
-                        <span>✈️ 공항: {combo.distanceFromAirportKm}km</span>
-                        <span>📍 일정 평균: {combo.avgDistanceFromItineraryKm}km</span>
+                        <span>도심: {combo.distanceFromCityCenterKm}km</span>
+                        <span>공항: {combo.distanceFromAirportKm}km</span>
+                        <span>일정 평균: {combo.avgDistanceFromItineraryKm}km</span>
                       </div>
                     </div>
 
@@ -1123,11 +1160,10 @@ export default function BookingApp() {
           )}
 
           {hotelsLoading && (
-            <div className="hotelsStateBox">
-              <div className="stateSpinner" />
-              <p style={{ color: "#64748B", fontWeight: 600, marginTop: "12px" }}>
-                {destination} [{travelStyle.toUpperCase()} 스타일] 일정 장소 {itineraryPlacesList.length}곳과의 평균 이동시간 및 Trip Score 분석 중...
-              </p>
+            <div className="bookingSkeletonList" aria-label="숙소 결과 불러오는 중">
+              <div className="bookingCardSkeleton" />
+              <div className="bookingCardSkeleton" />
+              <p>{destination} 숙소와 일정 동선을 분석하고 있습니다.</p>
             </div>
           )}
 
@@ -1186,21 +1222,20 @@ export default function BookingApp() {
               <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                 <h2 style={{ whiteSpace: "nowrap", wordBreak: "keep-all" }}>AI 추천 왕복 항공권</h2>
                 <span className="locationApiBadgeTag" style={{ whiteSpace: "nowrap", background: "#EFF6FF", color: "#1D4ED8" }}>
-                  ✈️ Google Flights Live Search (SerpAPI)
+                  Google Flights Live Search (SerpAPI)
                 </span>
               </div>
               <p style={{ wordBreak: "keep-all", color: "#475569" }}>
-                인천(ICN) ⇄ {destination} 왕복 구간의 정규화된 항공권 가격 및 일정 정보입니다.
+                인천(ICN)–{destination} 왕복 구간의 정규화된 항공권 가격 및 일정 정보입니다.
               </p>
             </div>
           </div>
 
           {flightsLoading && (
-            <div className="hotelsStateBox">
-              <div className="stateSpinner" />
-              <p style={{ color: "#64748B", fontWeight: 600, marginTop: "12px" }}>
-                실시간 Google Flights 왕복 항공권 및 Flight Score 분석 중...
-              </p>
+            <div className="bookingSkeletonList" aria-label="항공편 결과 불러오는 중">
+              <div className="bookingCardSkeleton" />
+              <div className="bookingCardSkeleton" />
+              <p>실시간 왕복 항공편을 조회하고 있습니다.</p>
             </div>
           )}
 
@@ -1276,7 +1311,7 @@ export default function BookingApp() {
         <section className="bookingSummaryBox" style={{ background: "#FFFFFF", border: "1px solid #CBD5E1", borderRadius: "12px", padding: "24px" }}>
           <div className="cleanSectionTitle">
             <h2 style={{ whiteSpace: "nowrap", wordBreak: "keep-all", color: "#0F172A" }}>
-              📊 Eyria 전체 여행 예산 통합 요약
+              Eyria 전체 여행 예산 통합 요약
             </h2>
             <p style={{ wordBreak: "keep-all", color: "#475569" }}>
               선택하신 항공권, 숙소 및 예상 식비·교통·관광비의 실시간 합산 결과입니다.
@@ -1369,13 +1404,13 @@ export default function BookingApp() {
 
         <div className="bookingBottomNav">
           <Link href={plannerUrl} className="navBackBtn">
-            ← 일정 다시 편집하기
+            일정 다시 편집하기
           </Link>
           <Link href={summaryUrl} className="navSkipBtn">
             예약 없이 계속하기
           </Link>
           <Link href={summaryUrl} className="navProceedBtn">
-            여행 완성하기 →
+            여행 완성하기
           </Link>
         </div>
       </div>

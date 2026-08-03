@@ -5,7 +5,7 @@ import { validateFlightInput, validateHotelInput } from "../utils/bookingValidat
 import { ApiHttpError, TIMEOUT_MESSAGE, fetchWithTimeout, providerErrorFromStatus } from "../utils/apiRuntime.ts";
 import { calculateFlightTimeScore } from "../utils/flightRuntime.ts";
 import { calculateAirportDistanceKm } from "../utils/packageBudgetEngine.ts";
-import { GET as getFlights } from "../app/api/booking/flights/route.ts";
+import { GET as getFlights, POST as getFlightBookingOptions } from "../app/api/booking/flights/route.ts";
 import { GET as getHotels, resetHotelSearchRuntimeForTests } from "../app/api/booking/hotels/route.ts";
 import { resetLiteApiRuntimeForTests } from "../utils/liteApiRuntime.ts";
 
@@ -82,6 +82,54 @@ test("SerpAPI auth, rate-limit, and empty-result branches preserve HTTP semantic
     const body = await empty.json();
     assert.equal(empty.status, 200);
     assert.deepEqual(body.offers, []);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.SERPAPI_API_KEY;
+    else process.env.SERPAPI_API_KEY = originalKey;
+  }
+});
+
+test("initial flight search stops after return selection and loads seller options lazily", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.SERPAPI_API_KEY;
+  process.env.SERPAPI_API_KEY = "test-key";
+  const calls = [];
+  const leg = (origin, destination, number) => ({
+    departure_airport: { id: origin, time: "2099-08-10 09:00" },
+    arrival_airport: { id: destination, time: "2099-08-10 10:30" },
+    flight_number: number,
+    airline: "Test Air",
+    duration: 90,
+  });
+  globalThis.fetch = async (input) => {
+    const url = String(input);
+    calls.push(url);
+    if (url.includes("booking_token=")) {
+      return Response.json({ booking_options: [{ together: { book_with: "Seller", price: 210000 }, booking_request: { url: "https://seller.example" } }] });
+    }
+    if (url.includes("departure_token=")) {
+      return Response.json({ best_flights: [{ price: 210000, booking_token: "server-only-token", flights: [leg("HND", "ICN", "TA 200")] }], other_flights: [] });
+    }
+    return Response.json({ search_metadata: { id: "search-id" }, best_flights: [{ price: 200000, departure_token: "return-token", flights: [leg("ICN", "HND", "TA 100")] }], other_flights: [] });
+  };
+  try {
+    const searchResponse = await getFlights(new Request(`http://localhost/api/booking/flights?city=도쿄&departureAirport=ICN&checkIn=${futureDates.checkIn}&checkOut=${futureDates.checkOut}&adults=1`));
+    const searchBody = await searchResponse.json();
+    assert.equal(calls.length, 2);
+    assert.equal(calls.some((url) => url.includes("booking_token=")), false);
+    assert.equal(searchBody.offers[0].bookingToken, null);
+    assert.equal(searchBody.offers[0].bookingOptions, null);
+    assert.ok(searchBody.offers[0].bookingOptionsLookupId);
+
+    const optionsResponse = await getFlightBookingOptions(new Request("http://localhost/api/booking/flights", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lookupId: searchBody.offers[0].bookingOptionsLookupId }),
+    }));
+    const optionsBody = await optionsResponse.json();
+    assert.equal(optionsResponse.status, 200);
+    assert.equal(optionsBody.bookingOptions.length, 1);
+    assert.equal(calls.filter((url) => url.includes("booking_token=")).length, 1);
   } finally {
     globalThis.fetch = originalFetch;
     if (originalKey === undefined) delete process.env.SERPAPI_API_KEY;

@@ -135,6 +135,7 @@ export type FlightOffer = {
   isExpired?: boolean;
   bookingUrl: string | null;
   bookingOptions?: FlightBookingOption[] | null;
+  bookingOptionsLookupId?: string | null;
   selectedSeller?: SelectedFlightSeller | null;
   departureToken?: string | null;
   bookingToken?: string | null;
