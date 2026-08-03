@@ -18,6 +18,11 @@ export const KOREA_AIRPORTS: Airport[] = [
   { iata: "YNY", name: "양양국제공항", cityName: "양양", label: "양양 (YNY) — 양양국제공항" },
 ];
 
+export const DEFAULT_FLIGHT_COMPARISON_AIRPORTS = ["ICN", "GMP", "PUS", "CJU", "CJJ", "TAE"] as const;
+
+export const getKoreaAirport = (iata: string): Airport | null =>
+  KOREA_AIRPORTS.find((airport) => airport.iata === iata.toUpperCase()) ?? null;
+
 export const AIRPORT_COORDINATES: Record<string, AirportCoordinates> = {
   ICN: { latitude: 37.4602, longitude: 126.4407 },
   GMP: { latitude: 37.5583, longitude: 126.7906 },

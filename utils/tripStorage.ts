@@ -2,7 +2,7 @@ import type {GeneratedDay,GeneratedStop} from "./itineraryGenerator";
 
 export const tripSchemaVersion=2 as const;
 export type TripSnapshot={
-  schemaVersion:typeof tripSchemaVersion;id:string;title:string;destination:string;origin:string;start:string;end:string;people:number;budget:number;tempo:string;interest:string;food:string;stay:string;pace:1|2|3;plan:GeneratedDay[];createdAt:string;updatedAt:string;
+  schemaVersion:typeof tripSchemaVersion;id:string;title:string;destination:string;origin:string;departureAirport?:string;start:string;end:string;people:number;budget:number;tempo:string;interest:string;food:string;stay:string;pace:1|2|3;plan:GeneratedDay[];createdAt:string;updatedAt:string;
 };
 
 const savedKey="eyria:saved-trips:v1",draftKey="eyria:auto-draft:v1";
@@ -25,7 +25,7 @@ function isGeneratedDay(value:unknown):value is GeneratedDay{
 
 export function isTripSnapshot(value:unknown):value is TripSnapshot{
   if(!object(value))return false;
-  return value.schemaVersion===tripSchemaVersion&&string(value.id)&&string(value.title)&&string(value.destination)&&string(value.origin)&&string(value.start)&&string(value.end)&&finite(value.people)&&finite(value.budget)&&string(value.tempo)&&string(value.interest)&&string(value.food)&&string(value.stay)&&(value.pace===1||value.pace===2||value.pace===3)&&Array.isArray(value.plan)&&value.plan.every(isGeneratedDay)&&string(value.createdAt)&&string(value.updatedAt);
+  return value.schemaVersion===tripSchemaVersion&&string(value.id)&&string(value.title)&&string(value.destination)&&string(value.origin)&&(value.departureAirport===undefined||string(value.departureAirport))&&string(value.start)&&string(value.end)&&finite(value.people)&&finite(value.budget)&&string(value.tempo)&&string(value.interest)&&string(value.food)&&string(value.stay)&&(value.pace===1||value.pace===2||value.pace===3)&&Array.isArray(value.plan)&&value.plan.every(isGeneratedDay)&&string(value.createdAt)&&string(value.updatedAt);
 }
 
 export function restoreTripSnapshot(value:unknown):TripSnapshot|null{

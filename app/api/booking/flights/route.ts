@@ -105,6 +105,23 @@ async function readSerpResponse(response: Response, stage: "STEP_1" | "STEP_2" |
   return parsed;
 }
 
+function serpProviderError(response: Response, stage: "STEP_1" | "STEP_2" | "STEP_3") {
+  if (response.status !== 429) return providerErrorFromStatus(response.status, "SerpAPI");
+  const retryAfterHeader = response.headers.get("Retry-After");
+  const resetHeader = response.headers.get("X-RateLimit-Reset");
+  const retryAfterSeconds = retryAfterHeader && Number.isFinite(Number(retryAfterHeader))
+    ? Math.max(0, Math.ceil(Number(retryAfterHeader)))
+    : resetHeader && Number.isFinite(Number(resetHeader))
+      ? Math.max(0, Math.ceil(Number(resetHeader) - Date.now() / 1000))
+      : undefined;
+  const retryAt = retryAfterSeconds === undefined ? undefined : new Date(Date.now() + retryAfterSeconds * 1000).toISOString();
+  return new ApiHttpError(429, "RATE_LIMITED", "SerpAPI 요청 한도를 초과했습니다.", {
+    retryAt,
+    retryAfterSeconds,
+    providerStage: stage,
+  });
+}
+
 export function calculateTimeFlags(departingAt?: string, arrivingAt?: string, rawOvernight?: boolean): FlightTimeFlags {
   if (!departingAt || !arrivingAt) {
     return { arrivesNextDay: false, dayOffset: 0, isOvernightFlight: Boolean(rawOvernight) };
@@ -333,6 +350,7 @@ export async function GET(request: Request) {
   const flightBudget = searchParams.get("flightBudget") ? parseInt(searchParams.get("flightBudget")!, 10) : 500000;
   const travelClass = searchParams.get("travelClass") || "1";
   const currency = (searchParams.get("currency") || "KRW").toUpperCase();
+  const comparisonSearch = searchParams.get("comparison") === "1";
   if (!searchParams.get("city") && !searchParams.get("arrivalAirport")) {
     return NextResponse.json(
       { success: false, providerStatus: "INVALID_INPUT", message: "도시 또는 도착 공항이 필요합니다.", offers: [] },
@@ -359,6 +377,7 @@ export async function GET(request: Request) {
   const routeSignal = AbortSignal.timeout(ROUTE_DEADLINE_MS);
   const serpApiKey = process.env.SERPAPI_API_KEY || "";
   const hasSerpKey = Boolean(serpApiKey);
+  let providerCallCount = 0;
 
   if (!hasSerpKey) {
     return NextResponse.json({
@@ -396,9 +415,10 @@ export async function GET(request: Request) {
       api_key: serpApiKey,
     });
 
+    providerCallCount += 1;
     const step1Res = await fetchWithTimeout(`https://serpapi.com/search.json?${step1Params.toString()}`, {}, routeSignal);
     if (!step1Res.ok) {
-      throw providerErrorFromStatus(step1Res.status, "SerpAPI");
+      throw serpProviderError(step1Res, "STEP_1");
     }
 
     const step1Json = await readSerpResponse(step1Res, "STEP_1");
@@ -420,6 +440,7 @@ export async function GET(request: Request) {
         reason: "SerpAPI Google Flights API key verified.",
         message: "검색 조건에 해당 항공편이 검색되지 않았습니다.",
         offers: [],
+        providerCallCount,
       });
     }
 
@@ -427,7 +448,8 @@ export async function GET(request: Request) {
     let lastSelectionError: ApiHttpError | null = null;
 
     // Process top outbound options with dynamic price source tracking
-    for (let i = 0; i < Math.min(5, allOutboundRaw.length); i++) {
+    const outboundCandidateLimit = comparisonSearch ? 2 : 5;
+    for (let i = 0; i < Math.min(outboundCandidateLimit, allOutboundRaw.length); i++) {
       const rawOutbound = allOutboundRaw[i];
       const depToken = rawOutbound.departure_token;
       const initialPrice = rawOutbound.price || null;
@@ -472,8 +494,9 @@ export async function GET(request: Request) {
             api_key: serpApiKey,
           });
 
+          providerCallCount += 1;
           const step2Res = await fetchWithTimeout(`https://serpapi.com/search.json?${step2Params.toString()}`, {}, routeSignal);
-          if (!step2Res.ok) throw providerErrorFromStatus(step2Res.status, "SerpAPI");
+          if (!step2Res.ok) throw serpProviderError(step2Res, "STEP_2");
           if (step2Res.ok) {
             const step2Json = await readSerpResponse(step2Res, "STEP_2");
             const step2Best = step2Json.best_flights || [];
@@ -539,7 +562,7 @@ export async function GET(request: Request) {
         surcharges: null,
         baggageFee: null,
         payableTotal: finalComboPrice,
-        currency: "KRW",
+        currency,
         taxStatus: "unknown",
         sourcePaths: {
           baseFare: null,
@@ -552,7 +575,7 @@ export async function GET(request: Request) {
         passengerCount: adults,
         totalTripPrice: finalComboPrice || 0,
         averagePerPassenger: finalComboPrice ? Math.round(finalComboPrice / adults) : null,
-        currency: "KRW",
+        currency,
         averagePerPassengerDerived: true,
       };
 
@@ -591,7 +614,7 @@ export async function GET(request: Request) {
       }
 
       const offerObj: FlightOffer = {
-        providerOfferId: `serpapi_${metadataId || "search"}_${i}`,
+        providerOfferId: `serpapi_${departureAirport}_${metadataId || "search"}_${i}`,
         ownerAirlineName,
         ownerAirlineCode,
         airlineLogoUrl: logoUrl,
@@ -638,6 +661,7 @@ export async function GET(request: Request) {
         offers: [],
         budgetMatchedOffers: [],
         budgetExceededOffers: [],
+        providerCallCount,
       });
     }
 
@@ -670,11 +694,12 @@ export async function GET(request: Request) {
       offers: normalizedOffers,
       budgetMatchedOffers: budgetMatchedOffers.slice(0, 3),
       budgetExceededOffers: budgetExceededOffers.slice(0, 2),
+      providerCallCount,
     });
   } catch (error: unknown) {
     const mappedError = apiErrorResponse(error);
     if (mappedError.status !== 500) {
-      return NextResponse.json({ ...mappedError.body, city, offers: [] }, { status: mappedError.status });
+      return NextResponse.json({ ...mappedError.body, city, offers: [], providerCallCount }, { status: mappedError.status });
     }
     const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json({
@@ -690,6 +715,7 @@ export async function GET(request: Request) {
       reason: `SerpAPI Exception: ${errorMessage}`,
       message: `SerpAPI 연동 처리 중 오류가 발생하였습니다: ${errorMessage}`,
       offers: [],
+      providerCallCount,
     }, { status: 500 });
   }
 }
@@ -733,7 +759,7 @@ export async function POST(request: Request) {
       api_key: serpApiKey,
     });
     const response = await fetchWithTimeout(`https://serpapi.com/search.json?${params.toString()}`, {}, AbortSignal.timeout(ROUTE_DEADLINE_MS));
-    if (!response.ok) throw providerErrorFromStatus(response.status, "SerpAPI");
+    if (!response.ok) throw serpProviderError(response, "STEP_3");
     const json = await readSerpResponse(response, "STEP_3");
     const options = (json.booking_options || []).map((option, index) =>
       normalizeFlightBookingOption(option, index, entry.fallbackPrice)

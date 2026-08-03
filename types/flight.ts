@@ -197,4 +197,6 @@ export type FlightSearchResponse = {
   offers: FlightOffer[];
   budgetMatchedOffers?: FlightOffer[];
   budgetExceededOffers?: FlightOffer[];
+  providerCallCount?: number;
+  cached?: boolean;
 };

@@ -2,6 +2,7 @@
 
 import React from "react";
 import type { BookingSnapshot } from "../../types/booking";
+import { getKoreaAirport } from "../../data/airports";
 
 interface Props {
   destination: string;
@@ -59,7 +60,7 @@ export default function FinalTripConfirmationCard({ destination, bookingSnapshot
                 {selectedFlight ? `${selectedFlight.ownerAirlineName} (${selectedFlight.outbound.isDirect ? "직항" : "경유"})` : "항공편 미선택"}
               </strong>
               <span style={{ fontSize: "12.5px", color: "#475569", display: "block", marginTop: "2px" }}>
-                {selectedFlight ? `출발: ${selectedFlight.outbound.departureTime} (${selectedFlight.outbound.originAirport})` : ""}
+                {selectedFlight ? `출발: ${selectedFlight.outbound.departureTime} · ${getKoreaAirport(bookingSnapshot.departureAirport)?.name || bookingSnapshot.departureAirport} (${bookingSnapshot.departureAirport})` : ""}
               </span>
             </div>
 

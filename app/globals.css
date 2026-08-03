@@ -5726,6 +5726,8 @@ p, label, strong, b,
   gap: 16px;
 }
 
+.departureSearchControls{margin:16px 0;padding:14px;border:1px solid #dbe4ee;border-radius:12px;background:#f8fafc}.departureModeButtons{display:flex;gap:8px}.departureModeButtons button{min-height:44px;padding:9px 14px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;color:#475569;font-weight:750;word-break:keep-all}.departureModeButtons button.active{border-color:#2563eb;background:#eff6ff;color:#1d4ed8}.departureAirportField{margin-top:12px;display:flex;align-items:center;gap:12px}.departureAirportField span{font-size:12px;font-weight:800;color:#475569}.departureAirportField select{min-width:240px;min-height:44px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;color:#0f172a}.comparisonAirportScope,.flightComparisonMessage{margin:10px 0 0;color:#475569;font-size:12px;line-height:1.5;word-break:keep-all}.airportComparisonList{margin:14px 0;display:flex;flex-direction:column;gap:8px}.airportComparisonRow{min-width:0;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:16px;border:1px solid #dbe4ee;border-radius:10px;background:#fff}.airportComparisonRow>div{min-width:0}.airportComparisonRow strong,.airportComparisonRow span{display:block;word-break:keep-all;overflow-wrap:break-word}.airportComparisonRow>div>strong{font-size:13px;color:#0f172a}.airportComparisonRow>div>span{margin-top:3px;font-size:11px;color:#64748b}.airportComparisonRow.unavailable{background:#f8fafc}.airportComparisonPrice{text-align:right}.airportComparisonPrice b{display:inline-block;margin-bottom:4px;padding:3px 7px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font-size:10px}.airportComparisonPrice strong{font-size:14px;color:#0f172a}.airportComparisonPrice span{margin-top:3px;font-size:10.5px;color:#64748b}
+
 .flightCard {
   background: #FFFFFF;
   border: 1.5px solid #E2E8F0;
@@ -7266,6 +7268,11 @@ p, label, strong, b,
   .packageComboCard button { min-height: 44px !important; }
 
   .flightCard { width: 100%; }
+  .departureModeButtons{display:grid;grid-template-columns:minmax(0,1fr)}
+  .departureModeButtons button,.departureAirportField select{width:100%;max-width:100%;box-sizing:border-box}
+  .departureAirportField{align-items:stretch;flex-direction:column;gap:6px}
+  .airportComparisonRow{align-items:stretch;flex-direction:column;gap:8px;box-sizing:border-box;max-width:100%}
+  .airportComparisonPrice{text-align:left}
   .flightPriceAction, .flightPriceBox, .flightBtns { width: 100%; max-width: 100%; box-sizing: border-box; }
   .flightPriceBox { align-items: flex-start !important; gap: 4px; flex-wrap: wrap; }
   .pricePerPerson, .totalFlightPrice { max-width: 100%; white-space: normal !important; overflow-wrap: break-word; word-break: keep-all !important; }

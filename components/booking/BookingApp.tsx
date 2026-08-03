@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import Link from "next/link";
 import Header from "../layout/Header";
-import { readDraftById } from "../../utils/tripStorage";
+import { readDraftById, writeDraftById, type TripSnapshot } from "../../utils/tripStorage";
 import BookingMap from "./BookingMap";
 import type { HotelOffer, HotelLocation, CityBudgetEstimate, TravelStyle } from "../../types/hotel";
 import type { FlightOffer, TravelBudgetSummary } from "../../types/flight";
@@ -19,9 +19,31 @@ import {
   type OverBudgetAlternative,
 } from "../../utils/packageBudgetEngine";
 import { cityByName } from "../../data/cities";
-import { getCityAirportIata, isSupportedAirport } from "../../data/airports";
+import { DEFAULT_FLIGHT_COMPARISON_AIRPORTS, getCityAirportIata, getKoreaAirport, isSupportedAirport, KOREA_AIRPORTS } from "../../data/airports";
 
 const DESTINATION_ERROR = "여행 목적지 정보가 없습니다. 일정 페이지에서 목적지를 다시 선택해주세요.";
+
+type DepartureMode = "direct" | "compare";
+type AirportComparisonStatus = "SEARCHING" | "AVAILABLE_DIRECT" | "AVAILABLE_CONNECTING" | "NO_FLIGHTS_FOUND" | "PROVIDER_ERROR" | "TIMEOUT" | "RATE_LIMITED";
+type AirportComparisonResult = {
+  departureAirport: string;
+  departureAirportName: string;
+  status: AirportComparisonStatus;
+  httpStatus: number;
+  offer: FlightOffer | null;
+  retryAt?: string;
+  retryAfterSeconds?: number;
+};
+
+const airportComparisonStatusText = (status: AirportComparisonStatus) => {
+  if (status === "SEARCHING") return "검색 중";
+  if (status === "AVAILABLE_DIRECT") return "직항 왕복 가능";
+  if (status === "AVAILABLE_CONNECTING") return "경유 왕복 가능 · 직항 없음";
+  if (status === "NO_FLIGHTS_FOUND") return "해당 조건의 왕복 항공편 없음";
+  if (status === "TIMEOUT") return "검색 시간 초과 · 다시 확인 가능";
+  if (status === "RATE_LIMITED") return "조회 한도 초과 · 다시 확인 가능";
+  return "현재 검색 결과를 확인할 수 없음";
+};
 
 export function flightStatusMessage(status: string): string {
   if (status === "INVALID_INPUT") return "항공편 검색 조건을 확인해주세요.";
@@ -78,6 +100,11 @@ function HotelCardImage({ imageUrl, name }: { imageUrl: string | null; name: str
 export default function BookingApp() {
   const [destination, setDestination] = useState("");
   const [arrivalAirport, setArrivalAirport] = useState("");
+  const [departureAirport, setDepartureAirport] = useState("ICN");
+  const [departureMode, setDepartureMode] = useState<DepartureMode>("direct");
+  const [comparisonRequested, setComparisonRequested] = useState(false);
+  const [airportComparisonResults, setAirportComparisonResults] = useState<AirportComparisonResult[]>([]);
+  const [comparisonMessage, setComparisonMessage] = useState<string | null>(null);
   const [nights, setNights] = useState(0);
   const [travelers, setTravelers] = useState(0);
   const [totalUserBudget, setTotalUserBudget] = useState(0);
@@ -87,6 +114,7 @@ export default function BookingApp() {
   const [contextReady, setContextReady] = useState(false);
   const [contextError, setContextError] = useState<string | null>(null);
   const restoredBookingRef = useRef<BookingSnapshot | null>(null);
+  const draftSnapshotRef = useRef<(TripSnapshot & { activeDay?: number; activeStop?: number }) | null>(null);
 
   const [travelStyle, setTravelStyle] = useState<TravelStyle>("standard");
   const [transitMode, setTransitMode] = useState<"transit" | "walk" | "drive">("transit");
@@ -157,6 +185,7 @@ export default function BookingApp() {
     if (draftParam) {
       const snap = readDraftById(draftParam);
       if (snap && snap.destination) {
+        draftSnapshotRef.current = snap;
         targetDest = snap.destination;
         if (snap.plan && snap.plan.length > 0) {
           targetNights = Math.max(1, snap.plan.length - 1);
@@ -232,6 +261,8 @@ export default function BookingApp() {
       setSelectedHotelId(storedBooking.selectedHotel.providerHotelId);
       setSelectedFlightId(storedBooking.selectedFlight.providerOfferId);
     }
+    const storedDepartureAirport = storedBooking?.departureAirport || draftSnapshotRef.current?.departureAirport || "ICN";
+    setDepartureAirport(getKoreaAirport(storedDepartureAirport)?.iata || "ICN");
     setContextError(null);
     setContextReady(true);
     });
@@ -323,9 +354,21 @@ export default function BookingApp() {
     return () => controller.abort();
   }, [contextReady, destination, checkIn, checkOut, travelers, lodgingBudgetThreshold, travelStyle, itineraryPlacesList, transitMode, hotelRetryKey]);
 
-  // Fetch SerpAPI Google Flights
+  useEffect(() => {
+    if (!contextReady || !draftId || !draftSnapshotRef.current) return;
+    const current = draftSnapshotRef.current;
+    if (current.departureAirport === departureAirport) return;
+    const updated = { ...current, departureAirport, updatedAt: new Date().toISOString() };
+    draftSnapshotRef.current = updated;
+    writeDraftById(draftId, updated, current.activeDay, current.activeStop);
+  }, [contextReady, departureAirport, draftId]);
+
+  const flightSearchDeparture = departureMode === "direct" ? departureAirport : "";
+
+  // Fetch SerpAPI Google Flights. Nationwide comparison only starts after an explicit user action.
   useEffect(() => {
     if (!contextReady || !destination || !arrivalAirport) return;
+    if (departureMode === "compare" && !comparisonRequested) return;
 
     const controller = new AbortController();
 
@@ -333,27 +376,53 @@ export default function BookingApp() {
       setFlightsLoading(true);
       setFlightsError(null);
       setFlightsStatus(null);
+      if (departureMode === "compare") {
+        setComparisonMessage(null);
+        setAirportComparisonResults(DEFAULT_FLIGHT_COMPARISON_AIRPORTS.map((iata) => ({
+          departureAirport: iata,
+          departureAirportName: getKoreaAirport(iata)?.name || iata,
+          status: "SEARCHING",
+          httpStatus: 0,
+          offer: null,
+        })));
+      }
     });
 
-    const url = `/api/booking/flights?city=${encodeURIComponent(destination)}&departureAirport=ICN&arrivalAirport=${encodeURIComponent(arrivalAirport)}&checkIn=${encodeURIComponent(checkIn)}&checkOut=${encodeURIComponent(checkOut)}&adults=${travelers}&flightBudget=${flightBudgetThreshold}`;
+    const baseQuery = `city=${encodeURIComponent(destination)}&arrivalAirport=${encodeURIComponent(arrivalAirport)}&checkIn=${encodeURIComponent(checkIn)}&checkOut=${encodeURIComponent(checkOut)}&adults=${travelers}&flightBudget=${flightBudgetThreshold}&currency=KRW`;
+    const url = departureMode === "compare"
+      ? `/api/booking/flights/compare?${baseQuery}`
+      : `/api/booking/flights?${baseQuery}&departureAirport=${encodeURIComponent(flightSearchDeparture)}`;
 
     fetch(url, { signal: controller.signal })
       .then(async (res) => ({ httpStatus: res.status, data: await res.json() }))
       .then(({ data }) => {
         setFlightsLoading(false);
+        if (departureMode === "compare") {
+          setAirportComparisonResults(Array.isArray(data.results) ? data.results : []);
+          setComparisonMessage(typeof data.message === "string" ? data.message : null);
+        } else {
+          setAirportComparisonResults([]);
+          setComparisonMessage(null);
+        }
         if (data.success) {
-          const liveMatched = (data.budgetMatchedOffers || []).filter(isSelectableRoundTrip);
-          const restoredFlight = restoredBookingRef.current?.selectedFlight;
+          const sourceOffers: FlightOffer[] = departureMode === "compare" ? (data.offers || []) : (data.budgetMatchedOffers || []);
+          const liveMatched = sourceOffers.filter((offer) => isSelectableRoundTrip(offer) && offer.price.payableTotal !== null && offer.price.payableTotal <= flightBudgetThreshold);
+          const restoredCandidate = restoredBookingRef.current?.selectedFlight;
+          const restoredFlight = restoredCandidate && (departureMode === "compare" || restoredCandidate.outbound.originAirport === flightSearchDeparture)
+            ? restoredCandidate
+            : undefined;
           const matched = restoredFlight && isSelectableRoundTrip(restoredFlight) && !liveMatched.some((flight: FlightOffer) => flight.providerOfferId === restoredFlight.providerOfferId)
             ? [restoredFlight, ...liveMatched]
             : liveMatched;
-          const exceeded = (data.budgetExceededOffers || []).filter(isSelectableRoundTrip);
+          const exceededSource: FlightOffer[] = departureMode === "compare" ? (data.offers || []) : (data.budgetExceededOffers || []);
+          const exceeded = exceededSource.filter((offer) => isSelectableRoundTrip(offer) && offer.price.payableTotal !== null && offer.price.payableTotal > flightBudgetThreshold);
           setBudgetMatchedFlights(matched);
           setBudgetExceededFlights(exceeded);
 
           const allFlights = [...matched, ...exceeded];
           if (allFlights.length > 0) {
             setSelectedFlightId((current) => allFlights.some((flight) => flight.providerOfferId === current) ? current : allFlights[0].providerOfferId);
+            if (departureMode === "compare") setDepartureAirport(allFlights[0].outbound.originAirport);
             setFlightsError(null);
             setFlightsStatus(null);
           } else {
@@ -364,9 +433,9 @@ export default function BookingApp() {
         } else {
           setBudgetMatchedFlights([]);
           setBudgetExceededFlights([]);
-          const status = data.providerStatus || data.flightApiStatus || "INTERNAL_ERROR";
+          const status = data.providerStatus || data.flightApiStatus || data.status || "INTERNAL_ERROR";
           setFlightsStatus(status);
-          setFlightsError(flightStatusMessage(status));
+          setFlightsError(departureMode === "compare" && typeof data.message === "string" ? data.message : flightStatusMessage(status));
         }
       })
       .catch((error: unknown) => {
@@ -376,13 +445,32 @@ export default function BookingApp() {
         setBudgetExceededFlights([]);
         setFlightsStatus("PROVIDER_ERROR");
         setFlightsError(flightStatusMessage("PROVIDER_ERROR"));
+        if (departureMode === "compare") {
+          setAirportComparisonResults((results) => results.map((result) => ({ ...result, status: "PROVIDER_ERROR" })));
+          setComparisonMessage("현재 항공편 비교를 완료하지 못했습니다.");
+        }
       });
     return () => controller.abort();
-  }, [contextReady, destination, arrivalAirport, checkIn, checkOut, travelers, flightBudgetThreshold, flightRetryKey]);
+  }, [contextReady, destination, arrivalAirport, checkIn, checkOut, travelers, flightBudgetThreshold, flightRetryKey, flightSearchDeparture, departureMode, comparisonRequested]);
+
+  const resetFlightSelectionForSearch = () => {
+    restoredBookingRef.current = null;
+    setSelectedFlightId("");
+    setBudgetMatchedFlights([]);
+    setBudgetExceededFlights([]);
+    setFlightsError(null);
+    setFlightsStatus(null);
+    setSellerOptionStates({});
+    sessionStorage.removeItem(BOOKING_SNAPSHOT_KEY);
+  };
 
   const handleSelectFlight = (offerId: string) => {
     restoredBookingRef.current = null;
     setSelectedFlightId(offerId);
+    const selectedOffer = [...budgetMatchedFlights, ...budgetExceededFlights].find((offer) => offer.providerOfferId === offerId);
+    if (selectedOffer && getKoreaAirport(selectedOffer.outbound.originAirport)) {
+      setDepartureAirport(selectedOffer.outbound.originAirport);
+    }
     setRequeryStatus(null);
     setRequeryMessage(null);
 
@@ -1227,10 +1315,83 @@ export default function BookingApp() {
                 </span>
               </div>
               <p style={{ wordBreak: "keep-all", color: "#475569" }}>
-                인천(ICN)–{destination} 왕복 구간의 정규화된 항공권 가격 및 일정 정보입니다.
+                {departureMode === "compare"
+                  ? `전국 주요 공항–${destination} 왕복 구간의 실제 검색 결과를 가격순으로 비교합니다.`
+                  : `${getKoreaAirport(departureAirport)?.name || departureAirport}(${departureAirport})–${destination} 왕복 구간의 정규화된 항공권 가격 및 일정 정보입니다.`}
               </p>
             </div>
           </div>
+
+          <div className="departureSearchControls" aria-label="출발 공항 검색 방식">
+            <div className="departureModeButtons">
+              <button
+                type="button"
+                className={departureMode === "direct" ? "active" : ""}
+                onClick={() => {
+                  resetFlightSelectionForSearch();
+                  setDepartureMode("direct");
+                  setComparisonRequested(false);
+                }}
+              >
+                특정 출발 공항 직접 선택
+              </button>
+              <button
+                type="button"
+                className={departureMode === "compare" ? "active" : ""}
+                onClick={() => {
+                  resetFlightSelectionForSearch();
+                  setDepartureMode("compare");
+                  setComparisonRequested(true);
+                }}
+              >
+                전국 주요 공항 최저가 비교
+              </button>
+            </div>
+            {departureMode === "direct" ? (
+              <label className="departureAirportField">
+                <span>출발 공항</span>
+                <select
+                  value={departureAirport}
+                  onChange={(event) => {
+                    resetFlightSelectionForSearch();
+                    setDepartureAirport(event.target.value);
+                  }}
+                >
+                  {KOREA_AIRPORTS.map((airport) => <option key={airport.iata} value={airport.iata}>{airport.name} ({airport.iata})</option>)}
+                </select>
+              </label>
+            ) : (
+              <p className="comparisonAirportScope">비교 대상: {DEFAULT_FLIGHT_COMPARISON_AIRPORTS.join(" · ")}</p>
+            )}
+          </div>
+
+          {departureMode === "compare" && comparisonMessage && !flightsLoading && (
+            <p className="flightComparisonMessage">{comparisonMessage}</p>
+          )}
+
+          {departureMode === "compare" && airportComparisonResults.length > 0 && (
+            <div className="airportComparisonList" aria-label="출발 공항별 비교 상태">
+              {airportComparisonResults.map((result, index) => {
+                const offer = result.offer;
+                const isLowest = index === 0 && offer !== null;
+                return (
+                  <article key={result.departureAirport} className={`airportComparisonRow ${offer ? "available" : "unavailable"}`}>
+                    <div>
+                      <strong>{result.departureAirportName} ({result.departureAirport})</strong>
+                      <span>{airportComparisonStatusText(result.status)}{result.status === "RATE_LIMITED" && result.retryAfterSeconds ? ` · ${result.retryAfterSeconds}초 후 재시도 가능` : ""}</span>
+                    </div>
+                    {offer && (
+                      <div className="airportComparisonPrice">
+                        {isLowest && <b>최저가 출발 공항</b>}
+                        <strong>{offer.price.payableTotal?.toLocaleString()} {offer.price.currency}</strong>
+                        <span>{offer.ownerAirlineName} · {offer.outbound.isDirect && offer.inbound?.isDirect ? "직항" : `총 ${offer.outbound.stopsCount + (offer.inbound?.stopsCount || 0)}회 경유`} · {offer.outbound.durationMinutes + (offer.inbound?.durationMinutes || 0)}분</span>
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          )}
 
           {flightsLoading && (
             <div className="bookingSkeletonList" aria-label="항공편 결과 불러오는 중">
