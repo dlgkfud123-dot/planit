@@ -124,7 +124,7 @@ export default function SavedTrips() {
         <section className="myJourneysHero">
           <div className="heroTextColumn">
             <span className="myJourneysTag">MY JOURNEYS</span>
-            <h1 className="myJourneysTitle">내 여행 ✦</h1>
+            <h1 className="myJourneysTitle">내 여행</h1>
             <p className="myJourneysSubtitle">
               저장한 여행을 한눈에 보고, 이어서 편집해 보세요.
             </p>
@@ -141,22 +141,18 @@ export default function SavedTrips() {
         {configured && !user && authReady && (
           <section className="loginValueCard">
             <div className="loginValueLeft">
-              <div className="cloudIconBadge">☁️</div>
               <div className="loginValueText">
                 <h2>로그인하고 더 편리하게 여행을 관리하세요</h2>
                 <p>여행은 소중하니까, EYRIA이 안전하게 보관해 드릴게요.</p>
               </div>
               <div className="loginFeatureGrid">
                 <div className="featureCard">
-                  <span className="featureIcon">☁️</span>
                   <span className="featureText">모든 기기 자동 동기화</span>
                 </div>
                 <div className="featureCard">
-                  <span className="featureIcon">🗺️</span>
                   <span className="featureText">언제든 이어서 편집</span>
                 </div>
                 <div className="featureCard">
-                  <span className="featureIcon">🔒</span>
                   <span className="featureText">안전한 여행 보관</span>
                 </div>
               </div>
@@ -226,17 +222,17 @@ export default function SavedTrips() {
               </div>
               <div className="journeyCardContent">
                 <div className="draftBadgeHeader">
-                  <span className="draftBadge">⚡ 자동 저장된 최근 작성 일정</span>
-                  <span className="journeyLocation">📍 {countryName} · {draft.destination}</span>
+                  <span className="draftBadge">자동 저장된 최근 작성 일정</span>
+                  <span className="journeyLocation">위치: {countryName} · {draft.destination}</span>
                 </div>
                 <h3 className="journeyTitle">{draft.title}</h3>
                 <div className="journeyMeta">
-                  📅 {draft.start} ~ {draft.end} · {draft.people}명
+                  날짜: {draft.start} ~ {draft.end} · {draft.people}명
                 </div>
               </div>
               <div className="journeyCardActions">
                 <Link href="/planner?draft=1" className="continueEditButton">
-                  이어서 편집하기 →
+                  이어서 편집하기
                 </Link>
               </div>
             </section>
@@ -252,14 +248,13 @@ export default function SavedTrips() {
             </div>
             {trips.length > 0 && (
               <Link href="/" className="newJourneyLink">
-                새 여행 만들기 →
+                새 여행 만들기
               </Link>
             )}
           </div>
 
           {loading && (
             <div className="savedLoadingState">
-              <div className="spinnerPulse">✦</div>
               <p>여행 일정을 가져오는 중입니다...</p>
             </div>
           )}
@@ -284,11 +279,11 @@ export default function SavedTrips() {
                     </div>
                     <div className="journeyCardContent">
                       <div className="journeyLocation">
-                        📍 {countryName} · {trip.destination}
+                        위치: {countryName} · {trip.destination}
                       </div>
                       <h3 className="journeyTitle">{trip.title}</h3>
                       <div className="journeyMeta">
-                        📅 {trip.start} ~ {trip.end} · {trip.people}명
+                        날짜: {trip.start} ~ {trip.end} · {trip.people}명
                       </div>
                       <div className="journeyTimeAgo">
                         마지막 수정 · {formatTimeAgo(trip.updatedAt)}
@@ -299,7 +294,7 @@ export default function SavedTrips() {
                         href={`/planner?saved=${encodeURIComponent(trip.id)}`}
                         className="continueEditButton"
                       >
-                        계속 편집 →
+                        계속 편집
                       </Link>
                       <button
                         type="button"
@@ -320,11 +315,10 @@ export default function SavedTrips() {
           {/* 5. Empty State */}
           {!loading && trips.length === 0 && (
             <div className="emptyJourneysState">
-              <div className="luggageIconBadge">🧳</div>
               <h2>아직 저장한 여행이 없어요</h2>
               <p>AI와 함께 나만의 완벽한 여행을 만들어 보세요.</p>
               <Link href="/" className="createJourneyButton">
-                새 여행 만들기 ✦
+                새 여행 만들기
               </Link>
             </div>
           )}

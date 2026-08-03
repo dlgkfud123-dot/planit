@@ -53,7 +53,7 @@
   .destinationRow, .dateRow, .budgetRow { margin-top: 3px; display: flex; align-items: center; gap: 7px; }
   .destinationRow select, .dateRow input, .budgetRow input {
     min-width: 0;
-    height: 32px;
+    min-height: 44px;
     border: 0;
     outline: 0;
     background: transparent;
@@ -70,7 +70,7 @@
   .controlRow > div:first-child { display: grid; gap: 3px; }
   .controlRow strong { font-size: 16px; font-weight: 800; }
   .counter { display: flex; gap: 8px; }
-  .counter button { width: 34px; height: 34px; border: 1px solid #dfe7ed; border-radius: 50%; background: #f7fafc; color: #17314f; font-size: 18px; }
+  .counter button { width: 44px; height: 44px; border: 1px solid #dfe7ed; border-radius: 50%; background: #f7fafc; color: #17314f; font-size: 18px; }
   .counter button:disabled { opacity: .35; }
 
   .cta {

@@ -997,7 +997,7 @@ export default function BookingApp() {
             </div>
 
             {/* Unique Package Cards Grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "16px" }}>
+            <div className="packageCardsGrid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "16px" }}>
               {packageCombos.map((combo) => {
                 const isComboSelected = activeFlight?.providerOfferId === combo.flight.providerOfferId && activeOffer?.providerHotelId === combo.hotel.providerHotelId;
                 const topReasons = (combo.recommendationReasons || []).slice(0, 3);
@@ -1006,6 +1006,7 @@ export default function BookingApp() {
                 return (
                   <div
                     key={combo.packageId}
+                    className="packageComboCard"
                     style={{
                       background: "#FFFFFF",
                       border: isComboSelected ? "2px solid #2563EB" : combo.badges.includes("balanced") ? "2px solid #10B981" : "1px solid #E2E8F0",
