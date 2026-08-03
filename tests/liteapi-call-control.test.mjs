@@ -126,6 +126,31 @@ test("Detail timeouts and failures keep real List and Rates offers with nullable
   assert.ok(body.liteApiHotels.every((hotel) => hotel.price.payableTotal !== null));
 });
 
+test("OSM timeout does not discard successful LiteAPI hotel prices", async () => {
+  reset();
+  globalThis.fetch = async (input, init = {}) => {
+    const url = String(input);
+    if (!url.includes("api.liteapi.travel")) {
+      return new Promise((resolve, reject) => {
+        init.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")), { once: true });
+      });
+    }
+    if (url.includes("/data/hotels?")) return Response.json({ data: candidates });
+    if (url.includes("/hotels/rates")) return Response.json({ data: rates });
+    const id = new URL(url).searchParams.get("hotelId");
+    const source = candidates.find((hotel) => hotel.id === id);
+    return Response.json({ data: { ...source, address: `${id} address`, countryCode: "JP" } });
+  };
+
+  const response = await getHotels(new Request(hotelUrl()));
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.liteApiHotels.length, 5);
+  assert.equal(body.providerDiagnostics.lastSuccessfulStage, "DETAIL");
+  assert.equal(body.providerDiagnostics.osmStatus, "UNAVAILABLE");
+  assert.deepEqual(body.osmLocations, []);
+});
+
 test("rooms are part of cache identity and are represented as one occupancy per room", async () => {
   reset();
   const calls = installSuccessfulProvider();

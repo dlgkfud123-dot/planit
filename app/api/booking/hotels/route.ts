@@ -75,6 +75,7 @@ const HOTEL_DETAIL_TTL_MS = 6 * 60 * 60 * 1000;
 const HOTEL_RADIUS_METERS = 20_000;
 const HOTEL_DETAIL_LIMIT = 3;
 const HOTEL_DETAIL_TIMEOUT_MS = 3_000;
+const OSM_REQUEST_TIMEOUT_MS = 1_500;
 
 type HotelSearchResult = Awaited<ReturnType<typeof executeHotelSearch>>;
 
@@ -651,22 +652,27 @@ async function executeHotelSearch(
   ];
 
   let rawOsmElements: OsmElementRaw[] = [];
+  let osmStatus: "AVAILABLE" | "UNAVAILABLE" = "UNAVAILABLE";
   for (const endpointUrl of overpassEndpoints) {
     try {
+      const osmSignal = routeSignal
+        ? AbortSignal.any([routeSignal, AbortSignal.timeout(OSM_REQUEST_TIMEOUT_MS)])
+        : AbortSignal.timeout(OSM_REQUEST_TIMEOUT_MS);
       const response = await fetchWithTimeout(endpointUrl, {
         headers: { "User-Agent": "EyriaTravelApp/1.0" },
         next: { revalidate: 1800 }
-      }, routeSignal);
+      }, osmSignal);
       if (!response.ok) throw providerErrorFromStatus(response.status, "OpenStreetMap");
       if (response.ok) {
         const data = await response.json();
         if (data.elements) {
           rawOsmElements = data.elements;
+          osmStatus = "AVAILABLE";
           break;
         }
       }
     } catch (error) {
-      if (error instanceof ApiHttpError && error.httpStatus === 504) throw error;
+      console.warn("[Hotel OSM skipped]", JSON.stringify({ providerStage: "OSM", error: error instanceof Error ? error.message : String(error) }));
     }
   }
 
@@ -723,10 +729,11 @@ async function executeHotelSearch(
     cacheHit,
     responseTimeMs,
     providerDiagnostics: {
-      lastSuccessfulStage: ratesRequestedCount > 0 ? "RATES" : candidatesCount > 0 ? "LIST" : "NONE",
+      lastSuccessfulStage: detailCompletedCount > 0 ? "DETAIL" : ratesRequestedCount > 0 ? "RATES" : candidatesCount > 0 ? "LIST" : "NONE",
       detailRequestedCount,
       detailCompletedCount,
       detailSkippedCount,
+      osmStatus,
     },
     liteApiHotels,
     budgetMatchedHotels: budgetMatchedHotels.slice(0, 4),

@@ -170,6 +170,8 @@ test("SerpAPI timeout is returned as HTTP 504", async () => {
 test("LiteAPI timeout is returned as HTTP 504", async () => {
   const originalFetch = globalThis.fetch;
   const originalKey = process.env.LITEAPI_SANDBOX_KEY;
+  resetHotelSearchRuntimeForTests();
+  resetLiteApiRuntimeForTests();
   process.env.LITEAPI_SANDBOX_KEY = "test-key";
   globalThis.fetch = abortingFetch;
   try {
