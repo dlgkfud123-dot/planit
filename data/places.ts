@@ -2,7 +2,7 @@ export type PlaceCategory="landmark"|"culture"|"food"|"market"|"nature"|"shoppin
 export type EstimateStatus="estimated"|"free"|"variable";
 export type PlaceEnvironment="indoor"|"outdoor"|"mixed";
 
-export type Place={id:string;cityId:string;name:string;category:PlaceCategory;environment:PlaceEnvironment;latitude:number;longitude:number;recommendedDuration:number;recommendedTime:"morning"|"afternoon"|"evening"|"any";estimatedCost:number;description:string;openingHours:string;tags:string[];isCoreLandmark:boolean;district:string;nearbyTrip:boolean;transportHints:string[];estimateStatus:EstimateStatus};
+export type Place={id:string;cityId:string;name:string;category:PlaceCategory;environment?:PlaceEnvironment;latitude:number;longitude:number;recommendedDuration:number;recommendedTime:"morning"|"afternoon"|"evening"|"any";estimatedCost:number;description:string;openingHours:string;tags:string[];isCoreLandmark:boolean;district:string;nearbyTrip:boolean;transportHints:string[];estimateStatus:EstimateStatus};
 
 export function defaultEnvironment(category:PlaceCategory,tags:string[]):PlaceEnvironment{
   if(category==="nature")return "outdoor";
@@ -122,7 +122,6 @@ import {batchTwentySixPlaces} from "./placesBatch26";
 export const places:Place[]=[...basePlaces,...batchOnePlaces,...batchTwoPlaces,...batchThreePlaces,...batchFourPlaces,...batchFivePlaces,...batchSixPlaces,...batchSevenPlaces,...batchEightPlaces,...batchNinePlaces,...batchTenPlaces,...batchElevenPlaces,...batchTwelvePlaces,...batchThirteenPlaces,...batchFourteenPlaces,...batchFifteenPlaces,...batchSixteenPlaces,...batchSeventeenPlaces,...batchEighteenPlaces,...batchNineteenPlaces,...batchTwentyPlaces,...batchTwentyOnePlaces,...batchTwentyTwoPlaces,...batchTwentyThreePlaces,...batchTwentyFourPlaces,...batchTwentyFivePlaces,...batchTwentySixPlaces];
 export const placesByCity=(cityId:string)=>places.filter(place=>place.cityId===cityId);
 export const supportedCityIds=[...new Set(places.map(place=>place.cityId))];
-
 
 
 

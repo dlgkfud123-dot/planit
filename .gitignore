@@ -40,3 +40,6 @@ next-env.d.ts
 /.wrangler/
 /outputs/
 /work/
+/scratch/raw-api/
+/scratch/serpapi_raw_response.json
+/scratch/serpapi_step3_booking_options.json

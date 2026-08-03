@@ -1,6 +1,7 @@
+"use client";
+
 import BrandLogo from "../common/BrandLogo";
 import Header from "../layout/Header";
-"use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Footer from "../layout/Footer";

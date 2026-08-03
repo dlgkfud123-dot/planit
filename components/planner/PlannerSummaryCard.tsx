@@ -14,8 +14,10 @@ type Props = {
   saveStatus: string;
   weather: DayWeatherInfo | null;
   onOpenSettings: () => void;
+  onOpenCityInfo?: () => void;
   onSave: () => void;
   onShare: () => void;
+  onCompleteTrip?: () => void;
 };
 
 export default function PlannerSummaryCard({
@@ -27,14 +29,28 @@ export default function PlannerSummaryCard({
   saveStatus,
   weather,
   onOpenSettings,
+  onOpenCityInfo,
   onSave,
   onShare,
+  onCompleteTrip,
 }: Props) {
   return (
     <header className={`${styles.summaryCard} workspaceHeader v2Header`}>
       <BrandLogo />
-      <div className={styles.tripIdentity}>
-        <strong>{destination || "여행지"}</strong>
+      <div
+        className={styles.tripIdentity}
+        style={{ cursor: onOpenCityInfo ? "pointer" : "default" }}
+        onClick={onOpenCityInfo}
+        title="클릭하여 도시 큐레이션 정보 확인"
+      >
+        <strong style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          {destination || "여행지"}
+          {onOpenCityInfo && (
+            <span style={{ fontSize: "11px", fontWeight: "700", color: "#326CFF", background: "#EFF6FF", padding: "2px 6px", borderRadius: "6px" }}>
+              도시 정보 ⓘ
+            </span>
+          )}
+        </strong>
         <span>{start && end ? `${start} ~ ${end}` : "기간 미지정"}</span>
       </div>
       <div className={styles.tripMeta} aria-label="여행 보조 정보">
@@ -48,6 +64,11 @@ export default function PlannerSummaryCard({
           {saveStatus === "saving" ? "저장 중..." : "저장"}
         </button>
         <button type="button" onClick={onShare}>공유</button>
+        {onCompleteTrip && (
+          <button type="button" className={styles.completeTripBtn} onClick={onCompleteTrip} style={{ background: "#326CFF", color: "#FFFFFF", fontWeight: "800" }}>
+            여행 완성하기
+          </button>
+        )}
         <AccountActions />
       </div>
     </header>

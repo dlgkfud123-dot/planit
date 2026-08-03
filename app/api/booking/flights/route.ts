@@ -1,0 +1,684 @@
+import { NextResponse } from "next/server.js";
+import type {
+  FlightOffer,
+  FlightSlice,
+  FlightSegment,
+  FlightPartyPrice,
+  FlightScoreBreakdown,
+  NormalizedFlightPrice,
+  FlightSearchResponse,
+  FlightBookingOption,
+  FlightBaggageDetails,
+  FlightAmenities,
+  FlightTimeFlags,
+  FlightPriceSource,
+} from "../../../../types/flight";
+import { normalizeFlightBookingOption } from "../../../../utils/bookingLinks.ts";
+import { getCityAirportIata, isSupportedAirport } from "../../../../data/airports.ts";
+import { validateFlightInput } from "../../../../utils/bookingValidation.ts";
+import { ApiHttpError, ROUTE_DEADLINE_MS, apiErrorResponse, fetchWithTimeout, providerErrorFromStatus } from "../../../../utils/apiRuntime.ts";
+import { calculateFlightTimeScore } from "../../../../utils/flightRuntime.ts";
+
+type SerpApiFlightLegRaw = {
+  departure_airport?: { time?: string; id?: string };
+  arrival_airport?: { time?: string; id?: string };
+  overnight?: boolean;
+  flight_number?: string;
+  airline?: string;
+  airline_logo?: string;
+  duration?: number;
+  legroom?: string;
+  extensions?: string[];
+};
+
+type SerpApiFlightRaw = {
+  departure_token?: string;
+  booking_token?: string;
+  price?: number;
+  airline_logo?: string;
+  flights?: SerpApiFlightLegRaw[];
+};
+
+type SerpApiResponseRaw = {
+  error?: string;
+  search_metadata?: { id?: string };
+  best_flights?: SerpApiFlightRaw[];
+  other_flights?: SerpApiFlightRaw[];
+  booking_options?: unknown[];
+  baggage_prices?: unknown;
+};
+
+async function readSerpResponse(response: Response, stage: "STEP_1" | "STEP_2" | "STEP_3"): Promise<SerpApiResponseRaw> {
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    throw new ApiHttpError(502, "PROVIDER_ERROR", `SerpAPI ${stage} 응답을 해석할 수 없습니다.`);
+  }
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    throw new ApiHttpError(502, "PROVIDER_ERROR", `SerpAPI ${stage} 응답 형식이 올바르지 않습니다.`);
+  }
+  const parsed = body as SerpApiResponseRaw;
+  if (typeof parsed.error === "string" && parsed.error.trim()) {
+    throw new ApiHttpError(502, "PROVIDER_ERROR", `SerpAPI ${stage} 요청이 거부되었습니다.`);
+  }
+  if (stage !== "STEP_3" && !Array.isArray(parsed.best_flights) && !Array.isArray(parsed.other_flights)) {
+    throw new ApiHttpError(502, "PROVIDER_ERROR", `SerpAPI ${stage} 항공편 응답 형식이 올바르지 않습니다.`);
+  }
+  return parsed;
+}
+
+export function calculateTimeFlags(departingAt?: string, arrivingAt?: string, rawOvernight?: boolean): FlightTimeFlags {
+  if (!departingAt || !arrivingAt) {
+    return { arrivesNextDay: false, dayOffset: 0, isOvernightFlight: Boolean(rawOvernight) };
+  }
+
+  try {
+    const depDateStr = departingAt.split(" ")[0]; // e.g. "2026-08-13"
+    const arrDateStr = arrivingAt.split(" ")[0]; // e.g. "2026-08-13"
+
+    const depDate = new Date(depDateStr);
+    const arrDate = new Date(arrDateStr);
+
+    const diffTime = arrDate.getTime() - depDate.getTime();
+    const dayOffset = Math.max(0, Math.round(diffTime / (1000 * 3600 * 24)));
+    const arrivesNextDay = dayOffset > 0;
+
+    const depHour = parseInt(departingAt.split(" ")[1]?.split(":")[0] || "0", 10);
+    const arrHour = parseInt(arrivingAt.split(" ")[1]?.split(":")[0] || "0", 10);
+    const isOvernightFlight = Boolean(rawOvernight) || depHour >= 22 || depHour < 5 || arrHour < depHour;
+
+    return {
+      arrivesNextDay,
+      dayOffset,
+      isOvernightFlight,
+    };
+  } catch {
+    return { arrivesNextDay: false, dayOffset: 0, isOvernightFlight: Boolean(rawOvernight) };
+  }
+}
+
+function formatSerpTime(dateTimeStr?: string): { dateText: string; timeText: string; isoText: string } {
+  if (!dateTimeStr) return { dateText: "", timeText: "", isoText: "" };
+  try {
+    const parts = dateTimeStr.split(" ");
+    const datePart = parts[0] || "";
+    const timePart = parts[1] || "";
+
+    const dateTokens = datePart.split("-");
+    const month = dateTokens[1] ? parseInt(dateTokens[1], 10) : "";
+    const day = dateTokens[2] ? parseInt(dateTokens[2], 10) : "";
+    const dateText = month && day ? `${month}월 ${day}일` : datePart;
+
+    return {
+      dateText,
+      timeText: timePart,
+      isoText: dateTimeStr,
+    };
+  } catch {
+    return { dateText: "", timeText: dateTimeStr, isoText: dateTimeStr };
+  }
+}
+
+function parseSerpSegment(rawLeg: SerpApiFlightLegRaw, fallbackOrigin: string, fallbackDest: string): FlightSegment {
+  const depInfo = formatSerpTime(rawLeg.departure_airport?.time);
+  const arrInfo = formatSerpTime(rawLeg.arrival_airport?.time);
+  const timeFlags = calculateTimeFlags(depInfo.isoText, arrInfo.isoText, rawLeg.overnight);
+
+  const flightNum = rawLeg.flight_number || null;
+  const airlineCode = flightNum ? flightNum.split(" ")[0] : null;
+
+  return {
+    flightNumber: flightNum,
+    originAirport: rawLeg.departure_airport?.id || fallbackOrigin,
+    destinationAirport: rawLeg.arrival_airport?.id || fallbackDest,
+    departingAt: depInfo.isoText,
+    arrivingAt: arrInfo.isoText,
+    departureDateText: depInfo.dateText,
+    departureTimeText: depInfo.timeText,
+    arrivalDateText: arrInfo.dateText,
+    arrivalTimeText: arrInfo.timeText,
+    arrivesNextDay: timeFlags.arrivesNextDay,
+    dayOffset: timeFlags.dayOffset,
+    isOvernightFlight: timeFlags.isOvernightFlight,
+    marketingCarrierName: rawLeg.airline || null,
+    operatingCarrierName: rawLeg.airline || null,
+    airlineCode,
+    isCodeshare: false,
+  };
+}
+
+function parseSerpSlice(rawLegs: SerpApiFlightLegRaw[], fallbackOrigin: string, fallbackDest: string): FlightSlice {
+  const segments: FlightSegment[] = (rawLegs || []).map((leg) =>
+    parseSerpSegment(leg, fallbackOrigin, fallbackDest)
+  );
+
+  const firstSeg = segments[0] || {
+    flightNumber: null,
+    originAirport: fallbackOrigin,
+    destinationAirport: fallbackDest,
+    departingAt: "",
+    arrivingAt: "",
+    departureDateText: "",
+    departureTimeText: "10:00",
+    arrivalDateText: "",
+    arrivalTimeText: "12:35",
+    arrivesNextDay: false,
+    dayOffset: 0,
+    isOvernightFlight: false,
+    marketingCarrierName: null,
+    operatingCarrierName: null,
+    airlineCode: null,
+    isCodeshare: false,
+  };
+  const lastSeg = segments[segments.length - 1] || firstSeg;
+
+  const totalMins = (rawLegs || []).reduce((acc, leg) => acc + (leg.duration || 0), 0);
+  const hours = Math.floor(totalMins / 60);
+  const mins = totalMins % 60;
+  const durationText = hours > 0 ? `${hours}시간 ${mins}분` : `${mins}분`;
+
+  const stopsCount = Math.max(0, segments.length - 1);
+  const isDirect = stopsCount === 0;
+
+  return {
+    originAirport: firstSeg.originAirport,
+    destinationAirport: lastSeg.destinationAirport,
+    departureDateText: firstSeg.departureDateText,
+    departureTime: firstSeg.departureTimeText,
+    arrivalDateText: lastSeg.arrivalDateText,
+    arrivalTime: lastSeg.arrivalTimeText,
+    durationMinutes: totalMins,
+    durationText,
+    stopsCount,
+    isDirect,
+    segments,
+    sliceBaggageText: "수하물 조건은 예약 옵션에서 확인",
+  };
+}
+
+export function parseAmenitiesAndBaggage(rawLegs: SerpApiFlightLegRaw[], bookingBaggagePrices?: unknown): {
+  amenities: FlightAmenities;
+  baggageDetails: FlightBaggageDetails;
+  baggageInfo: string[];
+} {
+  let legroom: string | null = null;
+  let wifi: boolean | null = null;
+  let powerOutlet: boolean | null = null;
+  let carbonEmissionText: string | null = null;
+  let explicitBaggageText: string | null = null;
+  let baggageSourcePath: string | null = null;
+
+  (rawLegs || []).forEach((leg, legIdx) => {
+    if (leg.legroom) {
+      legroom = leg.legroom;
+    }
+
+    const exts: string[] = leg.extensions || [];
+    exts.forEach((ext, extIdx) => {
+      const lower = ext.toLowerCase();
+
+      if (lower.includes("legroom")) {
+        const match = ext.match(/\((\d+cm)\)/);
+        if (match && match[1]) legroom = match[1];
+        else if (!legroom) legroom = ext;
+      } else if (lower.includes("wi-fi") || lower.includes("wifi")) {
+        wifi = true;
+      } else if (lower.includes("power") || lower.includes("usb")) {
+        powerOutlet = true;
+      } else if (lower.includes("carbon")) {
+        carbonEmissionText = ext;
+      } else if (lower.includes("carry-on") || lower.includes("checked bag") || lower.includes("baggage") || lower.includes("수하물")) {
+        explicitBaggageText = ext;
+        baggageSourcePath = `flights[${legIdx}].extensions[${extIdx}]`;
+      }
+    });
+  });
+
+  if (!explicitBaggageText && bookingBaggagePrices) {
+    if (Array.isArray(bookingBaggagePrices) && bookingBaggagePrices.length > 0) {
+      explicitBaggageText = bookingBaggagePrices.join(" / ");
+      baggageSourcePath = "booking_options.baggage_prices";
+    } else if (typeof bookingBaggagePrices === "object" && bookingBaggagePrices !== null) {
+      const combined = Object.values(bookingBaggagePrices)
+        .flatMap((value) => Array.isArray(value) ? value : [value])
+        .map(String)
+        .join(" / ");
+      if (combined) {
+        explicitBaggageText = combined;
+        baggageSourcePath = "booking_options.baggage_prices";
+      }
+    }
+  }
+
+  const amenities: FlightAmenities = {
+    legroom,
+    wifi,
+    powerOutlet,
+    carbonEmissionText,
+  };
+
+  if (explicitBaggageText) {
+    return {
+      amenities,
+      baggageDetails: {
+        outbound: explicitBaggageText,
+        inbound: explicitBaggageText,
+        status: "explicit",
+        sourcePath: baggageSourcePath,
+      },
+      baggageInfo: [`수하물: ${explicitBaggageText}`],
+    };
+  }
+
+  return {
+    amenities,
+    baggageDetails: {
+      outbound: null,
+      inbound: null,
+      status: "unknown",
+      sourcePath: "baggageDetails.status: unknown",
+    },
+    baggageInfo: ["수하물 조건은 예약 옵션에서 확인"],
+  };
+}
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const city = searchParams.get("city") || searchParams.get("arrivalAirport") || "";
+  const departureAirport = (searchParams.get("departureAirport") || searchParams.get("origin") || "ICN").toUpperCase();
+  const mappedArrivalAirport = getCityAirportIata(city);
+  const destinationAirport = (searchParams.get("arrivalAirport") || mappedArrivalAirport || "").toUpperCase();
+  const checkIn = searchParams.get("checkIn") || "";
+  const checkOut = searchParams.get("checkOut") || "";
+  const adultsParam = searchParams.get("guests") || searchParams.get("adults");
+  const adults = adultsParam ? parseInt(adultsParam, 10) : 2;
+  const flightBudget = searchParams.get("flightBudget") ? parseInt(searchParams.get("flightBudget")!, 10) : 500000;
+  const travelClass = searchParams.get("travelClass") || "1";
+  const currency = (searchParams.get("currency") || "KRW").toUpperCase();
+  if (!searchParams.get("city") && !searchParams.get("arrivalAirport")) {
+    return NextResponse.json(
+      { success: false, providerStatus: "INVALID_INPUT", message: "도시 또는 도착 공항이 필요합니다.", offers: [] },
+      { status: 400 }
+    );
+  }
+  const inputError = (!mappedArrivalAirport && !searchParams.get("arrivalAirport"))
+    ? "등록되지 않은 도시입니다."
+    : validateFlightInput({
+        departureAirport,
+        arrivalAirport: destinationAirport,
+        outboundDate: checkIn,
+        returnDate: checkOut,
+        adults,
+        travelClass,
+        currency,
+      });
+  if (inputError || !isSupportedAirport(destinationAirport)) {
+    return NextResponse.json(
+      { success: false, providerStatus: "INVALID_INPUT", message: inputError || "지원하지 않는 공항입니다.", offers: [] },
+      { status: 400 }
+    );
+  }
+  const routeSignal = AbortSignal.timeout(ROUTE_DEADLINE_MS);
+  const serpApiKey = process.env.SERPAPI_API_KEY || "";
+  const hasSerpKey = Boolean(serpApiKey);
+
+  if (!hasSerpKey) {
+    return NextResponse.json({
+      success: false,
+      providerStatus: "UNAVAILABLE",
+      city,
+      flightApiProvider: "SerpAPI Google Flights",
+      flightApiStatus: "UNAVAILABLE_BUSINESS_ONBOARDING_REQUIRED",
+      integrationStatus: "UNVERIFIED",
+      providerAvailable: false,
+      liveSearchEnabled: false,
+      status: "UNAVAILABLE_BUSINESS_ONBOARDING_REQUIRED",
+      reason: "Business name and country of incorporation are required, and South Korea is unavailable in the current signup flow.",
+      message: "SERPAPI_API_KEY 미설정 상태입니다. 가짜 mock 항공권 데이터를 생성하지 않습니다.",
+      offers: [],
+      budgetMatchedOffers: [],
+      budgetExceededOffers: [],
+    }, { status: 503 });
+  }
+
+  try {
+    // STEP 1: INITIAL SEARCH (OUTBOUND FLIGHTS)
+    const step1Params = new URLSearchParams({
+      engine: "google_flights",
+      departure_id: departureAirport,
+      arrival_id: destinationAirport,
+      outbound_date: checkIn,
+      return_date: checkOut,
+      type: "1", // Round trip
+      adults: String(adults),
+      travel_class: travelClass,
+      currency,
+      hl: "ko",
+      gl: "kr",
+      api_key: serpApiKey,
+    });
+
+    const step1Res = await fetchWithTimeout(`https://serpapi.com/search.json?${step1Params.toString()}`, {}, routeSignal);
+    if (!step1Res.ok) {
+      throw providerErrorFromStatus(step1Res.status, "SerpAPI");
+    }
+
+    const step1Json = await readSerpResponse(step1Res, "STEP_1");
+    const metadataId = step1Json.search_metadata?.id || null;
+    const rawBest = step1Json.best_flights || [];
+    const rawOther = step1Json.other_flights || [];
+    const allOutboundRaw = [...rawBest, ...rawOther];
+
+    if (allOutboundRaw.length === 0) {
+      return NextResponse.json<FlightSearchResponse>({
+        success: true,
+        city,
+        flightApiProvider: "SerpAPI Google Flights",
+        flightApiStatus: "NO_FLIGHTS_FOUND",
+        integrationStatus: "VERIFIED",
+        providerAvailable: true,
+        liveSearchEnabled: true,
+        status: "ACTIVE",
+        reason: "SerpAPI Google Flights API key verified.",
+        message: "검색 조건에 해당 항공편이 검색되지 않았습니다.",
+        offers: [],
+      });
+    }
+
+    const normalizedOffers: FlightOffer[] = [];
+    let lastSelectionError: ApiHttpError | null = null;
+
+    // Process top outbound options with dynamic price source tracking
+    for (let i = 0; i < Math.min(5, allOutboundRaw.length); i++) {
+      const rawOutbound = allOutboundRaw[i];
+      const depToken = rawOutbound.departure_token;
+      const initialPrice = rawOutbound.price || null;
+
+      const outboundSlice = parseSerpSlice(rawOutbound.flights || [], departureAirport, destinationAirport);
+      const firstLeg = rawOutbound.flights?.[0] || {};
+      const ownerAirlineName = firstLeg.airline || "Google Flights Airline";
+      const ownerAirlineCode = firstLeg.flight_number?.split(" ")[0] || "ZZ";
+      const logoUrl = rawOutbound.airline_logo || firstLeg.airline_logo || null;
+
+      let inboundSlice: FlightSlice | null = null;
+      let finalComboPrice = initialPrice;
+      let bookingToken: string | null = null;
+      let bookingOptionsList: FlightBookingOption[] | null = null;
+      let bookingUrl: string | null = null;
+      let stepBaggagePrices: unknown = null;
+
+      const initialCollection = i < rawBest.length ? "best_flights" : "other_flights";
+      const initialIdx = i < rawBest.length ? i : i - rawBest.length;
+
+      let priceSource: FlightPriceSource = {
+        stage: "initial_search",
+        collection: initialCollection,
+        index: initialIdx,
+        path: `initial_search.${initialCollection}[${initialIdx}].price`,
+      };
+
+      // STEP 2: QUERY RETURN FLIGHT USING DEPARTURE_TOKEN
+      if (depToken) {
+        try {
+          const step2Params = new URLSearchParams({
+            engine: "google_flights",
+            departure_id: departureAirport,
+            arrival_id: destinationAirport,
+            outbound_date: checkIn,
+            return_date: checkOut,
+            type: "1",
+            adults: String(adults),
+            travel_class: travelClass,
+            currency,
+            hl: "ko",
+            gl: "kr",
+            departure_token: depToken,
+            api_key: serpApiKey,
+          });
+
+          const step2Res = await fetchWithTimeout(`https://serpapi.com/search.json?${step2Params.toString()}`, {}, routeSignal);
+          if (!step2Res.ok) throw providerErrorFromStatus(step2Res.status, "SerpAPI");
+          if (step2Res.ok) {
+            const step2Json = await readSerpResponse(step2Res, "STEP_2");
+            const step2Best = step2Json.best_flights || [];
+            const step2Other = step2Json.other_flights || [];
+
+            let selectedRet: SerpApiFlightRaw | null = null;
+            let retCollection: "best_flights" | "other_flights" = "best_flights";
+            let retIdx = 0;
+
+            if (step2Best.length > 0) {
+              selectedRet = step2Best[0];
+              retCollection = "best_flights";
+              retIdx = 0;
+            } else if (step2Other.length > 0) {
+              selectedRet = step2Other[0];
+              retCollection = "other_flights";
+              retIdx = 0;
+            }
+
+            if (selectedRet) {
+              inboundSlice = parseSerpSlice(selectedRet.flights || [], destinationAirport, departureAirport);
+              if (selectedRet.price) {
+                finalComboPrice = selectedRet.price;
+                priceSource = {
+                  stage: "return_selection",
+                  collection: retCollection,
+                  index: retIdx,
+                  path: `return_selection.${retCollection}[${retIdx}].price`,
+                };
+              }
+              bookingToken = selectedRet.booking_token || null;
+            }
+          }
+        } catch (error) {
+          if (error instanceof ApiHttpError) lastSelectionError = error;
+          // This candidate is excluded because a real inbound could not be verified.
+        }
+      }
+
+      // Only real SerpAPI inbound segments can make a selectable round-trip.
+      if (!inboundSlice || inboundSlice.segments.length === 0) continue;
+
+      // STEP 3: QUERY BOOKING OPTIONS USING BOOKING_TOKEN
+      if (bookingToken) {
+        try {
+          const step3Params = new URLSearchParams({
+            engine: "google_flights",
+            departure_id: departureAirport,
+            arrival_id: destinationAirport,
+            outbound_date: checkIn,
+            return_date: checkOut,
+            type: "1",
+            adults: String(adults),
+            travel_class: travelClass,
+            currency,
+            hl: "ko",
+            gl: "kr",
+            booking_token: bookingToken,
+            api_key: serpApiKey,
+          });
+
+          const step3Res = await fetchWithTimeout(`https://serpapi.com/search.json?${step3Params.toString()}`, {}, routeSignal);
+          if (!step3Res.ok) throw providerErrorFromStatus(step3Res.status, "SerpAPI");
+          if (step3Res.ok) {
+            const step3Json = await readSerpResponse(step3Res, "STEP_3");
+            stepBaggagePrices = step3Json.baggage_prices || null;
+
+            const rawOptions = step3Json.booking_options || [];
+            if (rawOptions.length > 0) {
+              const normalizedBookingOptions: FlightBookingOption[] = rawOptions.map((opt: unknown, optionIndex: number) =>
+                normalizeFlightBookingOption(opt, optionIndex, finalComboPrice)
+              );
+              bookingOptionsList = normalizedBookingOptions;
+              bookingUrl = normalizedBookingOptions.find((option) => option.bookingRequestMethod === "get")?.url || null;
+            }
+          }
+        } catch {
+          // The round-trip remains real, but booking options stay unavailable.
+          bookingOptionsList = null;
+          bookingUrl = null;
+        }
+      }
+
+      // Strict Price Normalization (NO 85/15 Split!)
+      const normalizedPrice: NormalizedFlightPrice = {
+        baseFare: null,
+        taxes: null,
+        surcharges: null,
+        baggageFee: null,
+        payableTotal: finalComboPrice,
+        currency: "KRW",
+        taxStatus: "unknown",
+        sourcePaths: {
+          baseFare: null,
+          taxes: null,
+          payableTotal: priceSource.path,
+        },
+      };
+
+      const partyPrice: FlightPartyPrice = {
+        passengerCount: adults,
+        totalTripPrice: finalComboPrice || 0,
+        averagePerPassenger: finalComboPrice ? Math.round(finalComboPrice / adults) : null,
+        currency: "KRW",
+        averagePerPassengerDerived: true,
+      };
+
+      const { amenities, baggageDetails, baggageInfo } = parseAmenitiesAndBaggage(
+        rawOutbound.flights || [],
+        stepBaggagePrices
+      );
+
+      // Score Breakdown
+      const payable = finalComboPrice || Infinity;
+      const priceDiff = payable <= flightBudget ? flightBudget - payable : payable - flightBudget;
+      const priceScore = payable <= flightBudget ? Math.min(100, 80 + Math.round(priceDiff / 10000)) : Math.max(0, 60 - Math.round(priceDiff / 10000));
+      const isAllDirect = outboundSlice.isDirect && inboundSlice.isDirect;
+      const directScore = isAllDirect ? 100 : 70;
+      const timeScore = calculateFlightTimeScore(outboundSlice, inboundSlice);
+      const baggageScore = baggageDetails.status === "explicit" ? 90 : 70;
+
+      const flightScore = Math.round(priceScore * 0.40 + timeScore * 0.25 + directScore * 0.20 + baggageScore * 0.15);
+      const scoreBreakdown: FlightScoreBreakdown = { priceScore, timeScore, directScore, baggageScore, totalScore: flightScore };
+
+      const recommendationReasons: string[] = [];
+      if (payable <= flightBudget) {
+        recommendationReasons.push(`항공 예산(₩${flightBudget.toLocaleString()}원)에 부합합니다.`);
+      } else {
+        recommendationReasons.push(`예산보다 ₩${priceDiff.toLocaleString()}원 높지만 우수한 스케줄의 추천 대안입니다.`);
+      }
+      if (isAllDirect) {
+        recommendationReasons.push("직항 왕복 여정으로 환승 없이 편리하게 이동합니다.");
+      } else {
+        recommendationReasons.push("경유 구간이 포함된 여정입니다.");
+      }
+      if (amenities.legroom) {
+        recommendationReasons.push(`좌석 간격: ${amenities.legroom}`);
+      } else {
+        recommendationReasons.push(baggageInfo[0]);
+      }
+
+      const offerObj: FlightOffer = {
+        providerOfferId: `serpapi_${metadataId || "search"}_${i}`,
+        ownerAirlineName,
+        ownerAirlineCode,
+        airlineLogoUrl: logoUrl,
+        outbound: outboundSlice,
+        inbound: inboundSlice,
+        baggageInfo,
+        baggageDetails,
+        amenities,
+        priceSource,
+        price: normalizedPrice,
+        partyPrice,
+        flightScore,
+        recommendationReasons: recommendationReasons.slice(0, 3),
+        scoreBreakdown,
+        expiresAt: null,
+        bookingUrl,
+        bookingOptions: bookingOptionsList,
+        departureToken: null,
+        bookingToken: null,
+        searchMetadataId: metadataId,
+        provider: "SerpAPI Google Flights",
+        dataEnvironment: "live_search",
+        bookingEnvironment: "external",
+        fetchedAt: new Date().toISOString(),
+      };
+
+      normalizedOffers.push(offerObj);
+    }
+
+    if (normalizedOffers.length === 0) {
+      if (lastSelectionError) throw lastSelectionError;
+      return NextResponse.json<FlightSearchResponse>({
+        success: true,
+        city,
+        flightApiProvider: "SerpAPI Google Flights",
+        flightApiStatus: "NO_FLIGHTS_FOUND",
+        integrationStatus: "VERIFIED",
+        providerAvailable: true,
+        liveSearchEnabled: true,
+        status: "ACTIVE",
+        reason: "No complete round-trip offers with real inbound segments were returned.",
+        message: "현재 조건에서 검색 가능한 항공편이 없습니다.",
+        offers: [],
+        budgetMatchedOffers: [],
+        budgetExceededOffers: [],
+      });
+    }
+
+    const budgetMatchedOffers = normalizedOffers
+      .filter((f) => f.price.payableTotal !== null && f.price.payableTotal <= flightBudget)
+      .sort((a, b) => b.flightScore - a.flightScore);
+
+    const budgetExceededOffers = normalizedOffers
+      .filter((f) => f.price.payableTotal !== null && f.price.payableTotal > flightBudget)
+      .sort((a, b) => {
+        const excessA = (a.price.payableTotal || 0) - flightBudget;
+        const excessB = (b.price.payableTotal || 0) - flightBudget;
+        if (Math.abs(excessA - excessB) > 20000) return excessA - excessB;
+        return b.flightScore - a.flightScore;
+      });
+
+    normalizedOffers.sort((a, b) => b.flightScore - a.flightScore);
+
+    return NextResponse.json<FlightSearchResponse>({
+      success: true,
+      city,
+      flightApiProvider: "SerpAPI Google Flights",
+      flightApiStatus: "SERPAPI_LIVE_SEARCH_SUCCESS",
+      integrationStatus: "VERIFIED",
+      providerAvailable: true,
+      liveSearchEnabled: true,
+      status: "ACTIVE",
+      reason: "SerpAPI Google Flights API key verified and 3-step token pipeline executed successfully.",
+      message: `SerpAPI Google Flights에서 총 ${normalizedOffers.length}개의 라이브 왕복 항공권을 수신하였습니다.`,
+      offers: normalizedOffers,
+      budgetMatchedOffers: budgetMatchedOffers.slice(0, 3),
+      budgetExceededOffers: budgetExceededOffers.slice(0, 2),
+    });
+  } catch (error: unknown) {
+    const mappedError = apiErrorResponse(error);
+    if (mappedError.status !== 500) {
+      return NextResponse.json({ ...mappedError.body, city, offers: [] }, { status: mappedError.status });
+    }
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({
+      success: false,
+      providerStatus: "INTERNAL_ERROR",
+      city,
+      flightApiProvider: "SerpAPI Google Flights",
+      flightApiStatus: "SERPAPI_FETCH_EXCEPTION",
+      integrationStatus: "VERIFIED",
+      providerAvailable: true,
+      liveSearchEnabled: true,
+      status: "ACTIVE",
+      reason: `SerpAPI Exception: ${errorMessage}`,
+      message: `SerpAPI 연동 처리 중 오류가 발생하였습니다: ${errorMessage}`,
+      offers: [],
+    }, { status: 500 });
+  }
+}

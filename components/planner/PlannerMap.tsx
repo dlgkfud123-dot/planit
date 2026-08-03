@@ -22,6 +22,7 @@ type Props = {
   activeDay: number;
   activeIndex: number;
   onSelect: (index: number) => void;
+  onOpenDetail?: (index: number) => void;
   viewportPadding?: { top: number; right: number; bottom: number; left: number };
 };
 
@@ -96,7 +97,7 @@ async function fetchSegmentRoute(
   return null;
 }
 
-export default function PlannerMap({ stops, allDays, activeDay, activeIndex, onSelect, viewportPadding }: Props) {
+export default function PlannerMap({ stops, allDays, activeDay, activeIndex, onSelect, onOpenDetail, viewportPadding }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const inactiveLayerRef = useRef<LayerGroup | null>(null);
@@ -104,6 +105,7 @@ export default function PlannerMap({ stops, allDays, activeDay, activeIndex, onS
   const markerLayerRef = useRef<LayerGroup | null>(null);
   const markersRef = useRef<Marker[]>([]);
   const selectRef = useRef(onSelect);
+  const openDetailRef = useRef(onOpenDetail);
   const stopsRef = useRef(stops);
   const activeRef = useRef(activeIndex);
   const userInteractedRef = useRef(false);
@@ -116,6 +118,9 @@ export default function PlannerMap({ stops, allDays, activeDay, activeIndex, onS
   useEffect(() => {
     selectRef.current = onSelect;
   }, [onSelect]);
+  useEffect(() => {
+    openDetailRef.current = onOpenDetail;
+  }, [onOpenDetail]);
   useEffect(() => {
     stopsRef.current = stops;
   }, [stops]);
@@ -206,7 +211,10 @@ export default function PlannerMap({ stops, allDays, activeDay, activeIndex, onS
           }),
         })
           .addTo(group)
-          .on("click", () => selectRef.current(index))
+          .on("click", () => {
+            selectRef.current(index);
+            openDetailRef.current?.(index);
+          })
       );
       const active = stopsRef.current[activeRef.current];
       if (validStops.length === 1 && active && valid(active)) {

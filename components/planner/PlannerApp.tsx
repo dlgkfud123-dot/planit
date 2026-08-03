@@ -44,6 +44,7 @@ import { useTripPersistence } from "./useTripPersistence";
 import { saveWithFallback } from "../../utils/tripPersistence";
 import PlannerRefinementMenu from "./PlannerRefinementMenu";
 import PlannerSummaryCard from "./PlannerSummaryCard";
+import CityDetailModal from "../cities/CityDetailModal";
 import styles from "./PlannerDesktop.module.css";
 
 function nightsFrom(value: string) {
@@ -59,6 +60,10 @@ function tripDayCount(start: string, end: string) {
 }
 
 const informationReferenceDate = "2026년 7월 22일";
+
+function weatherRequestKey(destination: string, start: string, end: string) {
+  return `${destination}|${start}|${end}`;
+}
 
 function recommendationReason(stop: GeneratedStop, interest: string, food: string) {
   if (stop.userAdded) return "직접 추가한 장소";
@@ -96,9 +101,13 @@ export default function PlannerApp() {
   const dragRef = useRef<{ day: number; placeId: string } | null>(null);
   const addedIdRef = useRef(0);
   const initializedRef = useRef(false);
-  const draftIdRef = useRef<string | null>(null);
+  const [draftId, setDraftId] = useState(
+    () => `draft_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+  );
 
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showCityModal, setShowCityModal] = useState(false);
+  const [selectedModalCity, setSelectedModalCity] = useState<string | null>(null);
   const [settingsCountry, setSettingsCountry] = useState("");
   const [settingsCity, setSettingsCity] = useState("");
   const [settingsStart, setSettingsStart] = useState("");
@@ -106,7 +115,10 @@ export default function PlannerApp() {
   const [settingsPeople, setSettingsPeople] = useState(0);
   const [settingsBudget, setSettingsBudget] = useState(0);
   const [isRegenerating, setIsRegenerating] = useState(false);
-  const [weatherResult, setWeatherResult] = useState<WeatherDataResponse | null>(null);
+  const [weatherState, setWeatherState] = useState<{
+    requestKey: string;
+    data: WeatherDataResponse | null;
+  } | null>(null);
   const [showCostDetails, setShowCostDetails] = useState(false);
   const [smartReplaceStopId, setSmartReplaceStopId] = useState<string | null>(null);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
@@ -118,6 +130,12 @@ export default function PlannerApp() {
   const nights = nightsFrom(end);
   const current = plan[activeDay] || plan[0];
   const currentStops = useMemo(() => current?.stops ?? [], [current]);
+  const currentWeatherRequestKey =
+    status === "complete" && destination && start && end && cityByName[destination]
+      ? weatherRequestKey(destination, start, end)
+      : null;
+  const weatherResult =
+    weatherState?.requestKey === currentWeatherRequestKey ? weatherState.data : null;
   const activeDayWeather = weatherResult?.daily?.[activeDay] ?? null;
   const settingsCities = useMemo(
     () => cities.filter((city) => city.country === settingsCountry),
@@ -184,7 +202,10 @@ export default function PlannerApp() {
       setEnd(settingsEnd);
       setPeople(settingsPeople);
       setBudget(settingsBudget);
-      setWeatherResult(weatherData);
+      setWeatherState({
+        requestKey: weatherRequestKey(city.name, settingsStart, settingsEnd),
+        data: weatherData,
+      });
       setPlan(nextPlan);
       setActiveDay(0);
       setActiveStop(0);
@@ -208,24 +229,19 @@ export default function PlannerApp() {
   }, []);
 
   useEffect(() => {
-    if (status !== "complete" || !destination || !start || !end) {
-      setWeatherResult(null);
-      return;
-    }
+    if (!currentWeatherRequestKey) return;
     const city = cityByName[destination];
-    if (!city) {
-      setWeatherResult(null);
-      return;
-    }
+    if (!city) return;
     let cancelled = false;
-    setWeatherResult(null);
     void fetchWeatherData(city.lat, city.lon, start, end, city.name).then((result) => {
-      if (!cancelled) setWeatherResult(result);
+      if (!cancelled) {
+        setWeatherState({ requestKey: currentWeatherRequestKey, data: result });
+      }
     });
     return () => {
       cancelled = true;
     };
-  }, [destination, end, start, status]);
+  }, [currentWeatherRequestKey, destination, end, start]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -285,18 +301,21 @@ export default function PlannerApp() {
   );
 
   const getPlaceDetailUrl = (stopPlaceId: string, stopIdx: number) => {
-    const currentDraftId = savedTripId || draftIdRef.current || (draftIdRef.current = `draft_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`);
-    const snapshot = snapshotFor(currentDraftId);
-    writeDraftById(currentDraftId, snapshot, activeDay, stopIdx);
-
+    const currentDraftId = savedTripId || draftId;
     const params = new URLSearchParams();
     params.set("id", stopPlaceId);
     params.set("draft", currentDraftId);
     params.set("day", String(activeDay + 1));
     params.set("stop", String(stopIdx));
     params.set("dest", destination);
+    params.set("view", "curation");
     if (savedTripId) params.set("saved", savedTripId);
     return `/place?${params.toString()}`;
+  };
+
+  const savePlaceDetailDraft = (stopIdx: number) => {
+    const currentDraftId = savedTripId || draftId;
+    writeDraftById(currentDraftId, snapshotFor(currentDraftId), activeDay, stopIdx);
   };
 
   useEffect(() => {
@@ -327,7 +346,7 @@ export default function PlannerApp() {
       if (!active) return;
 
       if (snapshot && isExistingTrip && snapshot.plan && snapshot.plan.length > 0) {
-        if (draftParam) draftIdRef.current = draftParam;
+        if (draftParam) setDraftId(draftParam);
         setSavedTripId(saved ? snapshot.id : null);
         hydrate({
           destination: snapshot.destination,
@@ -336,7 +355,6 @@ export default function PlannerApp() {
           end: snapshot.end,
           people: snapshot.people,
           budget: snapshot.budget,
-          tempo: snapshot.tempo,
           interest: snapshot.interest,
           food: snapshot.food,
           stay: snapshot.stay,
@@ -373,7 +391,7 @@ export default function PlannerApp() {
       setStatus("empty");
     }, 0);
     return () => { active = false; window.clearTimeout(timer); };
-  }, [authReady, find, hydrate, setMobileTab, setPlan, setSavedTripId, setSource, setStatus]);
+  }, [authReady, find, hydrate, setActiveDay, setActiveStop, setMobileTab, setPlan, setSavedTripId, setSource, setStatus]);
 
   useEffect(() => {
     if (status !== "complete" || !plan.length || source === "shared") return;
@@ -511,11 +529,22 @@ export default function PlannerApp() {
     }
   };
 
-  const handleDrop = (event: DragEvent, dayIndex: number, stopIndex: number) => {
+  const handleDrop = (event: React.DragEvent<HTMLLIElement>, dayIndex: number, stopIndex: number) => {
     event.preventDefault();
     const source = dragRef.current;
     const sourceIndex = source ? plan[source.day]?.stops.findIndex((stop) => stop.placeId === source.placeId) : -1;
     if (source && sourceIndex >= 0) moveStop(source.day, sourceIndex, dayIndex, stopIndex);
+    dragRef.current = null;
+  };
+
+  const handleDragStart = (event: React.DragEvent<HTMLElement>) => {
+    const placeId = event.currentTarget.dataset.placeId;
+    if (!placeId) return;
+    dragRef.current = { day: activeDay, placeId };
+    event.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragEnd = () => {
     dragRef.current = null;
   };
 
@@ -727,6 +756,12 @@ export default function PlannerApp() {
             activeDay={activeDay}
             activeIndex={activeStop}
             onSelect={setActiveStop}
+            onOpenDetail={(index) => {
+              const stop = currentStops[index];
+              if (!stop) return;
+              savePlaceDetailDraft(index);
+              window.location.href = getPlaceDetailUrl(stop.placeId, index);
+            }}
             viewportPadding={isMobileViewport
               ? { top: mobileTab === "map" ? 156 : 92, right: 18, bottom: mobileTab === "map" ? 82 : 430, left: 18 }
               : mapInsets}
@@ -744,10 +779,28 @@ export default function PlannerApp() {
               saveStatus={saveStatus}
               weather={activeDayWeather}
               onOpenSettings={openSettings}
+              onOpenCityInfo={() => {
+                setSelectedModalCity(destination);
+                setShowCityModal(true);
+              }}
               onSave={saveCurrentTrip}
               onShare={shareCurrentTrip}
+              onCompleteTrip={() => {
+                const id = draftId;
+                const snapshot = snapshotFor(id);
+                writeDraftById(id, snapshot, activeDay, activeStop);
+                sessionStorage.setItem("eyria:active-draft-id", id);
+                window.location.href = `/booking?draft=${id}&dest=${encodeURIComponent(destination)}`;
+              }}
             />
           </div>
+
+          {showCityModal && (
+            <CityDetailModal
+              cityName={selectedModalCity || destination}
+              onClose={() => setShowCityModal(false)}
+            />
+          )}
 
           <div className={styles.overlayContent}>
             <div
@@ -847,7 +900,7 @@ export default function PlannerApp() {
             {currentStops.map((stop, i) => {
               const validation = validateStopOpening(stop, current?.date || "", currentStops, i, destination);
               const transportMode = stop.transportFromPrevious || "이동";
-              const transportIcon = transportMode.includes("도보") ? "↗"
+              const transportIcon = transportMode.includes("도보") ? "→"
                 : transportMode.includes("지하철") ? "M"
                 : transportMode.includes("버스") ? "B"
                 : transportMode.includes("택시") ? "T"
@@ -866,16 +919,14 @@ export default function PlannerApp() {
                 <li
                   className={`${i === activeStop ? "active" : ""} ${editingStop === stop.id ? "editing" : ""}`}
                   draggable={editingStop !== stop.id}
-                  onDragStart={(event) => {
-                    dragRef.current = { day: activeDay, placeId: stop.placeId };
-                    event.dataTransfer.effectAllowed = "move";
-                  }}
+                  data-place-id={stop.placeId}
+                  onDragStart={handleDragStart}
                   onDragOver={(event) => {
                     event.preventDefault();
                     event.dataTransfer.dropEffect = "move";
                   }}
                   onDrop={(event) => handleDrop(event, activeDay, i)}
-                  onDragEnd={() => { dragRef.current = null; }}
+                  onDragEnd={handleDragEnd}
                   onClick={() => setActiveStop(i)}
                   onMouseEnter={() => setActiveStop(i)}
                   key={stop.id}
@@ -886,8 +937,9 @@ export default function PlannerApp() {
                   <span
                     className="dragHandle"
                     draggable
-                    onDragStart={() => { dragRef.current = { day: activeDay, placeId: stop.placeId }; }}
-                    onDragEnd={() => { dragRef.current = null; }}
+                    data-place-id={stop.placeId}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
                     aria-label={`${stop.name} 순서 이동`}
                   >
                     ⠿
@@ -913,7 +965,7 @@ export default function PlannerApp() {
                           href={getPlaceDetailUrl(stop.placeId, i)}
                           title={stop.name}
                           aria-label={stop.name}
-                          onClick={() => getPlaceDetailUrl(stop.placeId, i)}
+                          onClick={() => savePlaceDetailDraft(i)}
                         >
                           <strong>{stop.name}</strong>
                         </Link>

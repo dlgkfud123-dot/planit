@@ -28,6 +28,80 @@ export function getCityTimezone(destination: string): string {
 
 const DAY_NAMES = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
 
+const WEEKDAY_INDEX: Record<string, number> = {
+  Sun: 0,
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
+};
+
+function zonedWallClockInstant(dateStr: string, timeStr: string, timeZone: string): Date | null {
+  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+  const timeMatch = /^(\d{1,2}):(\d{2})$/.exec(timeStr);
+  if (!dateMatch || !timeMatch) return null;
+
+  const [, yearText, monthText, dayText] = dateMatch;
+  const [, hourText, minuteText] = timeMatch;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+  if (month < 1 || month > 12 || day < 1 || day > 31 || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+    return null;
+  }
+
+  const desiredWallClock = Date.UTC(year, month - 1, day, hour, minute);
+  let candidate = desiredWallClock;
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const parts = Object.fromEntries(
+      formatter
+        .formatToParts(new Date(candidate))
+        .filter((part) => part.type !== "literal")
+        .map((part) => [part.type, part.value])
+    );
+    const representedWallClock = Date.UTC(
+      Number(parts.year),
+      Number(parts.month) - 1,
+      Number(parts.day),
+      Number(parts.hour),
+      Number(parts.minute)
+    );
+    const correction = desiredWallClock - representedWallClock;
+    candidate += correction;
+    if (correction === 0) break;
+  }
+
+  return new Date(candidate);
+}
+
+export function getWeekdayInTimeZone(dateStr: string, timeStr: string, timeZone: string): number {
+  try {
+    const instant = zonedWallClockInstant(dateStr, timeStr, timeZone);
+    if (!instant) return -1;
+    const weekday = new Intl.DateTimeFormat("en-US", {
+      weekday: "short",
+      timeZone,
+    }).format(instant);
+    return WEEKDAY_INDEX[weekday] ?? -1;
+  } catch {
+    return -1;
+  }
+}
+
 export function parseOpeningHoursRule(
   openingHoursText: string,
   dateStr: string,
@@ -45,17 +119,7 @@ export function parseOpeningHoursRule(
   const timeZone = getCityTimezone(destination);
   let targetDayOfWeek = -1;
 
-  try {
-    const d = new Date(`${dateStr}T${timeStr}:00`);
-    if (!isNaN(d.getTime())) {
-      const dayFormatter = new Intl.DateTimeFormat("en-US", { weekday: "narrow", timeZone });
-      const dayStr = dayFormatter.format(d);
-      const dayMap: Record<string, number> = { S: 0, M: 1, T: 2, W: 3, Th: 4, F: 5, Sa: 6 };
-      targetDayOfWeek = d.getDay(); // fallback
-    }
-  } catch {
-    targetDayOfWeek = -1;
-  }
+  targetDayOfWeek = getWeekdayInTimeZone(dateStr, timeStr, timeZone);
 
   if (targetDayOfWeek >= 0) {
     const dayName = DAY_NAMES[targetDayOfWeek];

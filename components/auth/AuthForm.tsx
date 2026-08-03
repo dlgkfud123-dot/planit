@@ -1,6 +1,6 @@
-import BrandLogo from "../common/BrandLogo";
 "use client";
 
+import BrandLogo from "../common/BrandLogo";
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "./AuthProvider";

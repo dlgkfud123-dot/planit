@@ -10,19 +10,19 @@ import styles from "./AccountSettings.module.css";
 export default function AccountPage() {
   const router = useRouter();
   const { user, ready, updateAccount } = useAuth();
-  const [displayName, setDisplayName] = useState("");
+  const [displayNameEdit, setDisplayNameEdit] = useState<{ userId: string; value: string } | null>(null);
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const defaultDisplayName = user?.user_metadata?.full_name || user?.user_metadata?.name || "";
+  const displayName =
+    user && displayNameEdit?.userId === user.id ? displayNameEdit.value : defaultDisplayName;
 
   useEffect(() => {
     if (ready && !user) {
       router.replace("/login");
       return;
-    }
-    if (user) {
-      setDisplayName(user.user_metadata?.full_name || user.user_metadata?.name || "");
     }
   }, [ready, router, user]);
 
@@ -73,7 +73,7 @@ export default function AccountPage() {
                 표시 이름
                 <input
                   value={displayName}
-                  onChange={(event) => setDisplayName(event.target.value)}
+                  onChange={(event) => setDisplayNameEdit({ userId: user.id, value: event.target.value })}
                   placeholder="표시 이름"
                   autoComplete="name"
                 />
