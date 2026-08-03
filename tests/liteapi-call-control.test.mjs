@@ -69,15 +69,15 @@ test("common LiteAPI limiter spaces all endpoint requests at no more than four p
   }
 });
 
-test("cold search calls List once, Rates once, and Detail at most five; warm search calls LiteAPI zero times", async () => {
+test("cold search calls List once, Rates once, and Detail at most three; warm search calls LiteAPI zero times", async () => {
   reset();
   const calls = installSuccessfulProvider();
   const first = await getHotels(new Request(hotelUrl()));
   assert.equal(first.status, 200);
   assert.equal(calls.filter((call) => call.url.includes("/data/hotels?")).length, 1);
   assert.equal(calls.filter((call) => call.url.includes("/hotels/rates")).length, 1);
-  assert.equal(calls.filter((call) => call.url.includes("/data/hotel?")).length, 5);
-  assert.equal(calls.length, 7);
+  assert.equal(calls.filter((call) => call.url.includes("/data/hotel?")).length, 3);
+  assert.equal(calls.length, 5);
 
   calls.length = 0;
   const second = await getHotels(new Request(hotelUrl()));
@@ -95,7 +95,35 @@ test("two concurrent identical searches reuse one in-flight provider request set
   ]);
   assert.equal(first.status, 200);
   assert.equal(second.status, 200);
-  assert.equal(calls.length, 7);
+  assert.equal(calls.length, 5);
+});
+
+test("Detail timeouts and failures keep real List and Rates offers with nullable detail fields", async () => {
+  reset();
+  const calls = [];
+  globalThis.fetch = async (input, init = {}) => {
+    const url = String(input);
+    if (!url.includes("api.liteapi.travel")) return Response.json({ elements: [] });
+    calls.push({ url, init });
+    if (url.includes("/data/hotels?")) return Response.json({ data: candidates });
+    if (url.includes("/hotels/rates")) return Response.json({ data: rates });
+    if (url.includes("hotelId=hotel-1")) {
+      return new Promise((resolve, reject) => {
+        init.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")), { once: true });
+      });
+    }
+    return new Response("{}", { status: 500 });
+  };
+
+  const response = await getHotels(new Request(hotelUrl()));
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(calls.filter((call) => call.url.includes("/data/hotel?")).length, 3);
+  assert.equal(body.liteApiHotels.length, 5);
+  assert.equal(body.providerDiagnostics.detailCompletedCount, 0);
+  assert.equal(body.providerDiagnostics.detailSkippedCount, 3);
+  assert.ok(body.liteApiHotels.every((hotel) => hotel.imageUrl === null && hotel.address === null));
+  assert.ok(body.liteApiHotels.every((hotel) => hotel.price.payableTotal !== null));
 });
 
 test("rooms are part of cache identity and are represented as one occupancy per room", async () => {

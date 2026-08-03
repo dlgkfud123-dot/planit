@@ -46,22 +46,29 @@ export function parseLiteApiRateLimit(response: Response, now = Date.now()): Rat
   };
 }
 
-const timeoutError = () => new ApiHttpError(504, "TIMEOUT", "외부 서비스 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요.");
+const endpointStage = (input: string) => {
+  if (input.includes("/hotels/rates")) return "RATES";
+  if (input.includes("/data/hotels?")) return "LIST";
+  if (input.includes("/data/hotel?")) return "DETAIL";
+  return "LITEAPI";
+};
 
-const waitUntil = (target: number, signal?: AbortSignal) => new Promise<void>((resolve, reject) => {
+const timeoutError = (providerStage: string) => new ApiHttpError(504, "TIMEOUT", "외부 서비스 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요.", { providerStage });
+
+const waitUntil = (target: number, providerStage: string, signal?: AbortSignal) => new Promise<void>((resolve, reject) => {
   const delay = Math.max(0, target - Date.now());
   if (delay === 0) return resolve();
   const timer = setTimeout(resolve, delay);
   signal?.addEventListener("abort", () => {
     clearTimeout(timer);
-    reject(timeoutError());
+    reject(timeoutError(providerStage));
   }, { once: true });
 });
 
-async function acquireLiteApiSlot(signal?: AbortSignal) {
+async function acquireLiteApiSlot(providerStage: string, signal?: AbortSignal) {
   const ticket = limiterTail.then(async () => {
-    if (signal?.aborted) throw timeoutError();
-    await waitUntil(Math.max(nextRequestAt, cooldownUntil), signal);
+    if (signal?.aborted) throw timeoutError(providerStage);
+    await waitUntil(Math.max(nextRequestAt, cooldownUntil), providerStage, signal);
     nextRequestAt = Date.now() + LITEAPI_MIN_REQUEST_INTERVAL_MS;
   });
   limiterTail = ticket.catch(() => undefined);
@@ -69,14 +76,28 @@ async function acquireLiteApiSlot(signal?: AbortSignal) {
 }
 
 export async function liteApiFetch(input: string, init: RequestInit, routeSignal?: AbortSignal): Promise<Response> {
+  const providerStage = endpointStage(input);
+  const limiterStartedAt = Date.now();
   if (cooldownUntil > Date.now()) {
     const retryAfterSeconds = Math.max(1, Math.ceil((cooldownUntil - Date.now()) / 1000));
     throw new ApiHttpError(429, "RATE_LIMITED", `LiteAPI 요청 한도를 초과했습니다. ${retryAfterSeconds}초 후 다시 시도할 수 있습니다.`, {
       retryAt: new Date(cooldownUntil).toISOString(), retryAfterSeconds, rateLimitRemaining: 0,
     });
   }
-  await acquireLiteApiSlot(routeSignal);
-  const response = await fetchWithTimeout(input, init, routeSignal);
+  await acquireLiteApiSlot(providerStage, routeSignal);
+  const fetchStartedAt = Date.now();
+  console.info("[LiteAPI stage]", JSON.stringify({ providerStage, event: "start", limiterWaitMs: fetchStartedAt - limiterStartedAt }));
+  let response: Response;
+  try {
+    response = await fetchWithTimeout(input, init, routeSignal);
+  } catch (error) {
+    console.error("[LiteAPI stage]", JSON.stringify({ providerStage, event: "error", fetchMs: Date.now() - fetchStartedAt, error: error instanceof Error ? error.message : String(error) }));
+    if (error instanceof ApiHttpError && !error.providerStage) {
+      throw new ApiHttpError(error.httpStatus, error.providerStatus, error.message, { providerStage });
+    }
+    throw error;
+  }
+  console.info("[LiteAPI stage]", JSON.stringify({ providerStage, event: "end", fetchMs: Date.now() - fetchStartedAt, status: response.status }));
   const metadata = parseLiteApiRateLimit(response);
   if (response.status === 429) {
     cooldownUntil = metadata.retryAt ? Date.parse(metadata.retryAt) : Date.now() + 1000;

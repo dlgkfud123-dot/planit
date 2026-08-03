@@ -9,12 +9,13 @@ export class ApiHttpError extends Error {
   readonly retryAfterSeconds?: number;
   readonly rateLimitLimit?: number;
   readonly rateLimitRemaining?: number;
+  readonly providerStage?: string;
 
   constructor(
     httpStatus: number,
     providerStatus: string,
     message: string,
-    rateLimit?: { retryAt?: string; retryAfterSeconds?: number; rateLimitLimit?: number; rateLimitRemaining?: number }
+    rateLimit?: { retryAt?: string; retryAfterSeconds?: number; rateLimitLimit?: number; rateLimitRemaining?: number; providerStage?: string }
   ) {
     super(message);
     this.httpStatus = httpStatus;
@@ -23,6 +24,7 @@ export class ApiHttpError extends Error {
     this.retryAfterSeconds = rateLimit?.retryAfterSeconds;
     this.rateLimitLimit = rateLimit?.rateLimitLimit;
     this.rateLimitRemaining = rateLimit?.rateLimitRemaining;
+    this.providerStage = rateLimit?.providerStage;
   }
 }
 
@@ -68,6 +70,7 @@ export const apiErrorResponse = (error: unknown) => {
         ...(error.retryAfterSeconds !== undefined ? { retryAfterSeconds: error.retryAfterSeconds } : {}),
         ...(error.rateLimitLimit !== undefined ? { rateLimitLimit: error.rateLimitLimit } : {}),
         ...(error.rateLimitRemaining !== undefined ? { rateLimitRemaining: error.rateLimitRemaining } : {}),
+        ...(error.providerStage ? { providerStage: error.providerStage } : {}),
       },
     };
   }
