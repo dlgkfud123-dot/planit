@@ -643,7 +643,7 @@
   .refinementPopover button { min-height: 44px; }
   .legacyRefinement { display: none !important; }
 
-  .timelineScrollArea { flex: 1 1 auto; min-height: 0; padding: 0 0 24px; overflow-y: auto; overflow-x: visible; }
+  .timelineScrollArea { flex: 1 1 auto; min-height: 0; padding: 0 0 180px; overflow-y: auto; overflow-x: visible; scroll-padding-bottom: 180px; }
   .timelinePanel :global(.timelineList) { position: relative; display: flex !important; flex-direction: column; gap: 0 !important; width: 100%; padding: 5px 0 14px !important; }
   .timelinePanel :global(.timelineList)::before { display: none; }
   .timelinePanel :global(.timelineList li) {
@@ -682,12 +682,13 @@
   .timelinePanel :global(.stopTitleRow), .timelinePanel :global(.stopTitleRow > a) { min-width: 0; max-width: 100%; }
   .timelinePanel :global(.stopTitleRow > a > strong) { display: -webkit-box; width: 100%; min-width: 0; max-width: 100%; overflow: hidden; white-space: normal; overflow-wrap: break-word; word-break: keep-all; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; font-size: 14px; font-weight: 820; line-height: 1.22; text-wrap: pretty; }
   .timelinePanel :global(.recommendationReason) { display: none !important; }
-  .timelinePanel :global(.smartReplaceTray) { width: calc(100% + 96px); max-width: calc(100vw - 36px); margin: 12px 0 0 -40px; padding: 12px; box-sizing: border-box; }
+  .timelinePanel :global(.smartReplaceTray) { position: relative; z-index: 3; width: calc(100% + 96px); max-width: calc(100vw - 36px); margin: 12px 0 0 -40px; padding: 12px; box-sizing: border-box; scroll-margin-bottom: 180px; }
   .timelinePanel :global(.smartReplaceHeader) { min-width: 0; gap: 8px; }
   .timelinePanel :global(.smartReplaceHeader strong) { min-width: 0; white-space: normal; overflow-wrap: break-word; word-break: keep-all; }
   .timelinePanel :global(.smartCandidateCard) { width: 100%; max-width: 100%; padding: 12px; display: flex; flex-direction: column; align-items: stretch; box-sizing: border-box; }
   .timelinePanel :global(.smartCandidateCard > div) { min-width: 0; }
   .timelinePanel :global(.smartCandidateCard strong), .timelinePanel :global(.smartCandidateCard small) { white-space: normal; overflow-wrap: break-word; word-break: keep-all; }
+  .timelinePanel :global(.smartCandidateFacts) { grid-template-columns: 1fr; }
   .timelinePanel :global(.smartCandidateCard > button) { width: 100%; min-height: 44px; max-width: 100%; box-sizing: border-box; white-space: normal; }
 
   .mobileBackControl {

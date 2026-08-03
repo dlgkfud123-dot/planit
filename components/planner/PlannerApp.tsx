@@ -47,6 +47,15 @@ import PlannerSummaryCard from "./PlannerSummaryCard";
 import CityDetailModal from "../cities/CityDetailModal";
 import styles from "./PlannerDesktop.module.css";
 
+const PLACE_CATEGORY_LABELS: Record<Place["category"], string> = {
+  landmark: "랜드마크",
+  culture: "문화",
+  food: "음식",
+  market: "시장",
+  nature: "자연",
+  shopping: "쇼핑",
+};
+
 function nightsFrom(value: string) {
   const n = parseInt(value);
   return Number.isFinite(n) ? Math.min(Math.max(n, 1), 14) : 4;
@@ -1029,7 +1038,7 @@ export default function PlannerApp() {
                     {smartReplaceStopId === stop.id && (
                       <div className="smartReplaceTray" onClick={(e) => e.stopPropagation()}>
                         <div className="smartReplaceHeader">
-                          <strong>✦ {stop.name} 대체 추천 장소</strong>
+                          <strong>{stop.name} 대체 추천 장소</strong>
                           <button type="button" onClick={() => setSmartReplaceStopId(null)}>×</button>
                         </div>
                         <div className="smartCandidateList">
@@ -1037,7 +1046,15 @@ export default function PlannerApp() {
                             <div key={cand.place.id} className="smartCandidateCard">
                               <div>
                                 <strong>{cand.place.name}</strong>
-                                <small>{cand.matchReason} · {cand.place.district}</small>
+                                <dl className="smartCandidateFacts">
+                                  <div><dt>카테고리</dt><dd>{PLACE_CATEGORY_LABELS[cand.place.category]}</dd></div>
+                                  <div><dt>현재 장소에서</dt><dd>{cand.distanceFromCurrentKm.toFixed(1)}km</dd></div>
+                                  <div><dt>예상 이동시간</dt><dd>약 {cand.estimatedTravelMinutes}분</dd></div>
+                                  {cand.place.estimateStatus !== "variable" && (
+                                    <div><dt>예상 비용</dt><dd>{cand.place.estimateStatus === "free" ? "무료" : formatCurrency(cand.place.estimatedCost, "KRW")}</dd></div>
+                                  )}
+                                </dl>
+                                <p className="smartCandidateReason">{cand.matchReason}</p>
                               </div>
                               <button type="button" onClick={() => executeSmartReplace(i, cand.place)}>이 장소로 교체</button>
                             </div>

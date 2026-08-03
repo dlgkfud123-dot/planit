@@ -4,11 +4,14 @@ import { refreshDay } from "./itineraryGenerator";
 import { parseOpeningHoursRule } from "./openingHoursValidator";
 import type { DayWeatherInfo } from "./weatherService";
 import { distanceKm } from "./distance";
+import { chooseTransport, estimatedRouteDistance, transportMinutes } from "./transport";
 
 export type SmartCandidate = {
   place: Place;
   score: number;
   matchReason: string;
+  distanceFromCurrentKm: number;
+  estimatedTravelMinutes: number;
 };
 
 export function findSmartCandidates(
@@ -122,10 +125,21 @@ export function findSmartCandidates(
     }
 
     if (candidateScore > 0) {
+      const directDistanceFromCurrent = distanceKm(
+        { latitude: targetStop.lat, longitude: targetStop.lng },
+        { latitude: place.latitude, longitude: place.longitude }
+      );
+      const transport = chooseTransport(
+        directDistanceFromCurrent,
+        destination,
+        [...targetStop.transportHints, ...place.transportHints]
+      );
       candidates.push({
         place,
         score: candidateScore,
         matchReason: reasons.join(" · ") || "추천 대체 장소",
+        distanceFromCurrentKm: estimatedRouteDistance(directDistanceFromCurrent, destination),
+        estimatedTravelMinutes: transportMinutes(directDistanceFromCurrent, transport, destination),
       });
     }
   }
