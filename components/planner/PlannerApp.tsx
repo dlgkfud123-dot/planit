@@ -650,6 +650,14 @@ export default function PlannerApp() {
     downloadText(`EYRIA-${destination}-일정.ics`, ics, "text/calendar;charset=utf-8");
   };
 
+  const continueToBooking = () => {
+    const id = draftId;
+    const snapshot = snapshotFor(id);
+    writeDraftById(id, snapshot, activeDay, activeStop);
+    sessionStorage.setItem("eyria:active-draft-id", id);
+    window.location.href = `/booking?draft=${id}&dest=${encodeURIComponent(destination)}`;
+  };
+
   return (
     <main className={`plannerWorkspace v2PureEditor ${styles.plannerRoot}`}>
 
@@ -739,6 +747,10 @@ export default function PlannerApp() {
         <button className={mobileTab === "map" ? "active" : ""} onClick={() => setMobileTab("map")}>지도</button>
       </nav>
 
+      <button type="button" className={styles.mobileBookingCta} onClick={continueToBooking}>
+        항공·숙소 추천 보기
+      </button>
+
       {/* Toast Notice */}
       {editNotice && (
         <div className="plannerToast">
@@ -785,13 +797,7 @@ export default function PlannerApp() {
               }}
               onSave={saveCurrentTrip}
               onShare={shareCurrentTrip}
-              onCompleteTrip={() => {
-                const id = draftId;
-                const snapshot = snapshotFor(id);
-                writeDraftById(id, snapshot, activeDay, activeStop);
-                sessionStorage.setItem("eyria:active-draft-id", id);
-                window.location.href = `/booking?draft=${id}&dest=${encodeURIComponent(destination)}`;
-              }}
+              onCompleteTrip={continueToBooking}
             />
           </div>
 
@@ -807,6 +813,9 @@ export default function PlannerApp() {
               ref={timelinePanelRef}
               className={`timelineColumn ${styles.timelinePanel} ${mobileTab === "map" ? styles.mobileMapPanel : styles.mobileSchedulePanel}`}
             >
+          <button type="button" className={styles.mobileBackControl} onClick={openSettings}>
+            여행 설정으로 돌아가기
+          </button>
           {/* DAY Tabs */}
           <div className="dayScroller">
             {plan.map((d, i) => (
