@@ -171,7 +171,7 @@ test("initial response exposes at most three completed hotels and lazy lookup ca
   const lazy = await lazyResponse.json();
   assert.equal(lazyResponse.status, 200);
   assert.equal(lazy.hotels.length, 3);
-  assert.equal(lazy.hasMoreHotels, false);
+  assert.equal(lazy.hasMoreHotels, true);
   assert.equal(calls.filter((call) => call.url.includes("/data/hotels?")).length, listCallsBefore);
   assert.equal(calls.filter((call) => call.url.includes("/hotels/rates")).length, rateCallsBefore);
   assert.equal(calls.filter((call) => call.url.includes("/data/hotel?")).length - detailCallsBefore, 3);

@@ -593,14 +593,14 @@ async function executeHotelSearch(
 
   if (hasLiteApiKey) {
     try {
-      // 1. Fetch up to 20 candidate hotels within 20km radius
-      const listCacheKey = `${city}_${centerLat}_${centerLng}_${HOTEL_RADIUS_METERS}`;
+      // 1. Fetch up to 100 candidate hotels within 20km radius
+      const listCacheKey = `${city}_${centerLat}_${centerLng}_${HOTEL_RADIUS_METERS}_limit100`;
       const cachedCandidateHotels = getTimedCache(hotelListCache, listCacheKey, HOTEL_LIST_TTL_MS);
       let candidateHotels: LiteApiHotelRaw[];
       if (cachedCandidateHotels) {
         candidateHotels = cachedCandidateHotels;
       } else {
-        const geoUrl = `https://api.liteapi.travel/v3.0/data/hotels?latitude=${centerLat}&longitude=${centerLng}&radius=${HOTEL_RADIUS_METERS}&limit=20`;
+        const geoUrl = `https://api.liteapi.travel/v3.0/data/hotels?latitude=${centerLat}&longitude=${centerLng}&radius=${HOTEL_RADIUS_METERS}&limit=100`;
         const searchRes = await liteApiFetch(geoUrl, {
           headers: { "X-API-Key": liteApiKey, "Accept": "application/json" }
         }, routeSignal);
@@ -612,29 +612,72 @@ async function executeHotelSearch(
         candidatesCount = candidateHotels.length;
 
         if (candidateHotels.length > 0) {
-          // Sort candidates by List metadata (combining distance & quality indicators)
-          const sortedCandidates = candidateHotels
-            .map((h: LiteApiHotelRaw) => {
-              const dist = calculateHaversineDistance(centerLat, centerLng, h.latitude, h.longitude);
-              const starRating = (h as { rating?: number; stars?: number }).rating || (h as { rating?: number; stars?: number }).stars || 3;
-              const hasPhoto = Boolean((h as { main_photo?: string; photo?: string }).main_photo || (h as { main_photo?: string; photo?: string }).photo);
-              const listScore = Math.max(0, 100 - dist * 6) * 0.65 + (starRating * 15) + (hasPhoto ? 10 : 0);
-              return { ...h, dist, listScore };
-            })
-            .sort((a, b) => b.listScore - a.listScore)
-            .slice(0, 10);
+          // Score and bucket all 100 candidates based on location, quality, and itinerary proximity
+          const enrichedCandidates = candidateHotels.map((h: LiteApiHotelRaw) => {
+            const distCenter = calculateHaversineDistance(centerLat, centerLng, h.latitude, h.longitude);
+            let itineraryDist = distCenter;
+            if (itineraryPlaces.length > 0) {
+              const minDist = Math.min(...itineraryPlaces.map((p) => calculateHaversineDistance(p.lat, p.lng, h.latitude, h.longitude)));
+              itineraryDist = minDist;
+            }
+            const starRating = (h as { rating?: number; stars?: number }).rating || (h as { rating?: number; stars?: number }).stars || 3;
+            const hasPhoto = Boolean((h as { main_photo?: string; photo?: string }).main_photo || (h as { main_photo?: string; photo?: string }).photo);
+            const listScore = Math.max(0, 100 - itineraryDist * 5 - distCenter * 3) * 0.6 + (starRating * 15) + (hasPhoto ? 10 : 0);
+            return { ...h, distCenter, itineraryDist, starRating, hasPhoto, listScore };
+          });
 
-          ratesRequestedCount = sortedCandidates.length;
-          const candidateIds = sortedCandidates.map((h) => h.id || h.hotelId);
+          // Diversified Bucketing: Itinerary proximity, City Center access, Quality/Stars, Value
+          const bucketItinerary = [...enrichedCandidates].sort((a, b) => a.itineraryDist - b.itineraryDist);
+          const bucketCenter = [...enrichedCandidates].sort((a, b) => a.distCenter - b.distCenter);
+          const bucketQuality = [...enrichedCandidates].sort((a, b) => b.starRating - a.starRating || b.listScore - a.listScore);
+          const bucketBalanced = [...enrichedCandidates].sort((a, b) => b.listScore - a.listScore);
 
-          // Cache Key incorporates budget threshold and travel style to guarantee distinct recommendations per budget
-          const cacheKey = `rates_${city}_${checkIn}_${checkOut}_${adults}_${rooms}_${currency}_${lodgingBudgetThreshold}_${travelStyle}_${candidateIds.join(",")}`;
-          let ratesList = getCachedRates(cacheKey);
+          // Round-robin selection across buckets up to 35 candidates
+          const selectedCandidates: typeof enrichedCandidates = [];
+          const seenIds = new Set<string>();
 
-          if (ratesList) {
-            cacheHit = true;
-          } else {
-            // Fetch Rates for selected candidate IDs
+          const addCandidate = (cand?: typeof enrichedCandidates[0]) => {
+            if (!cand) return;
+            const pId = String(cand.id || cand.hotelId);
+            if (!seenIds.has(pId)) {
+              seenIds.add(pId);
+              selectedCandidates.push(cand);
+            }
+          };
+
+          const maxLen = Math.max(bucketItinerary.length, bucketCenter.length, bucketQuality.length, bucketBalanced.length);
+          for (let i = 0; i < maxLen && selectedCandidates.length < 35; i++) {
+            if (travelStyle === "premium") {
+              addCandidate(bucketQuality[i]);
+              addCandidate(bucketItinerary[i]);
+              addCandidate(bucketCenter[i]);
+              addCandidate(bucketBalanced[i]);
+            } else if (travelStyle === "budget") {
+              addCandidate(bucketBalanced[i]);
+              addCandidate(bucketItinerary[i]);
+              addCandidate(bucketCenter[i]);
+              addCandidate(bucketQuality[i]);
+            } else {
+              addCandidate(bucketItinerary[i]);
+              addCandidate(bucketBalanced[i]);
+              addCandidate(bucketCenter[i]);
+              addCandidate(bucketQuality[i]);
+            }
+          }
+
+          // Stepwise Rates Query: Step 1 (15 candidates). Step 2 (+10 candidates if budget-matched < 3)
+          const step1Candidates = selectedCandidates.slice(0, 15);
+          ratesRequestedCount = step1Candidates.length;
+
+          const fetchRatesBatch = async (batch: typeof selectedCandidates) => {
+            const candidateIds = batch.map((h) => String(h.id || h.hotelId));
+            const cacheKey = `rates_${city}_${checkIn}_${checkOut}_${adults}_${rooms}_${currency}_${lodgingBudgetThreshold}_${travelStyle}_${candidateIds.join(",")}`;
+            let rates = getCachedRates(cacheKey);
+            if (rates) {
+              cacheHit = true;
+              return rates;
+            }
+
             const occupancies = Array.from({ length: rooms }, (_, index) => ({
               adults: index === 0 ? adults - rooms + 1 : 1,
               childrenAges: [] as number[],
@@ -656,44 +699,60 @@ async function executeHotelSearch(
               })
             }, routeSignal);
             const ratesData: { data?: LiteApiRateRaw[] } = await ratesRes.json();
-            ratesList = ratesData.data || [];
-            setCachedRates(cacheKey, ratesList);
+            rates = ratesData.data || [];
+            setCachedRates(cacheKey, rates);
+            return rates;
+          };
+
+          let allRates: LiteApiRateRaw[] = await fetchRatesBatch(step1Candidates);
+
+          // Evaluate Step 1 price results
+          const evalCandidates = (cands: typeof selectedCandidates, rates: LiteApiRateRaw[]) => {
+            return cands.map((cand) => {
+              const pId = String(cand.id || cand.hotelId);
+              const rateMatch = rates.find((r) => String(r.hotelId || r.id) === pId);
+              const roomType = rateMatch?.roomTypes?.[0] || rateMatch?.offers?.[0];
+              const rateInfo = roomType?.rates?.[0];
+              const price = roomType && rateInfo ? parseNormalizedPrice(roomType, rateInfo) : null;
+              const payableTotal = price?.payableTotal ?? null;
+              if (!rateMatch || payableTotal === null || price === null) return null;
+
+              const provScore = computeTripScoreAndReasons(
+                cand.latitude,
+                cand.longitude,
+                cand.distCenter,
+                price,
+                null,
+                normalizeHotelAddress(cand.address),
+                lodgingBudgetThreshold,
+                travelStyle,
+                itineraryPlaces,
+                transitMode
+              ).tripScore;
+
+              return { candidate: cand, rateMatch, payableTotal, provScore };
+            }).filter((item): item is NonNullable<typeof item> => item !== null);
+          };
+
+          let scoredCandidates = evalCandidates(step1Candidates, allRates);
+          let budgetMatchedCount = scoredCandidates.filter((c) => c.payableTotal <= lodgingBudgetThreshold).length;
+
+          // Step 2 Extension: If fewer than 3 budget-matched candidates, fetch Rates for next 10 candidates
+          if (budgetMatchedCount < 3 && selectedCandidates.length > 15) {
+            const step2Candidates = selectedCandidates.slice(15, 25);
+            ratesRequestedCount += step2Candidates.length;
+            const step2Rates = await fetchRatesBatch(step2Candidates);
+            allRates = [...allRates, ...step2Rates];
+            scoredCandidates = evalCandidates(selectedCandidates.slice(0, 25), allRates);
           }
 
-          if (ratesList && Array.isArray(ratesList)) {
-            const scoredCandidates = sortedCandidates
-              .map((candidate) => {
-                const pId = String(candidate.id || candidate.hotelId);
-                const rateMatch = ratesList.find((rate) => String(rate.hotelId || rate.id) === pId);
-                const roomType = rateMatch?.roomTypes?.[0] || rateMatch?.offers?.[0];
-                const rateInfo = roomType?.rates?.[0];
-                const price = roomType && rateInfo ? parseNormalizedPrice(roomType, rateInfo) : null;
-                const payableTotal = price?.payableTotal ?? null;
-                if (!rateMatch || payableTotal === null || price === null) return null;
-
-                const provScore = computeTripScoreAndReasons(
-                  candidate.latitude,
-                  candidate.longitude,
-                  candidate.dist,
-                  price,
-                  null,
-                  normalizeHotelAddress(candidate.address),
-                  lodgingBudgetThreshold,
-                  travelStyle,
-                  itineraryPlaces,
-                  transitMode
-                ).tripScore;
-
-                return { candidate, rateMatch, payableTotal, provScore };
-              })
-              .filter((item): item is NonNullable<typeof item> => item !== null);
-
-            // Tier 1: Within Budget (Sorted by highest Trip Score for this specific budget & target price range)
+          if (scoredCandidates.length > 0) {
+            // Tier 1: Within Budget
             const withinBudget = scoredCandidates
               .filter((item) => item.payableTotal <= lodgingBudgetThreshold)
-              .sort((a, b) => b.provScore - a.provScore || a.candidate.dist - b.candidate.dist);
+              .sort((a, b) => b.provScore - a.provScore || a.candidate.distCenter - b.candidate.distCenter);
 
-            // Tier 2: Close to Budget (within 30% excess, sorted by excess ratio & Trip Score)
+            // Tier 2: Close to Budget (<= 30% excess)
             const closeToBudget = scoredCandidates
               .filter((item) => item.payableTotal > lodgingBudgetThreshold && item.payableTotal <= lodgingBudgetThreshold * 1.3)
               .sort((a, b) => {
@@ -703,7 +762,7 @@ async function executeHotelSearch(
                 return b.provScore - a.provScore;
               });
 
-            // Tier 3: Over Budget (sorted by excess ratio & location score)
+            // Tier 3: Over Budget
             const overBudget = scoredCandidates
               .filter((item) => item.payableTotal > lodgingBudgetThreshold * 1.3)
               .sort((a, b) => {
@@ -713,7 +772,8 @@ async function executeHotelSearch(
                 return b.provScore - a.provScore;
               });
 
-            const finalCandidates = [...withinBudget, ...closeToBudget, ...overBudget].slice(0, 6);
+            // Combine up to 15 candidates for UI + multi-batch load more
+            const finalCandidates = [...withinBudget, ...closeToBudget, ...overBudget].slice(0, 15);
 
             const detailCandidates = finalCandidates.slice(0, HOTEL_DETAIL_LIMIT);
             detailRequestedCount = detailCandidates.length;
