@@ -119,9 +119,60 @@ import {batchTwentyThreePlaces} from "./placesBatch23";
 import {batchTwentyFourPlaces} from "./placesBatch24";
 import {batchTwentyFivePlaces} from "./placesBatch25";
 import {batchTwentySixPlaces} from "./placesBatch26";
-export const places:Place[]=[...basePlaces,...batchOnePlaces,...batchTwoPlaces,...batchThreePlaces,...batchFourPlaces,...batchFivePlaces,...batchSixPlaces,...batchSevenPlaces,...batchEightPlaces,...batchNinePlaces,...batchTenPlaces,...batchElevenPlaces,...batchTwelvePlaces,...batchThirteenPlaces,...batchFourteenPlaces,...batchFifteenPlaces,...batchSixteenPlaces,...batchSeventeenPlaces,...batchEighteenPlaces,...batchNineteenPlaces,...batchTwentyPlaces,...batchTwentyOnePlaces,...batchTwentyTwoPlaces,...batchTwentyThreePlaces,...batchTwentyFourPlaces,...batchTwentyFivePlaces,...batchTwentySixPlaces];
+import {batchTwentySevenPlaces} from "./placesBatch27";
+import {batchTwentyEightPlaces} from "./placesBatch28";
+import {batchTwentyNinePlaces} from "./placesBatch29";
+import {batchThirtyPlaces} from "./placesBatch30";
+import {batchThirtyOnePlaces} from "./placesBatch31";
+import {batchThirtyTwoPlaces} from "./placesBatch32";
+
+// Curated duplicate resolutions are source-specific so similarly named branches remain intact.
+// Each entry was reviewed against its name, coordinates, category, and metadata completeness.
+const excludedDuplicateIdsByBatch:Readonly<Record<number,ReadonlySet<string>>>={
+  1:new Set(["fuk-ganso-hakata-mentaiju","osa-amerikamura","osa-namba-parks","osa-shinsaibashi","seoul-tosokchon","tokyo-meiji-jingu","tokyo-nezu-museum","tokyo-odaiba-seaside","tokyo-shinjuku-gyoen"]),
+  2:new Set(["paris-chartier","sg-mbs","sg-universal"]),
+  3:new Set(["bus-haedong","bus-jeonpo","jej-olle-market","kyo-inoda","kyo-philosopher"]),
+  4:new Set(["bal-monkeyforest","cnx-ristr8to","hkg-kam-wah","hkg-mido","hkg-palace"]),
+  5:new Set(["dad-museum-cham","han-banhmi25","han-ethnology","han-opera","han-waterpuppet","sgn-banhmi-huynhhoa","sgn-bui-vien","sgn-landmark81","sgn-river-cruise","sgn-war-museum","sgn-zoo"]),
+  6:new Set(["dub-global-village","dub-miracle-garden","hon-lanikai","la-abbot-kinney","la-blue-bottle","la-getty-center","la-grand-central","la-hollywood-sign","la-lacma","la-sunset-strip","la-universal","la-walk-fame","la-walt-disney","mel-block-arcade","mel-chinatown","mel-flinders","mel-higher-ground","mel-royal-exhibition","mel-state-library"]),
+  7:new Set(["lyon-place-terreaux"]),
+  8:new Set(["edin-national-gallery","flo-pitti-palace","flo-san-lorenzo","flo-san-miniato","mad-almudena","mad-botin","mad-thyssen","man-science-museum","ven-florian","ven-salute"]),
+  9:new Set(["hnl-iolani-palace_b9","hnl-island-vintage-coffee_b9","hnl-tantalus-lookout","la-farmers-market","la-venice-beach","mel-grareat-ocean-road","mel-queen-victoria-market_b9","mia-panther-coffee","sf-presidio-tunnel-tops","sf-sfmoma"]),
+  10:new Set(["dxb-gold-souk","gen-patek-philippe","luc-schwanenplatz","luc-swiss-museum-transport","yvr-robsons-street"]),
+  11:new Set(["cpt-hout-bay-seal-island","lux-valley-of-queens"]),
+  12:new Set(["mow-christ-the-savior","vvo-submairne-s56"]),
+  13:new Set(["osa-glitch-coffee-osaka","osa-kushikatsu-daruma-2","osa-osaka-museum-history","osa-rikuro-ojisan","pus-보수동책방골목","pus-부산타워","tokyo-golden-gai","tokyo-tonkatsu-maisen","tokyo-yoyogi-park","tpe-fuhang-soy-milk","tpe-raohe-night-market"]),
+  14:new Set(["dad-43-factory-coffee","dad-banh-xeo-ba-duod","dad-son-tra-night-market","han-bun-cha-huong-lien","han-dong-xuan-market","han-loading-t-cafe","sgn-banh-mi-huynh-hoa","sgn-ben-thanh-market","sin-national-gallery","sin-siloso-beach","sin-song-fa-bak-kut-teh","sin-tian-tian-chicken-rice","sin-ya-kun-kaya-toast"]),
+  15:new Set(["mil-the-last-supper","par-le-comptoir-du-relais","par-shakespeare-and-company"]),
+  16:new Set(["hnl-ala-moana-center","nyc-joe-pizza-greenwich","syd-sydney-tower-eye"]),
+  20:new Set(["rio-churrascaria-palace_b20"]),
+  21:new Set(["bkk-jay-fai-crab-omelet","bkk-thip-samai-pad-thai"]),
+  27:new Set(["tokyo-fuglen-yoyogi","tokyo-kyushu-jangara-akiba","tokyo-national-museum"]),
+  28:new Set(["kyoto-yasaka-shrine"]),
+  30:new Set(["tokyo-ebisu-yokocho","tokyo-omoide-yokocho"]),
+  31:new Set(["nyc-katz-delicatessen","nyc-peter-luger-steak","tokyo-shimbashi-yokocho"]),
+  32:new Set(["bkk-roots-coffee-thonglor"]),
+};
+
+const curatedBatch=(batchNumber:number,batch:Place[]):Place[]=>{
+  const excludedIds=excludedDuplicateIdsByBatch[batchNumber];
+  return excludedIds?batch.filter(place=>!excludedIds.has(place.id)):batch;
+};
+
+export const places:Place[]=[
+  ...basePlaces,
+  ...curatedBatch(1,batchOnePlaces),...curatedBatch(2,batchTwoPlaces),...curatedBatch(3,batchThreePlaces),
+  ...curatedBatch(4,batchFourPlaces),...curatedBatch(5,batchFivePlaces),...curatedBatch(6,batchSixPlaces),
+  ...curatedBatch(7,batchSevenPlaces),...curatedBatch(8,batchEightPlaces),...curatedBatch(9,batchNinePlaces),
+  ...curatedBatch(10,batchTenPlaces),...curatedBatch(11,batchElevenPlaces),...curatedBatch(12,batchTwelvePlaces),
+  ...curatedBatch(13,batchThirteenPlaces),...curatedBatch(14,batchFourteenPlaces),...curatedBatch(15,batchFifteenPlaces),
+  ...curatedBatch(16,batchSixteenPlaces),...curatedBatch(17,batchSeventeenPlaces),...curatedBatch(18,batchEighteenPlaces),
+  ...curatedBatch(19,batchNineteenPlaces),...curatedBatch(20,batchTwentyPlaces),...curatedBatch(21,batchTwentyOnePlaces),
+  ...curatedBatch(22,batchTwentyTwoPlaces),...curatedBatch(23,batchTwentyThreePlaces),...curatedBatch(24,batchTwentyFourPlaces),
+  ...curatedBatch(25,batchTwentyFivePlaces),...curatedBatch(26,batchTwentySixPlaces),...curatedBatch(27,batchTwentySevenPlaces),
+  ...curatedBatch(28,batchTwentyEightPlaces),...curatedBatch(29,batchTwentyNinePlaces),...curatedBatch(30,batchThirtyPlaces),
+  ...curatedBatch(31,batchThirtyOnePlaces),...curatedBatch(32,batchThirtyTwoPlaces),
+];
 export const placesByCity=(cityId:string)=>places.filter(place=>place.cityId===cityId);
 export const supportedCityIds=[...new Set(places.map(place=>place.cityId))];
-
-
 

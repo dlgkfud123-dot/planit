@@ -172,5 +172,5 @@ q("sg-chyesenghuat","싱가포르","Chye Seng Huat Hardware","food",1.3116,103.8
 q("sg-sentosa","싱가포르","센토사 실로소 비치","nature",1.254,103.814,180,"afternoon",20000,"센토사",["해변","반일","근교","자연"],false,true,["대중교통","도보"]),
 q("sg-universal","싱가포르","유니버설 스튜디오 싱가포르","culture",1.254,103.8238,360,"morning",85000,"센토사",["테마파크","하루일정","근교","문화"],true,true,["대중교통","도보"]),
 q("sg-vivocity","싱가포르","비보시티","shopping",1.2643,103.8222,110,"afternoon",35000,"하버프런트",["쇼핑","항구","도심"]),
-q("sg-apartmentcoffee","싱가포르","Apartment Coffee","food",1.3045,103.8545,55,"morning",13000,"라벤더",["카페","커피","로스터리"]),
+q("sg-apartmentcoffee","싱가포르","Apartment Coffee","food",1.3045,103.8545,55,"morning",13000,"라벤더",["카페","커피","로스터리"])
 ];
