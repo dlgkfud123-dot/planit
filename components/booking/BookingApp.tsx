@@ -274,16 +274,22 @@ export default function BookingApp() {
     setCheckIn(targetCheckIn);
     setCheckOut(targetCheckOut);
     const storedBooking = readBookingSnapshot(sessionStorage, draftParam || undefined);
+    const expectedLodgingBudget = targetNumBudget > 0 ? targetNumBudget * 0.4 : 0;
     if (
-      storedBooking && storedBooking.destinationId === targetDest &&
-      storedBooking.checkIn === targetCheckIn && storedBooking.checkOut === targetCheckOut &&
-      storedBooking.passengerCount === targetPeople
+      storedBooking &&
+      storedBooking.destinationId === targetDest &&
+      storedBooking.checkIn === targetCheckIn &&
+      storedBooking.checkOut === targetCheckOut &&
+      storedBooking.passengerCount === targetPeople &&
+      (!storedBooking.budgetSummary || storedBooking.budgetSummary.lodgingBudgetThreshold === expectedLodgingBudget)
     ) {
       restoredBookingRef.current = storedBooking;
       setBudgetMatchedHotels([storedBooking.selectedHotel]);
       setBudgetMatchedFlights([storedBooking.selectedFlight]);
       setSelectedHotelId(storedBooking.selectedHotel.providerHotelId);
       setSelectedFlightId(storedBooking.selectedFlight.providerOfferId);
+    } else {
+      restoredBookingRef.current = null;
     }
     const storedDepartureAirport = storedBooking?.departureAirport || draftSnapshotRef.current?.departureAirport || "ICN";
     setDepartureAirport(getKoreaAirport(storedDepartureAirport)?.iata || "ICN");
@@ -338,11 +344,14 @@ export default function BookingApp() {
           const matchedHotels: HotelOffer[] = data.budgetMatchedHotels || [];
           const exceededHotels: HotelOffer[] = data.budgetExceededHotels || [];
           const restoredHotel = restoredBookingRef.current?.selectedHotel;
+          const isRestoredValid = restoredHotel && (
+            restoredBookingRef.current?.budgetSummary?.lodgingBudgetThreshold === lodgingBudgetThreshold
+          ) && [...matchedHotels, ...exceededHotels].some((h) => h.providerHotelId === restoredHotel.providerHotelId);
 
           let mergedMatchedHotels = [...matchedHotels];
           let mergedExceededHotels = [...exceededHotels];
 
-          if (restoredHotel) {
+          if (isRestoredValid && restoredHotel) {
             const isRestoredMatched = restoredHotel.price.payableTotal !== null && restoredHotel.price.payableTotal <= lodgingBudgetThreshold;
             if (isRestoredMatched) {
               if (!mergedMatchedHotels.some((h) => h.providerHotelId === restoredHotel.providerHotelId)) {
@@ -353,6 +362,8 @@ export default function BookingApp() {
                 mergedExceededHotels = [restoredHotel, ...mergedExceededHotels];
               }
             }
+          } else {
+            restoredBookingRef.current = null;
           }
 
           setBudgetMatchedHotels(mergedMatchedHotels);
@@ -363,7 +374,12 @@ export default function BookingApp() {
 
           const allHotels = [...mergedMatchedHotels, ...mergedExceededHotels];
           if (allHotels.length > 0) {
-            setSelectedHotelId((current) => allHotels.some((hotel) => hotel.providerHotelId === current) ? current : allHotels[0].providerHotelId);
+            setSelectedHotelId((current) => {
+              if (restoredBookingRef.current?.selectedHotel) {
+                return allHotels.some((hotel) => hotel.providerHotelId === current) ? current : allHotels[0].providerHotelId;
+              }
+              return allHotels[0].providerHotelId;
+            });
             setHotelsError(null);
             setHotelsStatus(null);
           } else {
