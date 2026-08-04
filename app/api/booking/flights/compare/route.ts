@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server.js";
-import { DEFAULT_FLIGHT_COMPARISON_AIRPORTS, getKoreaAirport } from "../../../../../data/airports.ts";
+import { DEFAULT_FLIGHT_COMPARISON_AIRPORTS, getCanonicalArrivalAirportCandidates, getKoreaAirport } from "../../../../../data/airports.ts";
 import type { FlightOffer, FlightSearchResponse } from "../../../../../types/flight.ts";
 import { GET as searchFlights } from "../route.ts";
 
@@ -166,7 +166,15 @@ async function runComparison(requestUrl: URL, cacheKey: string): Promise<Compari
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const cacheKey = url.searchParams.toString();
+  const cacheParams = new URLSearchParams(url.searchParams);
+  const city = cacheParams.get("city") || cacheParams.get("arrivalAirport") || "";
+  const candidates = getCanonicalArrivalAirportCandidates(city);
+  if (candidates.length > 0) {
+    cacheParams.set("arrivalAirportCandidates", candidates.join(","));
+    cacheParams.delete("arrivalAirport");
+  }
+  cacheParams.sort();
+  const cacheKey = cacheParams.toString();
   const cached = comparisonCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     return NextResponse.json({ ...cached.value, cached: true, providerCallCount: 0, durationMs: 0 });

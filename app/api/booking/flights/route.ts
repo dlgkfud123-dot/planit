@@ -14,7 +14,7 @@ import type {
   FlightPriceSource,
 } from "../../../../types/flight";
 import { normalizeFlightBookingOption } from "../../../../utils/bookingLinks.ts";
-import { getCityAirportIata, isSupportedAirport } from "../../../../data/airports.ts";
+import { getCanonicalArrivalAirportCandidates, getCityAirportGroup, getCityAirportIata, isSupportedAirport } from "../../../../data/airports.ts";
 import { validateFlightInput } from "../../../../utils/bookingValidation.ts";
 import { ApiHttpError, ROUTE_DEADLINE_MS, apiErrorResponse, fetchWithTimeout, providerErrorFromStatus } from "../../../../utils/apiRuntime.ts";
 import { calculateFlightTimeScore } from "../../../../utils/flightRuntime.ts";
@@ -337,12 +337,18 @@ export function parseAmenitiesAndBaggage(rawLegs: SerpApiFlightLegRaw[], booking
   };
 }
 
-export async function GET(request: Request) {
+async function runFlightSearch(request: Request) {
   const { searchParams } = new URL(request.url);
   const city = searchParams.get("city") || searchParams.get("arrivalAirport") || "";
   const departureAirport = (searchParams.get("departureAirport") || searchParams.get("origin") || "ICN").toUpperCase();
   const mappedArrivalAirport = getCityAirportIata(city);
   const destinationAirport = (searchParams.get("arrivalAirport") || mappedArrivalAirport || "").toUpperCase();
+  const cityAirportGroup = getCityAirportGroup(city);
+  const groupedCandidates = getCanonicalArrivalAirportCandidates(city);
+  const arrivalAirportCandidates = groupedCandidates.length > 0
+    ? groupedCandidates
+    : destinationAirport ? [destinationAirport] : [];
+  const arrivalId = arrivalAirportCandidates.join(",");
   const checkIn = searchParams.get("checkIn") || "";
   const checkOut = searchParams.get("checkOut") || "";
   const adultsParam = searchParams.get("guests") || searchParams.get("adults");
@@ -357,18 +363,20 @@ export async function GET(request: Request) {
       { status: 400 }
     );
   }
-  const inputError = (!mappedArrivalAirport && !searchParams.get("arrivalAirport"))
+  const inputError = cityAirportGroup?.classification === "UNVERIFIED_AIRPORT_GROUP"
+    ? "도시권 공항 그룹이 아직 검증되지 않은 도시입니다."
+    : (!mappedArrivalAirport && !searchParams.get("arrivalAirport"))
     ? "등록되지 않은 도시입니다."
     : validateFlightInput({
         departureAirport,
-        arrivalAirport: destinationAirport,
+        arrivalAirport: arrivalAirportCandidates[0] || destinationAirport,
         outboundDate: checkIn,
         returnDate: checkOut,
         adults,
         travelClass,
         currency,
       });
-  if (inputError || !isSupportedAirport(destinationAirport)) {
+  if (inputError || arrivalAirportCandidates.length === 0 || arrivalAirportCandidates.some((iata) => !isSupportedAirport(iata))) {
     return NextResponse.json(
       { success: false, providerStatus: "INVALID_INPUT", message: inputError || "지원하지 않는 공항입니다.", offers: [] },
       { status: 400 }
@@ -403,13 +411,14 @@ export async function GET(request: Request) {
     const step1Params = new URLSearchParams({
       engine: "google_flights",
       departure_id: departureAirport,
-      arrival_id: destinationAirport,
+      arrival_id: arrivalId,
       outbound_date: checkIn,
       return_date: checkOut,
       type: "1", // Round trip
       adults: String(adults),
       travel_class: travelClass,
       currency,
+      sort_by: "2",
       hl: "ko",
       gl: "kr",
       api_key: serpApiKey,
@@ -425,7 +434,10 @@ export async function GET(request: Request) {
     const metadataId = step1Json.search_metadata?.id || null;
     const rawBest = step1Json.best_flights || [];
     const rawOther = step1Json.other_flights || [];
-    const allOutboundRaw = [...rawBest, ...rawOther];
+    const providerOrderedOutbound = [...rawBest, ...rawOther];
+    const allOutboundRaw = comparisonSearch
+      ? providerOrderedOutbound.toSorted((a, b) => (a.price ?? Number.MAX_SAFE_INTEGER) - (b.price ?? Number.MAX_SAFE_INTEGER))
+      : providerOrderedOutbound;
 
     if (allOutboundRaw.length === 0) {
       return NextResponse.json<FlightSearchResponse>({
@@ -454,7 +466,13 @@ export async function GET(request: Request) {
       const depToken = rawOutbound.departure_token;
       const initialPrice = rawOutbound.price || null;
 
-      const outboundSlice = parseSerpSlice(rawOutbound.flights || [], departureAirport, destinationAirport);
+      const outboundSlice = parseSerpSlice(rawOutbound.flights || [], departureAirport, arrivalAirportCandidates[0]);
+      const actualOutboundDestination = outboundSlice.destinationAirport.toUpperCase();
+      if (
+        outboundSlice.segments.length === 0 ||
+        outboundSlice.originAirport.toUpperCase() !== departureAirport ||
+        !arrivalAirportCandidates.includes(actualOutboundDestination)
+      ) continue;
       const firstLeg = rawOutbound.flights?.[0] || {};
       const ownerAirlineName = firstLeg.airline || "Google Flights Airline";
       const ownerAirlineCode = firstLeg.flight_number?.split(" ")[0] || "ZZ";
@@ -465,8 +483,9 @@ export async function GET(request: Request) {
       let bookingToken: string | null = null;
       let bookingOptionsLookupId: string | null = null;
 
-      const initialCollection = i < rawBest.length ? "best_flights" : "other_flights";
-      const initialIdx = i < rawBest.length ? i : i - rawBest.length;
+      const bestSourceIndex = rawBest.indexOf(rawOutbound);
+      const initialCollection = bestSourceIndex >= 0 ? "best_flights" : "other_flights";
+      const initialIdx = bestSourceIndex >= 0 ? bestSourceIndex : rawOther.indexOf(rawOutbound);
 
       let priceSource: FlightPriceSource = {
         stage: "initial_search",
@@ -481,13 +500,14 @@ export async function GET(request: Request) {
           const step2Params = new URLSearchParams({
             engine: "google_flights",
             departure_id: departureAirport,
-            arrival_id: destinationAirport,
+            arrival_id: arrivalId,
             outbound_date: checkIn,
             return_date: checkOut,
             type: "1",
             adults: String(adults),
             travel_class: travelClass,
             currency,
+            sort_by: "2",
             hl: "ko",
             gl: "kr",
             departure_token: depToken,
@@ -517,7 +537,7 @@ export async function GET(request: Request) {
             }
 
             if (selectedRet) {
-              inboundSlice = parseSerpSlice(selectedRet.flights || [], destinationAirport, departureAirport);
+              inboundSlice = parseSerpSlice(selectedRet.flights || [], actualOutboundDestination, departureAirport);
               if (selectedRet.price) {
                 finalComboPrice = selectedRet.price;
                 priceSource = {
@@ -538,6 +558,10 @@ export async function GET(request: Request) {
 
       // Only real SerpAPI inbound segments can make a selectable round-trip.
       if (!inboundSlice || inboundSlice.segments.length === 0) continue;
+      if (
+        !arrivalAirportCandidates.includes(inboundSlice.originAirport.toUpperCase()) ||
+        inboundSlice.destinationAirport.toUpperCase() !== departureAirport
+      ) continue;
 
       // Step 3 is deliberately lazy. The opaque lookup id keeps booking_token
       // server-side and lets the base round-trip render as soon as Step 2 succeeds.
@@ -545,7 +569,7 @@ export async function GET(request: Request) {
         bookingOptionsLookupId = registerBookingLookup({
           bookingToken,
           departureAirport,
-          destinationAirport,
+          destinationAirport: arrivalId,
           checkIn,
           checkOut,
           adults,
@@ -718,6 +742,22 @@ export async function GET(request: Request) {
       providerCallCount,
     }, { status: 500 });
   }
+}
+
+export const createFlightSearchCacheKey = (requestUrl: URL): string => {
+  const params = new URLSearchParams(requestUrl.searchParams);
+  const city = params.get("city") || params.get("arrivalAirport") || "";
+  const candidates = getCanonicalArrivalAirportCandidates(city);
+  if (candidates.length > 0) {
+    params.set("arrivalAirportCandidates", candidates.join(","));
+    params.delete("arrivalAirport");
+  }
+  params.sort();
+  return params.toString();
+};
+
+export async function GET(request: Request) {
+  return runFlightSearch(request);
 }
 
 export async function POST(request: Request) {

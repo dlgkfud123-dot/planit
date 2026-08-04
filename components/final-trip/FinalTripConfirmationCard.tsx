@@ -2,7 +2,7 @@
 
 import React from "react";
 import type { BookingSnapshot } from "../../types/booking";
-import { getKoreaAirport } from "../../data/airports";
+import { getAirportName, getKoreaAirport } from "../../data/airports";
 
 interface Props {
   destination: string;
@@ -62,6 +62,18 @@ export default function FinalTripConfirmationCard({ destination, bookingSnapshot
               <span style={{ fontSize: "12.5px", color: "#475569", display: "block", marginTop: "2px" }}>
                 {selectedFlight ? `출발: ${selectedFlight.outbound.departureTime} · ${getKoreaAirport(bookingSnapshot.departureAirport)?.name || bookingSnapshot.departureAirport} (${bookingSnapshot.departureAirport})` : ""}
               </span>
+              {selectedFlight && (
+                <span style={{ fontSize: "12.5px", color: "#475569", display: "block", marginTop: "2px" }}>
+                  출국 {getAirportName(selectedFlight.outbound.originAirport)} ({selectedFlight.outbound.originAirport}) → {getAirportName(selectedFlight.outbound.destinationAirport)} ({selectedFlight.outbound.destinationAirport})
+                  <br />
+                  귀국 {getAirportName(selectedFlight.inbound?.originAirport || "")} ({selectedFlight.inbound?.originAirport}) → {getAirportName(selectedFlight.inbound?.destinationAirport || "")} ({selectedFlight.inbound?.destinationAirport})
+                </span>
+              )}
+              {selectedFlight?.inbound && selectedFlight.outbound.destinationAirport !== selectedFlight.inbound.originAirport && (
+                <span style={{ fontSize: "12px", color: "#92400E", display: "block", marginTop: "4px" }}>
+                  출국 도착 공항과 귀국 출발 공항이 다릅니다.
+                </span>
+              )}
             </div>
 
             {/* 3. 선택 숙소 */}

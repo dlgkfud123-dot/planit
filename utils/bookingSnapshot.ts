@@ -1,6 +1,7 @@
 import type { BookingSnapshot } from "../types/booking";
 import type { FlightOffer, TravelBudgetSummary } from "../types/flight";
 import type { HotelOffer } from "../types/hotel";
+import { getCanonicalArrivalAirportCandidates } from "../data/airports.ts";
 
 export const BOOKING_SNAPSHOT_KEY = "eyria:booking-snapshot:v1";
 
@@ -25,6 +26,12 @@ export function createBookingSnapshot(input: SnapshotInput, now = new Date().toI
   const inbound = flight.inbound;
   if (!input.draftId || !input.destinationId || !input.checkIn || !input.checkOut || input.passengerCount <= 0) return null;
   if (!inbound || inbound.segments.length === 0 || flight.outbound.segments.length === 0) return null;
+  if (flight.outbound.originAirport !== inbound.destinationAirport) return null;
+  const cityAirports = getCanonicalArrivalAirportCandidates(input.destinationId);
+  if (cityAirports.length > 0 && (
+    !cityAirports.includes(flight.outbound.destinationAirport) ||
+    !cityAirports.includes(inbound.originAirport)
+  )) return null;
   if (flight.price.payableTotal === null || hotel.price.payableTotal === null) return null;
   if (flight.price.currency.toUpperCase() !== hotel.price.currency.toUpperCase()) return null;
   if (budgetSummary.budgetStatus === "incomplete" || budgetSummary.passengerCount !== input.passengerCount) return null;
