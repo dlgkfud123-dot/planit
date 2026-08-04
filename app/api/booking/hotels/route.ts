@@ -301,12 +301,32 @@ function computeTripScoreAndReasons(
   let budgetMatchScore = 50;
   let priceDiff = 0;
 
+  // Target price ratio range based on travelStyle & budget
+  let targetMinRatio = 0.55;
+  let targetMaxRatio = 0.95;
+  if (travelStyle === "budget") {
+    targetMinRatio = 0.30;
+    targetMaxRatio = 0.85;
+  } else if (travelStyle === "premium") {
+    targetMinRatio = 0.70;
+    targetMaxRatio = 1.00;
+  }
+
   if (payable <= lodgingBudget) {
-    priceDiff = lodgingBudget - payable;
-    budgetMatchScore = Math.min(100, 80 + Math.round((priceDiff / 10000)));
+    const ratio = payable / Math.max(1, lodgingBudget);
+    if (ratio >= targetMinRatio && ratio <= targetMaxRatio) {
+      const mid = (targetMinRatio + targetMaxRatio) / 2;
+      const dev = Math.abs(ratio - mid);
+      budgetMatchScore = Math.min(100, Math.round(92 + (1 - dev) * 8));
+    } else if (ratio < targetMinRatio) {
+      budgetMatchScore = Math.max(50, Math.round(90 - ((targetMinRatio - ratio) * 60)));
+    } else {
+      budgetMatchScore = Math.max(75, Math.round(92 - ((ratio - targetMaxRatio) * 50)));
+    }
   } else {
     priceDiff = payable - lodgingBudget;
-    budgetMatchScore = Math.max(0, 60 - Math.round((priceDiff / 10000)));
+    const excessRatio = priceDiff / Math.max(1, lodgingBudget);
+    budgetMatchScore = Math.max(0, Math.round(65 - (excessRatio * 100)));
   }
 
   const cityAccessScore = Math.max(0, Math.min(100, Math.round(100 - (distanceFromCenterKm * 6))));
@@ -592,26 +612,29 @@ async function executeHotelSearch(
         candidatesCount = candidateHotels.length;
 
         if (candidateHotels.length > 0) {
-          // Sort candidates by distance from city center & pick top 10
+          // Sort candidates by List metadata (combining distance & quality indicators)
           const sortedCandidates = candidateHotels
-            .map((h: LiteApiHotelRaw) => ({
-              ...h,
-              dist: calculateHaversineDistance(centerLat, centerLng, h.latitude, h.longitude)
-            }))
-            .sort((a, b) => a.dist - b.dist)
+            .map((h: LiteApiHotelRaw) => {
+              const dist = calculateHaversineDistance(centerLat, centerLng, h.latitude, h.longitude);
+              const starRating = (h as { rating?: number; stars?: number }).rating || (h as { rating?: number; stars?: number }).stars || 3;
+              const hasPhoto = Boolean((h as { main_photo?: string; photo?: string }).main_photo || (h as { main_photo?: string; photo?: string }).photo);
+              const listScore = Math.max(0, 100 - dist * 6) * 0.65 + (starRating * 15) + (hasPhoto ? 10 : 0);
+              return { ...h, dist, listScore };
+            })
+            .sort((a, b) => b.listScore - a.listScore)
             .slice(0, 10);
 
           ratesRequestedCount = sortedCandidates.length;
           const candidateIds = sortedCandidates.map((h) => h.id || h.hotelId);
 
-          // Check Cache
-          const cacheKey = `rates_${city}_${checkIn}_${checkOut}_${adults}_${rooms}_${currency}_${candidateIds.join(",")}`;
+          // Cache Key incorporates budget threshold and travel style to guarantee distinct recommendations per budget
+          const cacheKey = `rates_${city}_${checkIn}_${checkOut}_${adults}_${rooms}_${currency}_${lodgingBudgetThreshold}_${travelStyle}_${candidateIds.join(",")}`;
           let ratesList = getCachedRates(cacheKey);
 
           if (ratesList) {
             cacheHit = true;
           } else {
-            // Fetch Rates for top 10 candidate IDs
+            // Fetch Rates for selected candidate IDs
             const occupancies = Array.from({ length: rooms }, (_, index) => ({
               adults: index === 0 ? adults - rooms + 1 : 1,
               childrenAges: [] as number[],
@@ -638,18 +661,59 @@ async function executeHotelSearch(
           }
 
           if (ratesList && Array.isArray(ratesList)) {
-            const finalCandidates = sortedCandidates
+            const scoredCandidates = sortedCandidates
               .map((candidate) => {
                 const pId = String(candidate.id || candidate.hotelId);
                 const rateMatch = ratesList.find((rate) => String(rate.hotelId || rate.id) === pId);
                 const roomType = rateMatch?.roomTypes?.[0] || rateMatch?.offers?.[0];
                 const rateInfo = roomType?.rates?.[0];
-                const payableTotal = roomType && rateInfo ? parseNormalizedPrice(roomType, rateInfo).payableTotal : null;
-                return { candidate, rateMatch, payableTotal };
+                const price = roomType && rateInfo ? parseNormalizedPrice(roomType, rateInfo) : null;
+                const payableTotal = price?.payableTotal ?? null;
+                if (!rateMatch || payableTotal === null || price === null) return null;
+
+                const provScore = computeTripScoreAndReasons(
+                  candidate.latitude,
+                  candidate.longitude,
+                  candidate.dist,
+                  price,
+                  null,
+                  normalizeHotelAddress(candidate.address),
+                  lodgingBudgetThreshold,
+                  travelStyle,
+                  itineraryPlaces,
+                  transitMode
+                ).tripScore;
+
+                return { candidate, rateMatch, payableTotal, provScore };
               })
-              .filter((item): item is { candidate: typeof sortedCandidates[number]; rateMatch: LiteApiRateRaw; payableTotal: number } => Boolean(item.rateMatch) && item.payableTotal !== null)
-              .sort((a, b) => a.payableTotal - b.payableTotal || a.candidate.dist - b.candidate.dist)
-              .slice(0, 6);
+              .filter((item): item is NonNullable<typeof item> => item !== null);
+
+            // Tier 1: Within Budget (Sorted by highest Trip Score for this specific budget & target price range)
+            const withinBudget = scoredCandidates
+              .filter((item) => item.payableTotal <= lodgingBudgetThreshold)
+              .sort((a, b) => b.provScore - a.provScore || a.candidate.dist - b.candidate.dist);
+
+            // Tier 2: Close to Budget (within 30% excess, sorted by excess ratio & Trip Score)
+            const closeToBudget = scoredCandidates
+              .filter((item) => item.payableTotal > lodgingBudgetThreshold && item.payableTotal <= lodgingBudgetThreshold * 1.3)
+              .sort((a, b) => {
+                const ratioA = (a.payableTotal - lodgingBudgetThreshold) / lodgingBudgetThreshold;
+                const ratioB = (b.payableTotal - lodgingBudgetThreshold) / lodgingBudgetThreshold;
+                if (Math.abs(ratioA - ratioB) > 0.05) return ratioA - ratioB;
+                return b.provScore - a.provScore;
+              });
+
+            // Tier 3: Over Budget (sorted by excess ratio & location score)
+            const overBudget = scoredCandidates
+              .filter((item) => item.payableTotal > lodgingBudgetThreshold * 1.3)
+              .sort((a, b) => {
+                const ratioA = (a.payableTotal - lodgingBudgetThreshold) / lodgingBudgetThreshold;
+                const ratioB = (b.payableTotal - lodgingBudgetThreshold) / lodgingBudgetThreshold;
+                if (Math.abs(ratioA - ratioB) > 0.05) return ratioA - ratioB;
+                return b.provScore - a.provScore;
+              });
+
+            const finalCandidates = [...withinBudget, ...closeToBudget, ...overBudget].slice(0, 6);
 
             const detailCandidates = finalCandidates.slice(0, HOTEL_DETAIL_LIMIT);
             detailRequestedCount = detailCandidates.length;
@@ -697,9 +761,9 @@ async function executeHotelSearch(
   const budgetExceededHotels = liteApiHotels
     .filter((h) => h.price.payableTotal !== null && h.price.payableTotal > lodgingBudgetThreshold)
     .sort((a, b) => {
-      const excessA = (a.price.payableTotal || 0) - lodgingBudgetThreshold;
-      const excessB = (b.price.payableTotal || 0) - lodgingBudgetThreshold;
-      if (Math.abs(excessA - excessB) > 20000) return excessA - excessB;
+      const ratioA = ((a.price.payableTotal || 0) - lodgingBudgetThreshold) / lodgingBudgetThreshold;
+      const ratioB = ((b.price.payableTotal || 0) - lodgingBudgetThreshold) / lodgingBudgetThreshold;
+      if (Math.abs(ratioA - ratioB) > 0.05) return ratioA - ratioB;
       return b.tripScore - a.tripScore;
     });
 

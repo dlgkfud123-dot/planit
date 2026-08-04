@@ -47,11 +47,11 @@ const airportComparisonStatusText = (status: AirportComparisonStatus) => {
 
 export function flightStatusMessage(status: string): string {
   if (status === "INVALID_INPUT") return "항공편 검색 조건을 확인해주세요.";
-  if (status === "RATE_LIMITED") return "항공편 조회 한도를 초과했습니다. 잠시 후 다시 시도해주세요.";
+  if (status === "RATE_LIMITED") return "현재 실시간 항공권 조회를 이용할 수 없습니다.";
   if (status === "TIMEOUT") return "항공편 조회가 지연되고 있습니다. 잠시 후 다시 시도해주세요.";
   if (status === "AUTH_FAILED" || status === "PROVIDER_ERROR" || status === "UNAVAILABLE") return "현재 항공편 정보를 불러올 수 없습니다.";
   if (status === "NO_FLIGHTS_FOUND") return "현재 조건에서 검색 가능한 항공편이 없습니다.";
-  return "항공편 조회 중 오류가 발생했습니다.";
+  return "현재 실시간 항공권 조회를 이용할 수 없습니다.";
 }
 
 export function hotelStatusMessage(status: string): string {
@@ -149,6 +149,8 @@ export default function BookingApp() {
   const [flightsError, setFlightsError] = useState<string | null>(null);
   const [flightsStatus, setFlightsStatus] = useState<string | null>(null);
   const [flightRetryKey, setFlightRetryKey] = useState(0);
+  const [flightRetryAt, setFlightRetryAt] = useState<number | null>(null);
+  const [flightRetrySeconds, setFlightRetrySeconds] = useState(0);
   const [sellerOptionStates, setSellerOptionStates] = useState<Record<string, { status: "idle" | "loading" | "loaded" | "empty" | "error"; message?: string }>>({});
 
   const [requeryStatus, setRequeryStatus] = useState<string | null>(null);
@@ -166,6 +168,19 @@ export default function BookingApp() {
     }, 250);
     return () => window.clearInterval(timer);
   }, [hotelRetryAt]);
+
+  useEffect(() => {
+    if (flightRetryAt === null) return;
+    const timer = window.setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((flightRetryAt - Date.now()) / 1000));
+      setFlightRetrySeconds(remaining);
+      if (remaining === 0) {
+        setFlightRetryAt(null);
+        window.clearInterval(timer);
+      }
+    }, 250);
+    return () => window.clearInterval(timer);
+  }, [flightRetryAt]);
 
   useEffect(() => {
     let cancelled = false;
@@ -323,11 +338,23 @@ export default function BookingApp() {
           const matchedHotels: HotelOffer[] = data.budgetMatchedHotels || [];
           const exceededHotels: HotelOffer[] = data.budgetExceededHotels || [];
           const restoredHotel = restoredBookingRef.current?.selectedHotel;
-          const initialHotels = restoredHotel
-            ? [restoredHotel, ...matchedHotels, ...exceededHotels].filter((hotel, index, hotels) => hotels.findIndex((item) => item.providerHotelId === hotel.providerHotelId) === index).slice(0, 3)
-            : [...matchedHotels, ...exceededHotels].slice(0, 3);
-          const mergedMatchedHotels = initialHotels.filter((hotel) => hotel.price.payableTotal !== null && hotel.price.payableTotal <= lodgingBudgetThreshold);
-          const mergedExceededHotels = initialHotels.filter((hotel) => hotel.price.payableTotal !== null && hotel.price.payableTotal > lodgingBudgetThreshold);
+
+          let mergedMatchedHotels = [...matchedHotels];
+          let mergedExceededHotels = [...exceededHotels];
+
+          if (restoredHotel) {
+            const isRestoredMatched = restoredHotel.price.payableTotal !== null && restoredHotel.price.payableTotal <= lodgingBudgetThreshold;
+            if (isRestoredMatched) {
+              if (!mergedMatchedHotels.some((h) => h.providerHotelId === restoredHotel.providerHotelId)) {
+                mergedMatchedHotels = [restoredHotel, ...mergedMatchedHotels];
+              }
+            } else {
+              if (!mergedExceededHotels.some((h) => h.providerHotelId === restoredHotel.providerHotelId)) {
+                mergedExceededHotels = [restoredHotel, ...mergedExceededHotels];
+              }
+            }
+          }
+
           setBudgetMatchedHotels(mergedMatchedHotels);
           setBudgetExceededHotels(mergedExceededHotels);
           setHotelDetailLookupId(typeof data.hotelDetailLookupId === "string" ? data.hotelDetailLookupId : null);
@@ -455,6 +482,10 @@ export default function BookingApp() {
           setBudgetMatchedFlights([]);
           setBudgetExceededFlights([]);
           const status = data.providerStatus || data.flightApiStatus || data.status || "INTERNAL_ERROR";
+          if (status === "RATE_LIMITED") {
+            console.warn("[Flight Search API] Provider RATE_LIMITED status received for debugging:", { status, message: data.message });
+            setFlightRetryAt(Date.now() + 5000);
+          }
           setFlightsStatus(status);
           setFlightsError(departureMode === "compare" && typeof data.message === "string" ? data.message : flightStatusMessage(status));
         }
@@ -1391,6 +1422,11 @@ export default function BookingApp() {
                 <span className="locationApiBadgeTag" style={{ whiteSpace: "nowrap", background: "#EFF6FF", color: "#1D4ED8" }}>
                   Google Flights Live Search (SerpAPI)
                 </span>
+                {process.env.NODE_ENV !== "production" && (
+                  <span className="locationApiBadgeTag" style={{ whiteSpace: "nowrap", background: "#FEF3C7", color: "#92400E", border: "1px solid #FCD34D" }}>
+                    ⚡ 항공 테스트 Replay 데이터 사용 중 (FLIGHT_DATA_MODE=replay)
+                  </span>
+                )}
               </div>
               <p style={{ wordBreak: "keep-all", color: "#475569" }}>
                 {departureMode === "compare"
@@ -1482,21 +1518,25 @@ export default function BookingApp() {
           {!flightsLoading && (flightsError || allFlightsList.length === 0) && (
             <div className="hotelsStateBox emptyStateError" style={{ padding: "24px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: "12px" }}>
               <h3 style={{ margin: 0, fontSize: "16px", color: "#1E40AF", fontWeight: 800 }}>
-                {flightsError || flightStatusMessage("NO_FLIGHTS_FOUND")}
+                {flightsStatus === "RATE_LIMITED" || flightsError?.includes("한도")
+                  ? "현재 실시간 항공권 조회를 이용할 수 없습니다."
+                  : (flightsError || flightStatusMessage(flightsStatus || "NO_FLIGHTS_FOUND"))}
               </h3>
-              <div style={{ marginTop: "6px", fontSize: "12px", color: "#1E3A8A" }}>SerpAPI Google Flights · Status: {flightsStatus || "NO_FLIGHTS_FOUND"}</div>
+              <p style={{ marginTop: "6px", fontSize: "13px", color: "#1E3A8A", margin: "6px 0 0 0" }}>
+                잠시 후 다시 시도해 주세요.
+              </p>
               <button
                 type="button"
-                disabled={flightsLoading}
+                disabled={flightsLoading || flightRetrySeconds > 0}
                 onClick={() => {
-                  if (flightsLoading) return;
+                  if (flightsLoading || flightRetrySeconds > 0) return;
                   setFlightsError(null);
                   setFlightsStatus(null);
                   setFlightRetryKey((key) => key + 1);
                 }}
-                style={{ minHeight: "44px", marginTop: "14px", padding: "10px 18px", borderRadius: "8px", border: "1px solid #2563EB", background: "#FFFFFF", color: "#1D4ED8", fontWeight: 800, cursor: "pointer" }}
+                style={{ minHeight: "44px", marginTop: "14px", padding: "10px 18px", borderRadius: "8px", border: "1px solid #2563EB", background: flightsLoading || flightRetrySeconds > 0 ? "#E2E8F0" : "#FFFFFF", color: flightsLoading || flightRetrySeconds > 0 ? "#94A3B8" : "#1D4ED8", fontWeight: 800, cursor: flightsLoading || flightRetrySeconds > 0 ? "not-allowed" : "pointer" }}
               >
-                항공편 다시 조회
+                {flightRetrySeconds > 0 ? `${flightRetrySeconds}초 후 다시 시도 가능` : "항공편 다시 조회"}
               </button>
             </div>
           )}
