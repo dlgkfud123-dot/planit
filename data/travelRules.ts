@@ -6,7 +6,7 @@ export const stylePriority:Record<string,PlaceCategory[]>={
   "문화 중심":["culture","landmark","market","nature","food","shopping"],
   "문화 · 예술":["culture","landmark","market","nature","food","shopping"],
   "자연 중심":["nature","landmark","culture","market","food","shopping"],
-  "자연 · 도시":["nature","landmark","culture","market","food","shopping"],
+  "자연 · 도시":["landmark","culture","food","shopping","nature","market"],
   "쇼핑 중심":["shopping","market","food","landmark","culture","nature"],
   "쇼핑 · 트렌드":["shopping","market","food","landmark","culture","nature"]
 };
@@ -16,6 +16,11 @@ export const paceRules={
   2:{startHour:9,endHour:20,placesPerDay:4,breakMinutes:25,maxDailyTravelKm:18},
   3:{startHour:8,endHour:22,placesPerDay:5,breakMinutes:15,maxDailyTravelKm:26}
 } as const;
+
+export const itineraryCandidatePoolMultiplier = 4;
+export const itineraryWeightedChoiceSize = 8;
+export const dailyTravelBudgetKm: Record<1 | 2 | 3, number> = { 1: 10, 2: 15, 3: 20 };
+export const maximumSingleLegKm: Record<1 | 2 | 3, number> = { 1: 8, 2: 12, 3: 15 };
 
 export const preferredTimeOrder:Record<"morning"|"afternoon"|"evening"|"any",number>={morning:0,any:1,afternoon:2,evening:3};
 
