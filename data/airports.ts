@@ -7,6 +7,7 @@ export type CityAirportGroup = {
   primaryAirport: string;
   classification: "SINGLE_AIRPORT_CITY" | "MULTI_AIRPORT_CITY" | "UNVERIFIED_AIRPORT_GROUP";
   airportRoles: Record<string, "PRIMARY" | "SECONDARY" | "LOW_COST_ALTERNATIVE">;
+  airportAccess: "CITY_AIRPORT" | "GATEWAY_AIRPORT";
 };
 
 export type Airport = {
@@ -86,6 +87,9 @@ export const AIRPORT_COORDINATES: Record<string, AirportCoordinates> = {
   YYZ: { latitude: 43.6777, longitude: -79.6248 },
   SYD: { latitude: -33.9399, longitude: 151.1753 },
   AKL: { latitude: -37.0082, longitude: 174.785 },
+  DAD: { latitude: 16.0439, longitude: 108.1994 },
+  HAN: { latitude: 21.2212, longitude: 105.8072 },
+  SGN: { latitude: 10.8188, longitude: 106.6519 },
 };
 
 export const AIRPORT_NAMES: Record<string, string> = {
@@ -104,15 +108,17 @@ export const AIRPORT_NAMES: Record<string, string> = {
   BCN: "바르셀로나 엘프라트공항", AMS: "스키폴공항", LAX: "로스앤젤레스국제공항",
   SFO: "샌프란시스코국제공항", HNL: "호놀룰루국제공항", YYZ: "토론토 피어슨국제공항",
   SYD: "시드니공항", AKL: "오클랜드공항",
+  DAD: "다낭국제공항", HAN: "노이바이국제공항", SGN: "떤선녓국제공항",
 };
 
-const group = (cityId: string, cityNames: string[], airports: string[], classification: CityAirportGroup["classification"], lowCost: string[] = []): CityAirportGroup => ({
+const group = (cityId: string, cityNames: string[], airports: string[], classification: CityAirportGroup["classification"], lowCost: string[] = [], airportAccess: CityAirportGroup["airportAccess"] = "CITY_AIRPORT"): CityAirportGroup => ({
   cityId,
   cityNames,
   arrivalAirportCandidates: airports,
   primaryAirport: airports[0] || "",
   classification,
   airportRoles: Object.fromEntries(airports.map((iata, index) => [iata, index === 0 ? "PRIMARY" : lowCost.includes(iata) ? "LOW_COST_ALTERNATIVE" : "SECONDARY"])),
+  airportAccess,
 });
 
 export const CITY_AIRPORT_GROUPS: CityAirportGroup[] = [
@@ -136,23 +142,23 @@ export const CITY_AIRPORT_GROUPS: CityAirportGroup[] = [
   group("bangkok", ["방콕", "BANGKOK"], ["BKK", "DMK"], "MULTI_AIRPORT_CITY", ["DMK"]),
   group("phuket", ["푸껫", "PHUKET"], ["HKT"], "UNVERIFIED_AIRPORT_GROUP"),
   group("chiang-mai", ["치앙마이", "CHIANG MAI"], ["CNX"], "UNVERIFIED_AIRPORT_GROUP"),
-  group("da-nang", ["다낭", "DA NANG"], ["DAD"], "UNVERIFIED_AIRPORT_GROUP"),
-  group("hanoi", ["하노이", "HANOI"], ["HAN"], "UNVERIFIED_AIRPORT_GROUP"),
-  group("ho-chi-minh", ["호찌민", "HO CHI MINH"], ["SGN"], "UNVERIFIED_AIRPORT_GROUP"),
+  group("da-nang", ["다낭", "DA NANG", "DANANG"], ["DAD"], "SINGLE_AIRPORT_CITY"),
+  group("hanoi", ["하노이", "HANOI"], ["HAN"], "SINGLE_AIRPORT_CITY"),
+  group("ho-chi-minh", ["호찌민", "호치민", "HO CHI MINH CITY", "HO CHI MINH"], ["SGN"], "SINGLE_AIRPORT_CITY"),
   group("bali", ["발리", "BALI"], ["DPS"], "UNVERIFIED_AIRPORT_GROUP"),
   group("dubai", ["두바이", "DUBAI"], ["DXB", "DWC"], "UNVERIFIED_AIRPORT_GROUP", ["DWC"]),
   group("abu-dhabi", ["아부다비", "ABU DHABI"], ["AUH"], "UNVERIFIED_AIRPORT_GROUP"),
   group("istanbul", ["이스탄불", "ISTANBUL"], ["IST", "SAW"], "UNVERIFIED_AIRPORT_GROUP", ["SAW"]),
-  group("cappadocia", ["카파도키아", "CAPPADOCIA"], ["NAV", "ASR"], "UNVERIFIED_AIRPORT_GROUP"),
+  group("cappadocia", ["카파도키아", "CAPPADOCIA"], ["NAV", "ASR"], "UNVERIFIED_AIRPORT_GROUP", [], "GATEWAY_AIRPORT"),
   group("antalya", ["안탈리아", "ANTALYA"], ["AYT"], "UNVERIFIED_AIRPORT_GROUP"),
   group("london", ["런던", "LONDON"], ["LHR", "LGW", "STN", "LTN", "LCY"], "MULTI_AIRPORT_CITY", ["STN", "LTN"]),
   group("rome", ["로마", "ROME"], ["FCO", "CIA"], "UNVERIFIED_AIRPORT_GROUP", ["CIA"]),
-  group("interlaken", ["인터라켄", "INTERLAKEN"], [], "UNVERIFIED_AIRPORT_GROUP"),
+  group("interlaken", ["인터라켄", "INTERLAKEN"], [], "UNVERIFIED_AIRPORT_GROUP", [], "GATEWAY_AIRPORT"),
   group("nice", ["니스", "NICE"], ["NCE"], "UNVERIFIED_AIRPORT_GROUP"),
   group("lyon", ["리옹", "LYON"], ["LYS"], "UNVERIFIED_AIRPORT_GROUP"),
   group("bordeaux", ["보르도", "BORDEAUX"], ["BOD"], "UNVERIFIED_AIRPORT_GROUP"),
   group("zurich", ["취리히", "ZURICH"], ["ZRH"], "SINGLE_AIRPORT_CITY"),
-  group("lucerne", ["루체른", "LUCERNE"], [], "UNVERIFIED_AIRPORT_GROUP"),
+  group("lucerne", ["루체른", "LUCERNE"], [], "UNVERIFIED_AIRPORT_GROUP", [], "GATEWAY_AIRPORT"),
   group("geneva", ["제네바", "GENEVA"], ["GVA"], "UNVERIFIED_AIRPORT_GROUP"),
   group("venice", ["베네치아", "VENICE"], ["VCE", "TSF"], "UNVERIFIED_AIRPORT_GROUP", ["TSF"]),
   group("florence", ["피렌체", "FLORENCE"], ["FLR"], "UNVERIFIED_AIRPORT_GROUP"),
@@ -219,6 +225,9 @@ export const CITY_AIRPORT_IATA: Record<string, string> = {
   토론토: "YYZ",
   시드니: "SYD",
   오클랜드: "AKL",
+  다낭: "DAD",
+  하노이: "HAN",
+  호찌민: "SGN",
 };
 
 export const isSupportedAirport = (iata: string) =>
@@ -241,6 +250,16 @@ export const getCanonicalArrivalAirportCandidates = (city: string): string[] => 
   const cityGroup = getCityAirportGroup(city);
   if (!cityGroup || cityGroup.classification === "UNVERIFIED_AIRPORT_GROUP") return [];
   return [...cityGroup.arrivalAirportCandidates].sort();
+};
+
+export const isBookingReadyAirportGroup = (city: string): boolean => {
+  const cityGroup = getCityAirportGroup(city);
+  return Boolean(
+    cityGroup &&
+    cityGroup.classification !== "UNVERIFIED_AIRPORT_GROUP" &&
+    cityGroup.arrivalAirportCandidates.length > 0 &&
+    cityGroup.arrivalAirportCandidates.every(isSupportedAirport)
+  );
 };
 
 export const getAirportName = (iata: string): string => AIRPORT_NAMES[iata.toUpperCase()] ?? iata.toUpperCase();

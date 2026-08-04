@@ -18,10 +18,10 @@ import {
   type PackageCombo,
   type OverBudgetAlternative,
 } from "../../utils/packageBudgetEngine";
-import { cityByName } from "../../data/cities";
-import { DEFAULT_FLIGHT_COMPARISON_AIRPORTS, getCityAirportIata, getKoreaAirport, isSupportedAirport, KOREA_AIRPORTS } from "../../data/airports";
+import { DEFAULT_FLIGHT_COMPARISON_AIRPORTS, getKoreaAirport, KOREA_AIRPORTS } from "../../data/airports";
+import { resolveBookingDestinationContext } from "../../utils/bookingDestinationContext";
 
-const DESTINATION_ERROR = "여행 목적지 정보가 없습니다. 일정 페이지에서 목적지를 다시 선택해주세요.";
+const DESTINATION_MISSING_MESSAGE = "여행 목적지 정보가 없습니다. 일정 페이지에서 목적지를 다시 선택해주세요.";
 
 type DepartureMode = "direct" | "compare";
 type AirportComparisonStatus = "SEARCHING" | "AVAILABLE_DIRECT" | "AVAILABLE_CONNECTING" | "NO_FLIGHTS_FOUND" | "PROVIDER_ERROR" | "TIMEOUT" | "RATE_LIMITED";
@@ -173,12 +173,12 @@ export default function BookingApp() {
     if (cancelled) return;
     if (typeof window === "undefined") return;
     const q = new URLSearchParams(window.location.search);
-    const destParam = q.get("dest");
     const draftParam = q.get("draft");
     const savedParam = q.get("saved");
     const daysParam = q.get("days");
 
-    let targetDest = destParam || "";
+    let targetDest = "";
+    let draftFound = false;
     let targetNights = 0;
     let targetPeople = 0;
     let targetBudget = "";
@@ -189,7 +189,8 @@ export default function BookingApp() {
 
     if (draftParam) {
       const snap = readDraftById(draftParam);
-      if (snap && snap.destination) {
+      if (snap && snap.id === draftParam && snap.destination) {
+        draftFound = true;
         draftSnapshotRef.current = snap;
         targetDest = snap.destination;
         if (snap.plan && snap.plan.length > 0) {
@@ -226,24 +227,27 @@ export default function BookingApp() {
       }
     }
 
-    const city = cityByName[targetDest] || cityByName[targetDest.toLowerCase()];
-    const targetArrivalAirport = getCityAirportIata(targetDest);
-    const hasValidContext = Boolean(
-      draftParam && targetDest && city && Number.isFinite(city.lat) && Number.isFinite(city.lon) &&
-      targetArrivalAirport && isSupportedAirport(targetArrivalAirport) && isSupportedAirport("ICN") &&
-      targetCheckIn && targetCheckOut && targetPeople >= 1 && targetNumBudget > 0 &&
-      (!destParam || destParam === targetDest)
-    );
-    if (!hasValidContext) {
-      setContextError(DESTINATION_ERROR);
+    const bookingContext = resolveBookingDestinationContext({
+      draftRequested: Boolean(draftParam),
+      draftFound,
+      destination: targetDest,
+      checkIn: targetCheckIn,
+      checkOut: targetCheckOut,
+      travelers: targetPeople,
+      budget: targetNumBudget,
+    });
+    if (!bookingContext.ok) {
+      setContextError(bookingContext.code === "DESTINATION_MISSING" ? DESTINATION_MISSING_MESSAGE : bookingContext.message);
       setContextReady(false);
       setHotelsLoading(false);
       setFlightsLoading(false);
       return;
     }
 
+    targetDest = bookingContext.canonicalCityId;
+    const targetArrivalAirport = bookingContext.arrivalAirports[0];
     setDestination(targetDest);
-    setArrivalAirport(targetArrivalAirport || "");
+    setArrivalAirport(targetArrivalAirport);
     setNights(targetNights);
     setTravelers(targetPeople);
     setTotalUserBudget(targetNumBudget);

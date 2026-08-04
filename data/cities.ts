@@ -3276,11 +3276,29 @@ for (const city of cities) {
   if (verifiedImage) city.image = verifiedImage;
 }
 
+const cityAliases: Record<string, string> = {
+  "호치민": "호찌민",
+  "ho chi minh": "호찌민",
+  "ho chi minh city": "호찌민",
+  "hanoi": "하노이",
+  "da nang": "다낭",
+  "danang": "다낭",
+  "venice": "베네치아",
+  "florence": "피렌체",
+  "munich": "뮌헨",
+};
+
+const aliasEntries = Object.entries(cityAliases).flatMap(([alias, canonicalName]) => {
+  const city = cities.find((candidate) => candidate.name === canonicalName);
+  return city ? [[alias, city] as const, [alias.toUpperCase(), city] as const] : [];
+});
+
 export const cityByName = Object.fromEntries([
   ...cities.map((city) => [city.name, city]),
   ...cities.map((city) => [city.name.toLowerCase(), city]),
   ...cities.map((city) => [city.en.toLowerCase(), city]),
   ...cities.map((city) => [city.en.toUpperCase(), city]),
+  ...aliasEntries,
 ]);
 export const supportedCityIds = cities.map((city) => city.name);
 
@@ -3300,3 +3318,4 @@ export function findCity(cityName: string): TravelCity | undefined {
   );
 }
 
+export const getCanonicalCityId = (cityName: string): string | null => findCity(cityName)?.name ?? null;

@@ -7,6 +7,7 @@ import Link from "next/link";
 import Footer from "../layout/Footer";
 import dynamic from "next/dynamic";
 import { cities, supportedCityIds, type TravelCity } from "../../data/cities";
+import { isBookingReadyAirportGroup } from "../../data/airports";
 import { generateItinerary } from "../../utils/itineraryGenerator";
 import { writeDraftById, type TripSnapshot } from "../../utils/tripStorage";
 import { fetchWeatherData } from "../../utils/weatherService";
@@ -24,7 +25,7 @@ import BrandOpeningIntro from "../intro/BrandOpeningIntro";
 export { cities } from "../../data/cities";
 
 const supportedCityNames = new Set(supportedCityIds);
-const availableCities = cities.filter((city) => supportedCityNames.has(city.name));
+const availableCities = cities.filter((city) => supportedCityNames.has(city.name) && isBookingReadyAirportGroup(city.name));
 
 const continentGroups: { continent: string; countries: string[] }[] = [
   {
