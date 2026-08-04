@@ -34,8 +34,10 @@ type LiteApiHotelRaw = {
   latitude: number;
   longitude: number;
   dist?: number;
+  address?: string | { line1?: string };
 };
 type LiteApiHotelDetailRaw = LiteApiHotelRaw & {
+  main_photo?: string;
   mainPhoto?: string;
   imageUrl?: string;
   hotelImages?: Array<{ url?: string }>;
@@ -74,10 +76,42 @@ const HOTEL_LIST_TTL_MS = 60 * 60 * 1000;
 const HOTEL_DETAIL_TTL_MS = 6 * 60 * 60 * 1000;
 const HOTEL_RADIUS_METERS = 20_000;
 const HOTEL_DETAIL_LIMIT = 3;
+const HOTEL_DEFERRED_BATCH_LIMIT = 3;
+const HOTEL_DEFERRED_LOOKUP_TTL_MS = CACHE_TTL_MS;
 const HOTEL_DETAIL_TIMEOUT_MS = 3_000;
 const OSM_REQUEST_TIMEOUT_MS = 1_500;
 
 type HotelSearchResult = Awaited<ReturnType<typeof executeHotelSearch>>;
+type HotelOfferContext = {
+  city: string;
+  checkIn: string;
+  checkOut: string;
+  adults: number;
+  rooms: number;
+  lodgingBudgetThreshold: number;
+  travelStyle: TravelStyle;
+  itineraryPlaces: Array<{ name: string; lat: number; lng: number; day?: number }>;
+  transitMode: "transit" | "walk" | "drive";
+  centerLat: number;
+  centerLng: number;
+};
+type DeferredHotelCandidate = { candidate: LiteApiHotelRaw; rate: LiteApiRateRaw };
+type DeferredHotelLookupResult = {
+  success: true;
+  hotels: HotelOffer[];
+  hasMoreHotels: boolean;
+  attemptedCount: number;
+  externalDetailCallCount: number;
+  detailCacheHitCount: number;
+};
+type DeferredHotelLookupEntry = {
+  createdAt: number;
+  nextIndex: number;
+  candidates: DeferredHotelCandidate[];
+  context: HotelOfferContext;
+  inFlight: Promise<DeferredHotelLookupResult> | null;
+};
+const deferredHotelLookups = new Map<string, DeferredHotelLookupEntry>();
 
 function getTimedCache<T>(cache: Map<string, TimedCacheEntry<T>>, key: string, ttlMs: number): T | null {
   const entry = cache.get(key);
@@ -357,6 +391,116 @@ function computeTripScoreAndReasons(
   };
 }
 
+function normalizeHotelAddress(value: LiteApiHotelRaw["address"]): string | null {
+  if (typeof value === "string") return value.trim() || null;
+  return value?.line1?.trim() || null;
+}
+
+async function fetchHotelDetail(
+  providerHotelId: string,
+  liteApiKey: string,
+  routeSignal?: AbortSignal
+): Promise<{ detail: LiteApiHotelDetailRaw | null; cacheHit: boolean; externalCall: boolean }> {
+  const cached = getTimedCache(hotelDetailCache, providerHotelId, HOTEL_DETAIL_TTL_MS);
+  if (cached) return { detail: cached, cacheHit: true, externalCall: false };
+
+  try {
+    const detailSignal = routeSignal
+      ? AbortSignal.any([routeSignal, AbortSignal.timeout(HOTEL_DETAIL_TIMEOUT_MS)])
+      : AbortSignal.timeout(HOTEL_DETAIL_TIMEOUT_MS);
+    const detailRes = await liteApiFetch(`https://api.liteapi.travel/v3.0/data/hotel?hotelId=${providerHotelId}`, {
+      headers: { "X-API-Key": liteApiKey, "Accept": "application/json" }
+    }, detailSignal);
+    const payload: { data?: LiteApiHotelDetailRaw } = await detailRes.json();
+    const detail = payload.data || null;
+    const detailId = String(detail?.id || detail?.hotelId || "");
+    if (!detail || detailId !== providerHotelId) return { detail: null, cacheHit: false, externalCall: true };
+    setTimedCache(hotelDetailCache, providerHotelId, detail);
+    return { detail, cacheHit: false, externalCall: true };
+  } catch (error) {
+    console.warn("[LiteAPI detail skipped]", JSON.stringify({ providerStage: "DETAIL", providerHotelId, error: error instanceof Error ? error.message : String(error) }));
+    return { detail: null, cacheHit: false, externalCall: true };
+  }
+}
+
+function buildHotelOffer(
+  candidate: LiteApiHotelRaw,
+  rateMatch: LiteApiRateRaw,
+  detailObj: LiteApiHotelDetailRaw,
+  context: HotelOfferContext
+): HotelOffer | null {
+  const providerHotelId = String(candidate.id || candidate.hotelId || "");
+  if (!providerHotelId || String(rateMatch.hotelId || rateMatch.id || "") !== providerHotelId) return null;
+  if (String(detailObj.id || detailObj.hotelId || "") !== providerHotelId) return null;
+
+  const roomType = rateMatch.roomTypes?.[0] || rateMatch.offers?.[0];
+  const rateInfo = roomType?.rates?.[0];
+  if (!roomType || !rateInfo) return null;
+  const price = parseNormalizedPrice(roomType, rateInfo);
+  if (price.payableTotal === null) return null;
+
+  const imageUrl = detailObj.main_photo || detailObj.mainPhoto || detailObj.imageUrl || detailObj.hotelImages?.[0]?.url || null;
+  const address = normalizeHotelAddress(detailObj.address) || normalizeHotelAddress(candidate.address);
+  const latitude = detailObj.latitude ?? candidate.latitude;
+  const longitude = detailObj.longitude ?? candidate.longitude;
+  const distanceFromCenterKm = calculateHaversineDistance(context.centerLat, context.centerLng, latitude, longitude);
+  const score = computeTripScoreAndReasons(
+    latitude,
+    longitude,
+    distanceFromCenterKm,
+    price,
+    imageUrl,
+    address,
+    context.lodgingBudgetThreshold,
+    context.travelStyle,
+    context.itineraryPlaces,
+    context.transitMode
+  );
+  const hotelName = detailObj.name || candidate.name || "";
+
+  return {
+    providerHotelId,
+    hotelName,
+    city: context.city,
+    countryCode: detailObj.countryCode || "JP",
+    address,
+    latitude,
+    longitude,
+    checkIn: context.checkIn,
+    checkOut: context.checkOut,
+    adults: context.adults,
+    rooms: context.rooms,
+    available: true,
+    roomName: rateInfo.name || roomType.name || "Standard Room",
+    price,
+    imageUrl,
+    bookingUrl: `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(`${hotelName} ${context.city}`)}&checkin=${context.checkIn}&checkout=${context.checkOut}&group_adults=${context.adults}`,
+    bookingLinkType: "external_search",
+    provider: "LiteAPI",
+    environment: "sandbox",
+    fetchedAt: new Date().toISOString(),
+    derivedNightlyPrice: true,
+    distanceFromCenterKm,
+    destinationMatched: distanceFromCenterKm <= 25,
+    travelStyle: context.travelStyle,
+    tripScore: score.tripScore,
+    tripScoreGrade: score.tripScoreGrade,
+    avgItineraryDistanceKm: score.avgItineraryDistanceKm,
+    avgItineraryTimeMinutes: score.avgItineraryTimeMinutes,
+    transitMode: context.transitMode,
+    closestDayNumber: score.closestDayNumber,
+    recommendationReasons: score.recommendationReasons,
+    scoreBreakdown: score.scoreBreakdown
+  };
+}
+
+function removeExpiredDeferredHotelLookups() {
+  const now = Date.now();
+  deferredHotelLookups.forEach((entry, key) => {
+    if (now - entry.createdAt > HOTEL_DEFERRED_LOOKUP_TTL_MS) deferredHotelLookups.delete(key);
+  });
+}
+
 const cityBudgetEstimatesMap: Record<string, CityBudgetEstimate> = {
   도쿄: {
     cityName: "도쿄",
@@ -423,6 +567,8 @@ async function executeHotelSearch(
   let detailRequestedCount = 0;
   let detailCompletedCount = 0;
   let detailSkippedCount = 0;
+  let hotelDetailLookupId: string | null = null;
+  let hasMoreHotels = false;
   const liteApiHotels: HotelOffer[] = [];
 
   if (hasLiteApiKey) {
@@ -499,125 +645,40 @@ async function executeHotelSearch(
                 const roomType = rateMatch?.roomTypes?.[0] || rateMatch?.offers?.[0];
                 const rateInfo = roomType?.rates?.[0];
                 const payableTotal = roomType && rateInfo ? parseNormalizedPrice(roomType, rateInfo).payableTotal : null;
-                return { candidate, payableTotal };
+                return { candidate, rateMatch, payableTotal };
               })
-              .filter((item): item is { candidate: typeof sortedCandidates[number]; payableTotal: number } => item.payableTotal !== null)
+              .filter((item): item is { candidate: typeof sortedCandidates[number]; rateMatch: LiteApiRateRaw; payableTotal: number } => Boolean(item.rateMatch) && item.payableTotal !== null)
               .sort((a, b) => a.payableTotal - b.payableTotal || a.candidate.dist - b.candidate.dist)
-              .slice(0, 5)
-              .map((item) => item.candidate);
+              .slice(0, 6);
 
             const detailCandidates = finalCandidates.slice(0, HOTEL_DETAIL_LIMIT);
             detailRequestedCount = detailCandidates.length;
-            const detailEntries = await Promise.all(detailCandidates.map(async (candidate) => {
-              const pId = String(candidate.id || candidate.hotelId);
-              try {
-                let detailObj = getTimedCache(hotelDetailCache, pId, HOTEL_DETAIL_TTL_MS);
-                if (!detailObj) {
-                  const detailSignal = routeSignal
-                    ? AbortSignal.any([routeSignal, AbortSignal.timeout(HOTEL_DETAIL_TIMEOUT_MS)])
-                    : AbortSignal.timeout(HOTEL_DETAIL_TIMEOUT_MS);
-                  const detailRes = await liteApiFetch(`https://api.liteapi.travel/v3.0/data/hotel?hotelId=${pId}`, {
-                    headers: { "X-API-Key": liteApiKey, "Accept": "application/json" }
-                  }, detailSignal);
-                  detailObj = (await detailRes.json()).data as LiteApiHotelDetailRaw;
-                  if (detailObj) setTimedCache(hotelDetailCache, pId, detailObj);
-                }
-                const detailId = String(detailObj?.id || detailObj?.hotelId);
-                return [pId, detailId === pId ? detailObj : null] as const;
-              } catch (error) {
-                console.warn("[LiteAPI detail skipped]", JSON.stringify({ providerStage: "DETAIL", providerHotelId: pId, error: error instanceof Error ? error.message : String(error) }));
-                return [pId, null] as const;
-              }
+            const detailEntries = await Promise.all(detailCandidates.map(async ({ candidate, rateMatch }) => {
+              const providerHotelId = String(candidate.id || candidate.hotelId);
+              const result = await fetchHotelDetail(providerHotelId, liteApiKey, routeSignal);
+              return { candidate, rateMatch, detail: result.detail };
             }));
-            const detailByHotelId = new Map<string, LiteApiHotelDetailRaw | null>(detailEntries);
-            detailCompletedCount = detailEntries.filter(([, detail]) => detail !== null).length;
+            detailCompletedCount = detailEntries.filter((entry) => entry.detail !== null).length;
             detailSkippedCount = detailRequestedCount - detailCompletedCount;
-
-            const offers = finalCandidates.map((candidate): HotelOffer | null => {
-              const pId = String(candidate.id || candidate.hotelId);
-              const detailObj = detailByHotelId.get(pId) || null;
-              const rateMatch = ratesList.find((r) => String(r.hotelId || r.id) === pId);
-              if (!rateMatch) return null;
-
-              const rateHotelId = String(rateMatch.hotelId || rateMatch.id);
-              if (rateHotelId !== pId) return null;
-
-              const roomType = rateMatch.roomTypes?.[0] || rateMatch.offers?.[0];
-              const rateInfo = roomType?.rates?.[0];
-              if (!roomType || !rateInfo) return null;
-
-              const priceObj = parseNormalizedPrice(roomType, rateInfo);
-              if (priceObj.payableTotal === null) return null;
-
-              const imageUrlVal = detailObj?.mainPhoto || detailObj?.imageUrl || detailObj?.hotelImages?.[0]?.url || null;
-              const hLat = detailObj?.latitude || candidate.latitude;
-              const hLon = detailObj?.longitude || candidate.longitude;
-              const normalizedAddress =
-                typeof detailObj?.address === "string"
-                  ? detailObj.address
-                  : detailObj?.address?.line1 || null;
-              const distKm = calculateHaversineDistance(centerLat, centerLng, hLat, hLon);
-
-              // Compute Trip Score, Travel Time & Top 3 Data-Driven Reasons
-              const {
-                tripScore,
-                tripScoreGrade,
-                avgItineraryDistanceKm,
-                avgItineraryTimeMinutes,
-                closestDayNumber,
-                recommendationReasons,
-                scoreBreakdown
-              } = computeTripScoreAndReasons(
-                hLat,
-                hLon,
-                distKm,
-                priceObj,
-                imageUrlVal,
-                normalizedAddress,
-                lodgingBudgetThreshold,
-                travelStyle,
-                itineraryPlaces,
-                transitMode
-              );
-
-              const offer: HotelOffer = {
-                providerHotelId: pId,
-                hotelName: detailObj?.name || candidate.name || "",
-                city,
-                countryCode: detailObj?.countryCode || "JP",
-                address: normalizedAddress,
-                latitude: hLat,
-                longitude: hLon,
-                checkIn,
-                checkOut,
-                adults,
-                rooms,
-                available: true,
-                roomName: rateInfo.name || roomType.name || "Standard Room",
-                price: priceObj,
-                imageUrl: imageUrlVal,
-                bookingUrl: `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(`${detailObj?.name || candidate.name || ""} ${city}`)}&checkin=${checkIn}&checkout=${checkOut}&group_adults=${adults}`,
-                bookingLinkType: "external_search",
-                provider: "LiteAPI",
-                environment: "sandbox",
-                fetchedAt: new Date().toISOString(),
-                derivedNightlyPrice: true,
-                distanceFromCenterKm: distKm,
-                destinationMatched: distKm <= 25,
-                travelStyle,
-                tripScore,
-                tripScoreGrade,
-                avgItineraryDistanceKm,
-                avgItineraryTimeMinutes,
-                transitMode,
-                closestDayNumber,
-                recommendationReasons,
-                scoreBreakdown
-              };
-
-              return offer;
-            });
+            const offerContext: HotelOfferContext = { city, checkIn, checkOut, adults, rooms, lodgingBudgetThreshold, travelStyle, itineraryPlaces, transitMode, centerLat, centerLng };
+            const offers = detailEntries.map(({ candidate, rateMatch, detail }) => detail
+              ? buildHotelOffer(candidate, rateMatch, detail, offerContext)
+              : null);
             liteApiHotels.push(...offers.filter((offer): offer is HotelOffer => offer !== null));
+
+            const deferredCandidates = finalCandidates.slice(HOTEL_DETAIL_LIMIT).map(({ candidate, rateMatch }) => ({ candidate, rate: rateMatch }));
+            if (deferredCandidates.length > 0) {
+              removeExpiredDeferredHotelLookups();
+              hotelDetailLookupId = crypto.randomUUID();
+              deferredHotelLookups.set(hotelDetailLookupId, {
+                createdAt: Date.now(),
+                nextIndex: 0,
+                candidates: deferredCandidates,
+                context: offerContext,
+                inFlight: null,
+              });
+              hasMoreHotels = true;
+            }
           }
         }
       }
@@ -735,6 +796,8 @@ async function executeHotelSearch(
       detailSkippedCount,
       osmStatus,
     },
+    hotelDetailLookupId,
+    hasMoreHotels,
     liteApiHotels,
     budgetMatchedHotels: budgetMatchedHotels.slice(0, 4),
     budgetExceededHotels: budgetExceededHotels.slice(0, 3),
@@ -767,11 +830,53 @@ async function handleHotelSearch(
   }
 }
 
+async function loadDeferredHotelDetails(lookupId: string, routeSignal?: AbortSignal): Promise<DeferredHotelLookupResult> {
+  removeExpiredDeferredHotelLookups();
+  const entry = deferredHotelLookups.get(lookupId);
+  if (!entry) throw new ApiHttpError(410, "LOOKUP_EXPIRED", "추가 숙소 조회 정보가 만료되었습니다. 숙소를 다시 조회해주세요.");
+  if (entry.inFlight) return entry.inFlight;
+
+  const request = (async () => {
+    const liteApiKey = process.env.LITEAPI_SANDBOX_KEY || process.env.LITEAPI_API_KEY || "";
+    if (!liteApiKey) throw new ApiHttpError(503, "UNAVAILABLE", "LiteAPI 환경변수가 설정되지 않았습니다.");
+    const batch = entry.candidates.slice(entry.nextIndex, entry.nextIndex + HOTEL_DEFERRED_BATCH_LIMIT);
+    entry.nextIndex += batch.length;
+    let externalDetailCallCount = 0;
+    let detailCacheHitCount = 0;
+    const results = await Promise.all(batch.map(async ({ candidate, rate }) => {
+      const providerHotelId = String(candidate.id || candidate.hotelId || "");
+      const detailResult = await fetchHotelDetail(providerHotelId, liteApiKey, routeSignal);
+      if (detailResult.externalCall) externalDetailCallCount += 1;
+      if (detailResult.cacheHit) detailCacheHitCount += 1;
+      return detailResult.detail ? buildHotelOffer(candidate, rate, detailResult.detail, entry.context) : null;
+    }));
+    const hasMoreHotels = entry.nextIndex < entry.candidates.length;
+    if (!hasMoreHotels) deferredHotelLookups.delete(lookupId);
+    return {
+      success: true as const,
+      hotels: results.filter((hotel): hotel is HotelOffer => hotel !== null),
+      hasMoreHotels,
+      attemptedCount: batch.length,
+      externalDetailCallCount,
+      detailCacheHitCount,
+    };
+  })();
+
+  entry.inFlight = request;
+  try {
+    return await request;
+  } finally {
+    const current = deferredHotelLookups.get(lookupId);
+    if (current) current.inFlight = null;
+  }
+}
+
 export function resetHotelSearchRuntimeForTests() {
   ratesCache.clear();
   hotelListCache.clear();
   hotelDetailCache.clear();
   hotelSearchInFlight.clear();
+  deferredHotelLookups.clear();
 }
 
 export async function GET(request: Request) {
@@ -805,6 +910,13 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    if (body?.operation === "loadMoreDetails") {
+      if (typeof body.lookupId !== "string" || !/^[0-9a-f-]{36}$/i.test(body.lookupId)) {
+        return NextResponse.json({ success: false, providerStatus: "INVALID_INPUT", message: "추가 숙소 조회 정보가 올바르지 않습니다." }, { status: 400 });
+      }
+      const result = await loadDeferredHotelDetails(body.lookupId, AbortSignal.timeout(ROUTE_DEADLINE_MS));
+      return NextResponse.json(result);
+    }
     const requestedCity = body.cityId || body.city || "";
     const checkIn = body.checkIn || "";
     const checkOut = body.checkOut || "";

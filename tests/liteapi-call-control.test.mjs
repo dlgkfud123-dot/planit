@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { GET as getHotels, resetHotelSearchRuntimeForTests } from "../app/api/booking/hotels/route.ts";
+import { GET as getHotels, POST as postHotels, resetHotelSearchRuntimeForTests } from "../app/api/booking/hotels/route.ts";
 import { LITEAPI_MIN_REQUEST_INTERVAL_MS, liteApiFetch, parseLiteApiRateLimit, resetLiteApiRuntimeForTests } from "../utils/liteApiRuntime.ts";
 
 const originalFetch = globalThis.fetch;
@@ -39,7 +39,7 @@ function installSuccessfulProvider({ delayMs = 0 } = {}) {
     if (url.includes("/hotels/rates")) return Response.json({ data: rates });
     const id = new URL(url).searchParams.get("hotelId");
     const source = candidates.find((hotel) => hotel.id === id);
-    return Response.json({ data: { ...source, address: `${id} address`, countryCode: "JP" } });
+    return Response.json({ data: { ...source, main_photo: `https://images.example/${id}.jpg`, address: `${id} address`, countryCode: "JP" } });
   };
   return calls;
 }
@@ -98,7 +98,7 @@ test("two concurrent identical searches reuse one in-flight provider request set
   assert.equal(calls.length, 5);
 });
 
-test("Detail timeouts and failures keep real List and Rates offers with nullable detail fields", async () => {
+test("Detail timeouts and failures do not expose incomplete List and Rates candidates", async () => {
   reset();
   const calls = [];
   globalThis.fetch = async (input, init = {}) => {
@@ -119,11 +119,10 @@ test("Detail timeouts and failures keep real List and Rates offers with nullable
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.equal(calls.filter((call) => call.url.includes("/data/hotel?")).length, 3);
-  assert.equal(body.liteApiHotels.length, 5);
+  assert.equal(body.liteApiHotels.length, 0);
   assert.equal(body.providerDiagnostics.detailCompletedCount, 0);
   assert.equal(body.providerDiagnostics.detailSkippedCount, 3);
-  assert.ok(body.liteApiHotels.every((hotel) => hotel.imageUrl === null && hotel.address === null));
-  assert.ok(body.liteApiHotels.every((hotel) => hotel.price.payableTotal !== null));
+  assert.equal(body.hasMoreHotels, true);
 });
 
 test("OSM timeout does not discard successful LiteAPI hotel prices", async () => {
@@ -145,10 +144,79 @@ test("OSM timeout does not discard successful LiteAPI hotel prices", async () =>
   const response = await getHotels(new Request(hotelUrl()));
   assert.equal(response.status, 200);
   const body = await response.json();
-  assert.equal(body.liteApiHotels.length, 5);
+  assert.equal(body.liteApiHotels.length, 3);
   assert.equal(body.providerDiagnostics.lastSuccessfulStage, "DETAIL");
   assert.equal(body.providerDiagnostics.osmStatus, "UNAVAILABLE");
   assert.deepEqual(body.osmLocations, []);
+});
+
+test("initial response exposes at most three completed hotels and lazy lookup calls only next Detail candidates", async () => {
+  reset();
+  const calls = installSuccessfulProvider();
+  const initialResponse = await getHotels(new Request(hotelUrl()));
+  const initial = await initialResponse.json();
+  assert.equal(initial.liteApiHotels.length, 3);
+  assert.ok(initial.liteApiHotels.every((hotel) => hotel.address && hotel.imageUrl));
+  assert.equal(initial.hasMoreHotels, true);
+  assert.equal(typeof initial.hotelDetailLookupId, "string");
+
+  const listCallsBefore = calls.filter((call) => call.url.includes("/data/hotels?")).length;
+  const rateCallsBefore = calls.filter((call) => call.url.includes("/hotels/rates")).length;
+  const detailCallsBefore = calls.filter((call) => call.url.includes("/data/hotel?")).length;
+  const lazyResponse = await postHotels(new Request("http://localhost/api/booking/hotels", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ operation: "loadMoreDetails", lookupId: initial.hotelDetailLookupId }),
+  }));
+  const lazy = await lazyResponse.json();
+  assert.equal(lazyResponse.status, 200);
+  assert.equal(lazy.hotels.length, 3);
+  assert.equal(lazy.hasMoreHotels, false);
+  assert.equal(calls.filter((call) => call.url.includes("/data/hotels?")).length, listCallsBefore);
+  assert.equal(calls.filter((call) => call.url.includes("/hotels/rates")).length, rateCallsBefore);
+  assert.equal(calls.filter((call) => call.url.includes("/data/hotel?")).length - detailCallsBefore, 3);
+  assert.deepEqual(lazy.hotels.map((hotel) => hotel.providerHotelId), ["hotel-4", "hotel-5", "hotel-6"]);
+});
+
+test("concurrent lazy Detail requests reuse one in-flight batch", async () => {
+  reset();
+  const calls = installSuccessfulProvider({ delayMs: 20 });
+  const initial = await (await getHotels(new Request(hotelUrl()))).json();
+  const request = () => postHotels(new Request("http://localhost/api/booking/hotels", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ operation: "loadMoreDetails", lookupId: initial.hotelDetailLookupId }),
+  }));
+  const detailCallsBefore = calls.filter((call) => call.url.includes("/data/hotel?")).length;
+  const [first, second] = await Promise.all([request(), request()]);
+  assert.equal(first.status, 200);
+  assert.equal(second.status, 200);
+  assert.equal(calls.filter((call) => call.url.includes("/data/hotel?")).length - detailCallsBefore, 3);
+  assert.deepEqual((await first.json()).hotels.map((hotel) => hotel.providerHotelId), (await second.json()).hotels.map((hotel) => hotel.providerHotelId));
+});
+
+test("lazy Detail uses the six-hour cache without repeating List or Rates", async () => {
+  reset();
+  const calls = installSuccessfulProvider();
+  const firstInitial = await (await getHotels(new Request(hotelUrl()))).json();
+  await postHotels(new Request("http://localhost/api/booking/hotels", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ operation: "loadMoreDetails", lookupId: firstInitial.hotelDetailLookupId }),
+  }));
+
+  calls.length = 0;
+  const secondInitial = await (await getHotels(new Request(hotelUrl()))).json();
+  const cachedLazyResponse = await postHotels(new Request("http://localhost/api/booking/hotels", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ operation: "loadMoreDetails", lookupId: secondInitial.hotelDetailLookupId }),
+  }));
+  const cachedLazy = await cachedLazyResponse.json();
+  assert.equal(cachedLazy.hotels.length, 3);
+  assert.equal(cachedLazy.detailCacheHitCount, 3);
+  assert.equal(cachedLazy.externalDetailCallCount, 0);
+  assert.equal(calls.length, 0);
 });
 
 test("rooms are part of cache identity and are represented as one occupancy per room", async () => {

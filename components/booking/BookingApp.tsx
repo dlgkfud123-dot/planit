@@ -136,6 +136,11 @@ export default function BookingApp() {
   const [hotelRetryKey, setHotelRetryKey] = useState(0);
   const [hotelRetryAt, setHotelRetryAt] = useState<number | null>(null);
   const [hotelRetrySeconds, setHotelRetrySeconds] = useState(0);
+  const [hotelDetailLookupId, setHotelDetailLookupId] = useState<string | null>(null);
+  const [hasMoreHotels, setHasMoreHotels] = useState(false);
+  const [moreHotelsLoading, setMoreHotelsLoading] = useState(false);
+  const [moreHotelsMessage, setMoreHotelsMessage] = useState<string | null>(null);
+  const moreHotelsRequestRef = useRef(false);
 
   const [selectedFlightId, setSelectedFlightId] = useState<string>("");
   const [budgetMatchedFlights, setBudgetMatchedFlights] = useState<FlightOffer[]>([]);
@@ -281,6 +286,9 @@ export default function BookingApp() {
       setHotelsLoading(true);
       setHotelsError(null);
       setHotelsStatus(null);
+      setHotelDetailLookupId(null);
+      setHasMoreHotels(false);
+      setMoreHotelsMessage(null);
     });
 
     const payload = {
@@ -309,15 +317,20 @@ export default function BookingApp() {
           setHotelRetryAt(null);
           setHotelRetrySeconds(0);
           const matchedHotels: HotelOffer[] = data.budgetMatchedHotels || [];
+          const exceededHotels: HotelOffer[] = data.budgetExceededHotels || [];
           const restoredHotel = restoredBookingRef.current?.selectedHotel;
-          const mergedMatchedHotels = restoredHotel && !matchedHotels.some((hotel) => hotel.providerHotelId === restoredHotel.providerHotelId)
-            ? [restoredHotel, ...matchedHotels]
-            : matchedHotels;
+          const initialHotels = restoredHotel
+            ? [restoredHotel, ...matchedHotels, ...exceededHotels].filter((hotel, index, hotels) => hotels.findIndex((item) => item.providerHotelId === hotel.providerHotelId) === index).slice(0, 3)
+            : [...matchedHotels, ...exceededHotels].slice(0, 3);
+          const mergedMatchedHotels = initialHotels.filter((hotel) => hotel.price.payableTotal !== null && hotel.price.payableTotal <= lodgingBudgetThreshold);
+          const mergedExceededHotels = initialHotels.filter((hotel) => hotel.price.payableTotal !== null && hotel.price.payableTotal > lodgingBudgetThreshold);
           setBudgetMatchedHotels(mergedMatchedHotels);
-          setBudgetExceededHotels(data.budgetExceededHotels || []);
+          setBudgetExceededHotels(mergedExceededHotels);
+          setHotelDetailLookupId(typeof data.hotelDetailLookupId === "string" ? data.hotelDetailLookupId : null);
+          setHasMoreHotels(data.hasMoreHotels === true && typeof data.hotelDetailLookupId === "string");
           setOsmLocations(data.osmLocations || []);
 
-          const allHotels = [...mergedMatchedHotels, ...(data.budgetExceededHotels || [])];
+          const allHotels = [...mergedMatchedHotels, ...mergedExceededHotels];
           if (allHotels.length > 0) {
             setSelectedHotelId((current) => allHotels.some((hotel) => hotel.providerHotelId === current) ? current : allHotels[0].providerHotelId);
             setHotelsError(null);
@@ -331,6 +344,8 @@ export default function BookingApp() {
         } else {
           setBudgetMatchedHotels([]);
           setBudgetExceededHotels([]);
+          setHotelDetailLookupId(null);
+          setHasMoreHotels(false);
           const status = data.providerStatus || data.priceApiStatus || "INTERNAL_ERROR";
           setHotelsStatus(status);
           setHotelsError(hotelStatusMessage(status));
@@ -348,6 +363,8 @@ export default function BookingApp() {
         setHotelsLoading(false);
         setBudgetMatchedHotels([]);
         setBudgetExceededHotels([]);
+        setHotelDetailLookupId(null);
+        setHasMoreHotels(false);
         setHotelsStatus("PROVIDER_ERROR");
         setHotelsError(hotelStatusMessage("PROVIDER_ERROR"));
       });
@@ -599,6 +616,45 @@ export default function BookingApp() {
     }
   };
 
+  const handleLoadMoreHotels = async () => {
+    if (!hotelDetailLookupId || !hasMoreHotels || moreHotelsRequestRef.current) return;
+    moreHotelsRequestRef.current = true;
+    setMoreHotelsLoading(true);
+    setMoreHotelsMessage(null);
+    try {
+      const response = await fetch("/api/booking/hotels", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ operation: "loadMoreDetails", lookupId: hotelDetailLookupId }),
+      });
+      const data: unknown = await response.json();
+      if (!response.ok || !data || typeof data !== "object" || !("success" in data) || data.success !== true) {
+        const message = data && typeof data === "object" && "message" in data && typeof data.message === "string"
+          ? data.message
+          : "추가 숙소를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.";
+        setMoreHotelsMessage(message);
+        return;
+      }
+      const hotels = "hotels" in data && Array.isArray(data.hotels) ? data.hotels as HotelOffer[] : [];
+      const appendUnique = (current: HotelOffer[], additions: HotelOffer[]) => [
+        ...current,
+        ...additions.filter((hotel) => !current.some((item) => item.providerHotelId === hotel.providerHotelId)),
+      ];
+      const matched = hotels.filter((hotel) => hotel.price.payableTotal !== null && hotel.price.payableTotal <= lodgingBudgetThreshold);
+      const exceeded = hotels.filter((hotel) => hotel.price.payableTotal !== null && hotel.price.payableTotal > lodgingBudgetThreshold);
+      if (matched.length > 0) setBudgetMatchedHotels((current) => appendUnique(current, matched));
+      if (exceeded.length > 0) setBudgetExceededHotels((current) => appendUnique(current, exceeded));
+      const nextHasMore = "hasMoreHotels" in data && data.hasMoreHotels === true;
+      setHasMoreHotels(nextHasMore);
+      if (hotels.length === 0) setMoreHotelsMessage("추가로 확인된 숙소가 없습니다");
+    } catch {
+      setMoreHotelsMessage("추가 숙소를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.");
+    } finally {
+      moreHotelsRequestRef.current = false;
+      setMoreHotelsLoading(false);
+    }
+  };
+
   const totalNights = Math.max(1, nights);
 
   const buildQueryParams = () => {
@@ -656,7 +712,7 @@ export default function BookingApp() {
                   Trip Score: {offer.tripScore}점 ({offer.tripScoreGrade})
                 </span>
               </div>
-              <span className="hotelAddress">{offer.address || `${destination} 중심가 위치`}</span>
+              <span className="hotelAddress">{offer.address || "주소 정보 미제공"}</span>
             </div>
           </div>
 
@@ -1300,6 +1356,24 @@ export default function BookingApp() {
               <div className="hotelCardsList">
                 {budgetExceededHotels.map((offer) => renderHotelCard(offer, true))}
               </div>
+            </div>
+          )}
+
+          {!hotelsLoading && (hasMoreHotels || budgetMatchedHotels.length > 0 || budgetExceededHotels.length > 0) && (
+            <div className="moreHotelsArea">
+              {hasMoreHotels && (
+                <button
+                  type="button"
+                  className="moreHotelsButton"
+                  disabled={moreHotelsLoading}
+                  onClick={handleLoadMoreHotels}
+                >
+                  {moreHotelsLoading ? "추가 숙소 확인 중" : "다른 숙소 더 보기"}
+                </button>
+              )}
+              {moreHotelsLoading && <p role="status" className="moreHotelsStatus">기존 목록을 유지한 채 추가 숙소 상세정보를 확인하고 있습니다.</p>}
+              {!moreHotelsLoading && moreHotelsMessage && <p role="status" className="moreHotelsStatus">{moreHotelsMessage}</p>}
+              <p className="hotelExternalPriceNotice">표시 가격은 LiteAPI 조회 기준이며 Booking.com의 재고와 가격은 다를 수 있습니다.</p>
             </div>
           )}
         </section>

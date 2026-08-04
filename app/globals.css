@@ -5521,6 +5521,48 @@ p, label, strong, b,
   gap: 20px;
 }
 
+.moreHotelsArea {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-top: 20px;
+  text-align: center;
+}
+
+.moreHotelsButton {
+  min-height: 44px;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 10px 20px;
+  border: 1px solid #CBD5E1;
+  border-radius: 10px;
+  background: #FFFFFF;
+  color: #0F172A;
+  font: inherit;
+  font-weight: 800;
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  cursor: pointer;
+}
+
+.moreHotelsButton:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.moreHotelsStatus,
+.hotelExternalPriceNotice {
+  margin: 10px auto 0;
+  max-width: 100%;
+  color: #64748B;
+  font-size: 12px;
+  line-height: 1.55;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
 .hotelCard {
   background: #FFFFFF;
   border: 1.5px solid #E2E8F0;
