@@ -10,6 +10,7 @@ import { cities, supportedCityIds, type TravelCity } from "../../data/cities";
 import { generateItinerary } from "../../utils/itineraryGenerator";
 import { writeDraftById, type TripSnapshot } from "../../utils/tripStorage";
 import { fetchWeatherData } from "../../utils/weatherService";
+import { getLocalDateString, isDateBeforeMinimum, shouldClearEndDate, validateTravelDateRange } from "../../utils/travelDateValidation";
 import styles from "./InteractiveMapIntro.module.css";
 import MobileIntroExperience from "./MobileIntroExperience";
 
@@ -95,6 +96,7 @@ export default function InteractiveMapIntro() {
   // Travel Condition Inputs
   const [start, setStart] = useState<string>("");
   const [end, setEnd] = useState<string>("");
+  const [today, setToday] = useState<string>(() => getLocalDateString());
   const [people, setPeople] = useState<number>(0);
   const [budget, setBudget] = useState<number>(0);
 
@@ -118,6 +120,20 @@ export default function InteractiveMapIntro() {
 
   useEffect(() => () => {
     if (inputNoticeTimerRef.current) window.clearTimeout(inputNoticeTimerRef.current);
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const currentLocalDate = getLocalDateString();
+      setToday((current) => current === currentLocalDate ? current : currentLocalDate);
+    }, 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const showInputNotice = useCallback((message: string) => {
+    setInputNotice(message);
+    if (inputNoticeTimerRef.current) window.clearTimeout(inputNoticeTimerRef.current);
+    inputNoticeTimerRef.current = window.setTimeout(() => setInputNotice(null), 3_600);
   }, []);
 
   useEffect(() => {
@@ -192,16 +208,23 @@ export default function InteractiveMapIntro() {
   };
 
   // Validation
+  const dateValidation = validateTravelDateRange(start, end, today);
   const isFormValid = Boolean(
     selectedCountry &&
     selectedCityName &&
     start &&
     end &&
+    dateValidation.valid &&
     people > 0 &&
     budget > 0
   );
 
   const handleCreateItinerary = () => {
+    const currentDateValidation = validateTravelDateRange(start, end, getLocalDateString());
+    if (!currentDateValidation.valid) {
+      showInputNotice(currentDateValidation.message);
+      return;
+    }
     if (!isFormValid || isGenerating) return;
     setGenerationError(null);
     setIsGenerating(true);
@@ -278,16 +301,44 @@ export default function InteractiveMapIntro() {
 
   const handleCreateRequest = () => {
     if (isGenerating) return;
+    const currentDateValidation = validateTravelDateRange(start, end, getLocalDateString());
+    if (!currentDateValidation.valid && start && end) {
+      showInputNotice(currentDateValidation.message);
+      return;
+    }
     if (!isFormValid) {
       const message = !selectedCountry || !selectedCityName
         ? "국가와 도시를 먼저 선택해주세요."
-        : "여행 정보를 모두 입력해주세요.";
-      setInputNotice(message);
-      if (inputNoticeTimerRef.current) window.clearTimeout(inputNoticeTimerRef.current);
-      inputNoticeTimerRef.current = window.setTimeout(() => setInputNotice(null), 2400);
+        : !start || !end
+          ? "출발일과 귀국일을 모두 선택해주세요."
+          : "여행 정보를 모두 입력해주세요.";
+      showInputNotice(message);
       return;
     }
     handleCreateItinerary();
+  };
+
+  const handleStartChange = (value: string) => {
+    if (value && isDateBeforeMinimum(value, getLocalDateString())) {
+      setStart("");
+      showInputNotice("오늘 이전 날짜는 선택할 수 없습니다.");
+      return;
+    }
+    setStart(value);
+    if (shouldClearEndDate(value, end)) {
+      setEnd("");
+      showInputNotice("출발일이 변경되어 기존 귀국일을 사용할 수 없습니다. 귀국일을 다시 선택해주세요.");
+    }
+  };
+
+  const handleEndChange = (value: string) => {
+    const minimumEndDate = start || getLocalDateString();
+    if (value && isDateBeforeMinimum(value, minimumEndDate)) {
+      setEnd("");
+      showInputNotice("귀국일은 출발일보다 빠를 수 없습니다.");
+      return;
+    }
+    setEnd(value);
   };
 
   if (showIntro) {
@@ -305,6 +356,7 @@ export default function InteractiveMapIntro() {
         selectedCityName={selectedCityName}
         start={start}
         end={end}
+        today={today}
         people={people}
         budget={budget}
         isGenerating={isGenerating}
@@ -312,11 +364,8 @@ export default function InteractiveMapIntro() {
         isFormValid={isFormValid}
         onCountryChange={handleCountryChange}
         onCityChange={handleCityChange}
-        onStartChange={(value) => {
-          setStart(value);
-          if (end && value > end) setEnd("");
-        }}
-        onEndChange={setEnd}
+        onStartChange={handleStartChange}
+        onEndChange={handleEndChange}
         onPeopleChange={setPeople}
         onBudgetChange={setBudget}
         onCreate={handleCreateRequest}
@@ -449,19 +498,17 @@ export default function InteractiveMapIntro() {
                 <div className="dateRangeInputsGroup">
                   <input
                     type="date"
+                    min={today}
                     value={start}
-                    onChange={(e) => {
-                      setStart(e.target.value);
-                      if (end && e.target.value > end) setEnd("");
-                    }}
+                    onChange={(e) => handleStartChange(e.target.value)}
                     className="hifiPillInput"
                   />
                   <span className="dateDash">-</span>
                   <input
                     type="date"
-                    min={start || undefined}
+                    min={start || today}
                     value={end}
-                    onChange={(e) => setEnd(e.target.value)}
+                    onChange={(e) => handleEndChange(e.target.value)}
                     className="hifiPillInput"
                   />
                 </div>

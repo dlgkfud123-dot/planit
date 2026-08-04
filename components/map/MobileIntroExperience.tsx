@@ -11,6 +11,7 @@ type Props = {
   selectedCityName: string;
   start: string;
   end: string;
+  today: string;
   people: number;
   budget: number;
   isGenerating: boolean;
@@ -83,9 +84,9 @@ export default function MobileIntroExperience(props: Props) {
         <label>
           <span>여행 기간</span>
           <div className={styles.dateRow}>
-            <input type="date" value={props.start} onChange={(event) => props.onStartChange(event.target.value)} />
+            <input type="date" min={props.today} value={props.start} onChange={(event) => props.onStartChange(event.target.value)} />
             <b>~</b>
-            <input type="date" min={props.start || undefined} value={props.end} onChange={(event) => props.onEndChange(event.target.value)} />
+            <input type="date" min={props.start || props.today} value={props.end} onChange={(event) => props.onEndChange(event.target.value)} />
           </div>
         </label>
 
