@@ -6,7 +6,7 @@ import Header from "../layout/Header";
 import { readDraftById, writeDraftById, type TripSnapshot } from "../../utils/tripStorage";
 import BookingMap from "./BookingMap";
 import type { HotelOffer, HotelLocation, CityBudgetEstimate, TravelStyle } from "../../types/hotel";
-import type { FlightOffer, TravelBudgetSummary } from "../../types/flight";
+import type { FlightOffer, TravelBudgetSummary, ExchangeRateInfo } from "../../types/flight";
 import type { BookingSnapshot } from "../../types/booking";
 import { BOOKING_SNAPSHOT_KEY, createBookingSnapshot, readBookingSnapshot } from "../../utils/bookingSnapshot";
 import { isSelectableRoundTrip, selectFlightSeller } from "../../utils/flightSelection";
@@ -18,6 +18,7 @@ import {
   type PackageCombo,
   type OverBudgetAlternative,
 } from "../../utils/packageBudgetEngine";
+import { fetchExchangeRate } from "../../utils/exchangeRate";
 import { DEFAULT_FLIGHT_COMPARISON_AIRPORTS, getKoreaAirport, KOREA_AIRPORTS } from "../../data/airports";
 import { resolveBookingDestinationContext } from "../../utils/bookingDestinationContext";
 
@@ -586,15 +587,36 @@ export default function BookingApp() {
     return null;
   }, [activeFlight, activeOffer]);
 
+  const [exchangeRateInfo, setExchangeRateInfo] = useState<ExchangeRateInfo | null>(null);
+
+  useEffect(() => {
+    if (!activeFlight || !activeOffer) {
+      setExchangeRateInfo(null);
+      return;
+    }
+    const fCurr = (activeFlight.price.currency || "KRW").toUpperCase();
+    const hCurr = (activeOffer.price.currency || "KRW").toUpperCase();
+    if (fCurr === hCurr) {
+      setExchangeRateInfo(null);
+      return;
+    }
+    const controller = new AbortController();
+    fetchExchangeRate(fCurr, hCurr, controller.signal).then((info) => {
+      setExchangeRateInfo(info);
+    });
+    return () => controller.abort();
+  }, [activeFlight?.price.currency, activeOffer?.price.currency, activeFlight?.providerOfferId, activeOffer?.providerHotelId]);
+
   const budgetSummary: TravelBudgetSummary = useMemo(() => {
     return calculateTravelBudgetSummary(
       totalUserBudget,
       travelers,
       activeFlight,
       activeOffer,
-      nights
+      nights,
+      exchangeRateInfo
     );
-  }, [totalUserBudget, travelers, activeFlight, activeOffer, nights]);
+  }, [totalUserBudget, travelers, activeFlight, activeOffer, nights, exchangeRateInfo]);
 
   const packageCombos: PackageCombo[] = useMemo(() => {
     return calculatePackageCombos(allFlightsList, allHotelsList, totalUserBudget, travelers, nights, currentSelectedPackageId);
@@ -1742,7 +1764,7 @@ export default function BookingApp() {
               <strong className="factTitle">{activeOffer ? activeOffer.hotelName : "선택 필요"}</strong>
               <span className="factSub">
                 {activeOffer && activeOffer.price.payableTotal !== null
-                  ? `숙소 예상 결제 총액: ₩${activeOffer.price.payableTotal.toLocaleString()} ${activeOffer.price.currency}`
+                  ? `숙소 예상 결제 총액: ${activeOffer.price.currency === "KRW" ? `₩${activeOffer.price.payableTotal.toLocaleString()} KRW` : `${activeOffer.price.payableTotal.toLocaleString()} ${activeOffer.price.currency}`}`
                   : "최종 금액 확인 필요"}
               </span>
             </div>
@@ -1754,16 +1776,34 @@ export default function BookingApp() {
               </strong>
               <span className="factSub">
                 {activeFlight && activeFlight.price.payableTotal !== null
-                  ? `성인 ${travelers}인 왕복 총액: ₩${activeFlight.price.payableTotal.toLocaleString()} ${activeFlight.price.currency}`
+                  ? `성인 ${travelers}인 왕복 총액: ${activeFlight.price.currency === "USD" ? `$${activeFlight.price.payableTotal.toLocaleString()} USD` : activeFlight.price.currency === "KRW" ? `₩${activeFlight.price.payableTotal.toLocaleString()} KRW` : `${activeFlight.price.payableTotal.toLocaleString()} ${activeFlight.price.currency}`}`
                   : "가격 확인 필요"}
               </span>
             </div>
 
-            <div className="summaryTotalCard">
+            <div className="summaryTotalCard" style={{ background: !budgetSummary.isTotalAvailable ? "#FFFBEB" : undefined, border: !budgetSummary.isTotalAvailable ? "1px solid #FCD34D" : undefined }}>
               <span className="totalLabel">전체 예상 총액 (항공 + 숙소 + 현지 경비)</span>
-              <strong className="totalAmount">
-                ₩{budgetSummary.estimatedGrandTotal.toLocaleString()} {budgetSummary.currency}
-              </strong>
+              {!budgetSummary.isTotalAvailable ? (
+                <div>
+                  <strong className="totalAmount" style={{ color: "#D97706", fontSize: "20px" }}>
+                    환율 확인 필요
+                  </strong>
+                  <span style={{ fontSize: "12px", color: "#92400E", display: "block", marginTop: "4px", fontWeight: 600 }}>
+                    {budgetSummary.currencyMismatchMessage || "항공 USD와 숙소 KRW의 통화 변환 후 총액이 계산됩니다."}
+                  </span>
+                </div>
+              ) : (
+                <div>
+                  <strong className="totalAmount">
+                    ₩{budgetSummary.estimatedGrandTotal?.toLocaleString() ?? "0"} {budgetSummary.currency}
+                  </strong>
+                  {budgetSummary.exchangeRateInfo && (
+                    <span style={{ fontSize: "11px", color: "#059669", display: "block", marginTop: "4px", fontWeight: 600 }}>
+                      (1 {budgetSummary.exchangeRateInfo.baseCurrency} = {budgetSummary.exchangeRateInfo.rate.toLocaleString()} {budgetSummary.exchangeRateInfo.targetCurrency} 실시간 환율 적용)
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </section>

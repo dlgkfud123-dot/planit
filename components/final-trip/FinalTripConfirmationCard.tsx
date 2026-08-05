@@ -148,14 +148,24 @@ export default function FinalTripConfirmationCard({ destination, bookingSnapshot
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
               <div>
                 <span style={{ fontSize: "13px", color: "#475569", display: "block" }}>6. 전체 예상 여행 비용 (Grand Total)</span>
-                <strong style={{ fontSize: "20px", color: "#0F172A", fontWeight: 800 }}>
-                  ₩{budgetSummary.estimatedGrandTotal.toLocaleString()} {budgetSummary.currency}
-                </strong>
+                {!budgetSummary.isTotalAvailable || budgetSummary.estimatedGrandTotal === null ? (
+                  <strong style={{ fontSize: "18px", color: "#D97706", fontWeight: 800 }}>
+                    환율 확인 필요
+                  </strong>
+                ) : (
+                  <strong style={{ fontSize: "20px", color: "#0F172A", fontWeight: 800 }}>
+                    ₩{budgetSummary.estimatedGrandTotal.toLocaleString()} {budgetSummary.currency}
+                  </strong>
+                )}
               </div>
 
               <div style={{ textAlign: "right" }}>
                 <span style={{ fontSize: "13px", color: "#475569", display: "block" }}>7. 예산 상태 및 잔여/초과 금액</span>
-                {budgetSummary.remainingBudget >= 0 ? (
+                {!budgetSummary.isTotalAvailable || budgetSummary.remainingBudget === null ? (
+                  <strong style={{ fontSize: "15px", color: "#D97706", fontWeight: 800 }}>
+                    {budgetSummary.currencyMismatchMessage || "통화 변환 후 계산"}
+                  </strong>
+                ) : budgetSummary.remainingBudget >= 0 ? (
                   <strong style={{ fontSize: "18px", color: "#059669", fontWeight: 800 }}>
                     ₩{budgetSummary.remainingBudget.toLocaleString()}원 여유 (예산 부합)
                   </strong>
@@ -166,7 +176,7 @@ export default function FinalTripConfirmationCard({ destination, bookingSnapshot
                 )}
               </div>
             </div>
-            <p style={{ margin: "8px 0 0", fontSize: "13px", color: budgetSummary.budgetStatus === "within_budget" ? "#065F46" : "#991B1B", fontWeight: 700 }}>
+            <p style={{ margin: "8px 0 0", fontSize: "13px", color: budgetSummary.budgetStatus === "within_budget" ? "#065F46" : budgetSummary.budgetStatus === "currency_mismatch" ? "#D97706" : "#991B1B", fontWeight: 700 }}>
               {budgetSummary.statusMessage}
             </p>
           </div>

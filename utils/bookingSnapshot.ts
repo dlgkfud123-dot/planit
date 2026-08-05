@@ -33,11 +33,18 @@ export function createBookingSnapshot(input: SnapshotInput, now = new Date().toI
     !cityAirports.includes(inbound.originAirport)
   )) return null;
   if (flight.price.payableTotal === null || hotel.price.payableTotal === null) return null;
-  if (flight.price.currency.toUpperCase() !== hotel.price.currency.toUpperCase()) return null;
-  if (budgetSummary.budgetStatus === "incomplete" || budgetSummary.passengerCount !== input.passengerCount) return null;
-  if (budgetSummary.selectedFlightTotal !== flight.price.payableTotal || budgetSummary.selectedHotelTotal !== hotel.price.payableTotal) return null;
-  if (budgetSummary.committedTotal !== flight.price.payableTotal + hotel.price.payableTotal) return null;
-  if (budgetSummary.currency.toUpperCase() !== flight.price.currency.toUpperCase()) return null;
+
+  const isMismatch = flight.price.currency.toUpperCase() !== hotel.price.currency.toUpperCase();
+  if (isMismatch) {
+    if (!budgetSummary.currencyMismatch) return null;
+    if (!budgetSummary.conversionPending && budgetSummary.committedTotal === null) return null;
+  } else {
+    if (budgetSummary.budgetStatus === "incomplete" || budgetSummary.passengerCount !== input.passengerCount) return null;
+    if (budgetSummary.selectedFlightTotal !== flight.price.payableTotal || budgetSummary.selectedHotelTotal !== hotel.price.payableTotal) return null;
+    if (budgetSummary.committedTotal !== flight.price.payableTotal + hotel.price.payableTotal) return null;
+    if (budgetSummary.currency.toUpperCase() !== flight.price.currency.toUpperCase()) return null;
+  }
+
   if (hotel.city !== input.destinationId || hotel.checkIn !== input.checkIn || hotel.checkOut !== input.checkOut || hotel.adults !== input.passengerCount) return null;
   if (flight.partyPrice.passengerCount !== input.passengerCount) return null;
 

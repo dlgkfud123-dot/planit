@@ -162,6 +162,14 @@ export type RawOfferSummary = {
   segment_ids: string[];
 };
 
+export type ExchangeRateInfo = {
+  rate: number;
+  source: string;
+  timestamp: string;
+  baseCurrency: string;
+  targetCurrency: string;
+};
+
 export type TravelBudgetSummary = {
   totalBudget: number;
   passengerCount: number;
@@ -169,17 +177,25 @@ export type TravelBudgetSummary = {
 
   selectedFlightTotal: number | null;
   selectedHotelTotal: number | null;
+  selectedFlightCurrency?: string;
+  selectedHotelCurrency?: string;
 
   estimatedFoodBudget: number;
   estimatedLocalTransportBudget: number;
   estimatedActivityBudget: number;
   reserveBudget: number;
 
-  committedTotal: number;
-  estimatedGrandTotal: number;
-  remainingBudget: number;
+  committedTotal: number | null;
+  estimatedGrandTotal: number | null;
+  remainingBudget: number | null;
 
-  budgetStatus: "within_budget" | "near_limit" | "over_budget" | "incomplete";
+  isTotalAvailable: boolean;
+  currencyMismatch: boolean;
+  conversionPending: boolean;
+  currencyMismatchMessage: string | null;
+  exchangeRateInfo?: ExchangeRateInfo | null;
+
+  budgetStatus: "within_budget" | "near_limit" | "over_budget" | "incomplete" | "currency_mismatch";
   statusMessage: string;
   currency: string;
 };

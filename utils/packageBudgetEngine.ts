@@ -1,5 +1,5 @@
 import type { HotelOffer } from "../types/hotel";
-import type { FlightOffer, TravelBudgetSummary } from "../types/flight";
+import type { FlightOffer, TravelBudgetSummary, ExchangeRateInfo } from "../types/flight";
 import { getAirportCoordinates } from "../data/airports.ts";
 
 export type PackageCostBreakdown = {
@@ -129,55 +129,129 @@ export function calculateTravelBudgetSummary(
   passengerCount: number,
   selectedFlight: FlightOffer | null,
   selectedHotel: HotelOffer | null,
-  nights: number
+  nights: number,
+  exchangeRateInfo?: ExchangeRateInfo | null
 ): TravelBudgetSummary {
-  const flightTotal = selectedFlight?.price.payableTotal ?? null;
-  const hotelPayableTotal = selectedHotel?.price.payableTotal ?? null;
+  const flightRawTotal = selectedFlight?.price.payableTotal ?? null;
+  const hotelRawTotal = selectedHotel?.price.payableTotal ?? null;
 
   const flightCurrency = selectedFlight?.price.currency || "KRW";
   const hotelCurrency = selectedHotel?.price.currency || "KRW";
 
-  if (selectedFlight && selectedHotel && flightCurrency.toUpperCase() !== hotelCurrency.toUpperCase()) {
+  const hasFlight = selectedFlight !== null && flightRawTotal !== null;
+  const hasHotel = selectedHotel !== null && hotelRawTotal !== null;
+  const isCurrencyMismatch = hasFlight && hasHotel && flightCurrency.toUpperCase() !== hotelCurrency.toUpperCase();
+
+  if (isCurrencyMismatch) {
+    if (exchangeRateInfo && exchangeRateInfo.rate > 0) {
+      let flightTotalInTarget = flightRawTotal;
+      let hotelTotalInTarget = hotelRawTotal;
+
+      if (exchangeRateInfo.baseCurrency === flightCurrency.toUpperCase() && exchangeRateInfo.targetCurrency === hotelCurrency.toUpperCase()) {
+        flightTotalInTarget = Math.round(flightRawTotal * exchangeRateInfo.rate);
+      } else if (exchangeRateInfo.baseCurrency === hotelCurrency.toUpperCase() && exchangeRateInfo.targetCurrency === flightCurrency.toUpperCase()) {
+        hotelTotalInTarget = Math.round(hotelRawTotal * exchangeRateInfo.rate);
+      }
+
+      const breakdown = calculatePackageCostBreakdown(flightTotalInTarget, hotelTotalInTarget, totalBudget, passengerCount, nights);
+      const remainingBudget = breakdown.remainingBudget;
+
+      let budgetStatus: TravelBudgetSummary["budgetStatus"] = "within_budget";
+      let statusMessage = "";
+
+      const tenPercentThreshold = totalBudget * 0.1;
+
+      if (remainingBudget > tenPercentThreshold) {
+        budgetStatus = "within_budget";
+        statusMessage = `전체 예산 안에서 여행이 가능합니다 (환율 1 ${exchangeRateInfo.baseCurrency} = ${exchangeRateInfo.rate.toLocaleString()} ${exchangeRateInfo.targetCurrency} 변환 기준). 약 ₩${remainingBudget.toLocaleString()}원 여유가 있습니다.`;
+      } else if (remainingBudget >= 0 && remainingBudget <= tenPercentThreshold) {
+        budgetStatus = "near_limit";
+        statusMessage = `예산에 거의 맞습니다 (여유 ₩${remainingBudget.toLocaleString()}원, 환율 변환 기준).`;
+      } else {
+        budgetStatus = "over_budget";
+        const overAmount = Math.abs(remainingBudget);
+        statusMessage = `현재 예산보다 약 ₩${overAmount.toLocaleString()}원 초과합니다 (환율 변환 기준).`;
+      }
+
+      return {
+        totalBudget,
+        passengerCount,
+        selectedFlightTotal: flightRawTotal,
+        selectedHotelTotal: hotelRawTotal,
+        selectedFlightCurrency: flightCurrency,
+        selectedHotelCurrency: hotelCurrency,
+        estimatedFoodBudget: breakdown.foodBudget,
+        estimatedLocalTransportBudget: breakdown.localTransportBudget,
+        estimatedActivityBudget: breakdown.activityBudget,
+        reserveBudget: breakdown.reserveBudget,
+        committedTotal: flightTotalInTarget + hotelTotalInTarget,
+        estimatedGrandTotal: breakdown.estimatedGrandTotal,
+        remainingBudget: breakdown.remainingBudget,
+        isTotalAvailable: true,
+        currencyMismatch: true,
+        conversionPending: false,
+        currencyMismatchMessage: null,
+        exchangeRateInfo,
+        budgetStatus,
+        statusMessage,
+        currency: hotelCurrency,
+      };
+    }
+
     return {
       totalBudget,
       passengerCount,
-      selectedFlightTotal: flightTotal,
-      selectedHotelTotal: hotelPayableTotal,
+      selectedFlightTotal: flightRawTotal,
+      selectedHotelTotal: hotelRawTotal,
+      selectedFlightCurrency: flightCurrency,
+      selectedHotelCurrency: hotelCurrency,
       estimatedFoodBudget: 0,
       estimatedLocalTransportBudget: 0,
       estimatedActivityBudget: 0,
       reserveBudget: 0,
-      committedTotal: 0,
-      estimatedGrandTotal: 0,
-      remainingBudget: 0,
-      budgetStatus: "incomplete",
-      statusMessage: `통화 변환이 필요합니다 (항공: ${flightCurrency}, 숙소: ${hotelCurrency}). 임의 환율 합산을 진행하지 않습니다.`,
+      committedTotal: null,
+      estimatedGrandTotal: null,
+      remainingBudget: null,
+      isTotalAvailable: false,
+      currencyMismatch: true,
+      conversionPending: true,
+      currencyMismatchMessage: `항공 ${flightCurrency}와 숙소 ${hotelCurrency}의 통화 변환 후 총액이 계산됩니다.`,
+      exchangeRateInfo: null,
+      budgetStatus: "currency_mismatch",
+      statusMessage: "환율 확인 필요",
       currency: "KRW",
     };
   }
 
   const currency = flightCurrency || hotelCurrency || "KRW";
 
-  if (flightTotal === null || hotelPayableTotal === null) {
+  if (flightRawTotal === null || hotelRawTotal === null) {
+    const knownCommitted = (flightRawTotal || 0) + (hotelRawTotal || 0);
     return {
       totalBudget,
       passengerCount,
-      selectedFlightTotal: flightTotal,
-      selectedHotelTotal: hotelPayableTotal,
+      selectedFlightTotal: flightRawTotal,
+      selectedHotelTotal: hotelRawTotal,
+      selectedFlightCurrency: flightCurrency,
+      selectedHotelCurrency: hotelCurrency,
       estimatedFoodBudget: 0,
       estimatedLocalTransportBudget: 0,
       estimatedActivityBudget: 0,
       reserveBudget: 0,
-      committedTotal: (flightTotal || 0) + (hotelPayableTotal || 0),
-      estimatedGrandTotal: (flightTotal || 0) + (hotelPayableTotal || 0),
-      remainingBudget: totalBudget - ((flightTotal || 0) + (hotelPayableTotal || 0)),
+      committedTotal: knownCommitted,
+      estimatedGrandTotal: knownCommitted,
+      remainingBudget: totalBudget - knownCommitted,
+      isTotalAvailable: true,
+      currencyMismatch: false,
+      conversionPending: false,
+      currencyMismatchMessage: null,
       budgetStatus: "incomplete",
       statusMessage: "항공 또는 숙소 가격이 아직 확정되지 않아 전체 예산을 계산할 수 없습니다.",
       currency,
     };
   }
 
-  const breakdown = calculatePackageCostBreakdown(flightTotal, hotelPayableTotal, totalBudget, passengerCount, nights);
+  const breakdown = calculatePackageCostBreakdown(flightRawTotal, hotelRawTotal, totalBudget, passengerCount, nights);
 
   let budgetStatus: TravelBudgetSummary["budgetStatus"] = "within_budget";
   let statusMessage = "";
@@ -199,8 +273,10 @@ export function calculateTravelBudgetSummary(
   return {
     totalBudget,
     passengerCount,
-    selectedFlightTotal: flightTotal,
-    selectedHotelTotal: hotelPayableTotal,
+    selectedFlightTotal: flightRawTotal,
+    selectedHotelTotal: hotelRawTotal,
+    selectedFlightCurrency: flightCurrency,
+    selectedHotelCurrency: hotelCurrency,
     estimatedFoodBudget: breakdown.foodBudget,
     estimatedLocalTransportBudget: breakdown.localTransportBudget,
     estimatedActivityBudget: breakdown.activityBudget,
@@ -208,6 +284,10 @@ export function calculateTravelBudgetSummary(
     committedTotal: breakdown.flightTotal + breakdown.hotelPayableTotal,
     estimatedGrandTotal: breakdown.estimatedGrandTotal,
     remainingBudget: breakdown.remainingBudget,
+    isTotalAvailable: true,
+    currencyMismatch: false,
+    conversionPending: false,
+    currencyMismatchMessage: null,
     budgetStatus,
     statusMessage,
     currency,
