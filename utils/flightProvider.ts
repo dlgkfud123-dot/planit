@@ -336,9 +336,11 @@ export function normalizeDuffelOffer(
     averagePerPassengerDerived: true,
   };
 
-  const airlineName = rawOffer.owner?.name || "기타 항공사";
-  const airlineCode = rawOffer.owner?.iata_code || "ZZ";
-  const airlineLogoUrl = rawOffer.owner?.logo_symbol_url || `https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/${airlineCode}.svg`;
+  const rawSeg0 = rawOffer.slices?.[0]?.segments?.[0];
+  const opCarrierName = rawSeg0?.operating_carrier?.name || rawSeg0?.marketing_carrier?.name || rawOffer.owner?.name || "기타 항공사";
+  const opCarrierCode = rawSeg0?.operating_carrier?.iata_code || rawSeg0?.marketing_carrier?.iata_code || rawOffer.owner?.iata_code || "ZZ";
+  const opLogoUrl = rawSeg0?.operating_carrier?.logo_symbol_url || rawSeg0?.marketing_carrier?.logo_symbol_url || rawOffer.owner?.logo_symbol_url || `https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/${opCarrierCode}.svg`;
+  const ticketingOwnerName = rawOffer.owner?.name && rawOffer.owner.name !== opCarrierName ? rawOffer.owner.name : null;
 
   const { amenities, baggageDetails, baggageInfo } = parseDuffelAmenitiesAndBaggage(rawOffer);
 
@@ -374,9 +376,10 @@ export function normalizeDuffelOffer(
 
   return {
     providerOfferId: rawOffer.id,
-    ownerAirlineName: airlineName,
-    ownerAirlineCode: airlineCode,
-    airlineLogoUrl,
+    ownerAirlineName: opCarrierName,
+    ownerAirlineCode: opCarrierCode,
+    ticketingOwnerName,
+    airlineLogoUrl: opLogoUrl,
     outbound: outboundSlice,
     inbound: inboundSlice,
     baggageInfo,

@@ -894,6 +894,11 @@ export default function BookingApp() {
                   ({firstSeg.flightNumber})
                 </span>
               )}
+              {flight.ticketingOwnerName && (
+                <span style={{ fontSize: "11px", color: "#64748B", marginLeft: "8px", fontWeight: 600 }}>
+                  (판매사: {flight.ticketingOwnerName})
+                </span>
+              )}
             </div>
           </div>
 

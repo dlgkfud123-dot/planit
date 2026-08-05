@@ -119,6 +119,7 @@ export type FlightOffer = {
   providerOfferId: string;
   ownerAirlineName: string;
   ownerAirlineCode: string;
+  ticketingOwnerName?: string | null;
   airlineLogoUrl: string | null;
   outbound: FlightSlice;
   inbound: FlightSlice | null;
