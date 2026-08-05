@@ -153,6 +153,7 @@ export default function BookingApp() {
   const [flightRetrySeconds, setFlightRetrySeconds] = useState(0);
   const [sellerOptionStates, setSellerOptionStates] = useState<Record<string, { status: "idle" | "loading" | "loaded" | "empty" | "error"; message?: string }>>({});
   const [flightsTestNotice, setFlightsTestNotice] = useState<{ title: string; notice: string } | null>(null);
+  const [visibleFlightCount, setVisibleFlightCount] = useState(5);
 
   const [requeryStatus, setRequeryStatus] = useState<string | null>(null);
   const [requeryMessage, setRequeryMessage] = useState<string | null>(null);
@@ -537,6 +538,7 @@ export default function BookingApp() {
     setSelectedFlightId("");
     setBudgetMatchedFlights([]);
     setBudgetExceededFlights([]);
+    setVisibleFlightCount(5);
     setFlightsError(null);
     setFlightsStatus(null);
     setSellerOptionStates({});
@@ -1081,7 +1083,7 @@ export default function BookingApp() {
         </div>
 
         <div style={{ marginTop: "10px", borderTop: "1px solid #F1F5F9", paddingTop: "6px", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "4px", fontSize: "11px", color: "#64748B" }}>
-          <span>Google Flights 검색 데이터 · SerpAPI 제공</span>
+          <span>{flight.provider === "Duffel" ? "Duffel 테스트 환경 제공 · 실제 운임 및 재고와 다를 수 있음" : "Google Flights 검색 데이터 · SerpAPI 제공"}</span>
           <span>가격과 판매 조건은 외부 예약 단계에서 변경될 수 있습니다.</span>
         </div>
 
@@ -1595,22 +1597,45 @@ export default function BookingApp() {
           {!flightsLoading && budgetMatchedFlights.length > 0 && (
             <div style={{ marginTop: "16px" }}>
               <div style={{ fontSize: "15px", fontWeight: 800, color: "#0F172A", marginBottom: "12px", borderBottom: "2px solid #10B981", paddingBottom: "6px" }}>
-                항공 예산 부합 목록
+                항공 추천 목록 (최초 5개 엄선)
               </div>
               <div className="flightCardsList">
-                {budgetMatchedFlights.map((flight) => renderFlightCard(flight, false))}
+                {budgetMatchedFlights.slice(0, visibleFlightCount).map((flight) => renderFlightCard(flight, false))}
               </div>
             </div>
           )}
 
-          {!flightsLoading && budgetExceededFlights.length > 0 && (
+          {!flightsLoading && budgetExceededFlights.length > 0 && budgetMatchedFlights.length < visibleFlightCount && (
             <div style={{ marginTop: "24px" }}>
               <div style={{ fontSize: "15px", fontWeight: 800, color: "#92400E", marginBottom: "12px", borderBottom: "2px solid #F59E0B", paddingBottom: "6px" }}>
                 예산을 초과하지만 일정이 좋은 대안 목록
               </div>
               <div className="flightCardsList">
-                {budgetExceededFlights.map((flight) => renderFlightCard(flight, true))}
+                {budgetExceededFlights.slice(0, Math.max(0, visibleFlightCount - budgetMatchedFlights.length)).map((flight) => renderFlightCard(flight, true))}
               </div>
+            </div>
+          )}
+
+          {!flightsLoading && (budgetMatchedFlights.length + budgetExceededFlights.length > visibleFlightCount) && (
+            <div style={{ marginTop: "16px", textAlign: "center" }}>
+              <button
+                type="button"
+                onClick={() => setVisibleFlightCount((count) => count + 5)}
+                style={{
+                  minHeight: "44px",
+                  padding: "12px 24px",
+                  background: "#FFFFFF",
+                  border: "2px solid #2563EB",
+                  color: "#2563EB",
+                  borderRadius: "8px",
+                  fontWeight: 800,
+                  fontSize: "14px",
+                  cursor: "pointer",
+                  boxShadow: "0 2px 4px rgba(37, 99, 235, 0.1)",
+                }}
+              >
+                다른 항공편 더 보기 (+5개)
+              </button>
             </div>
           )}
         </section>

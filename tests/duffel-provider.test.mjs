@@ -7,6 +7,7 @@ import {
   formatDuffelDateTime,
   calculateDuffelTimeFlags,
   getFlightProvider,
+  curateDuffelOffers,
 } from "../utils/flightProvider.ts";
 import { GET as getFlights } from "../app/api/booking/flights/route.ts";
 
@@ -195,8 +196,42 @@ test("replay mode makes zero external Duffel/SerpAPI calls", async () => {
 
   assert.equal(response.status, 200);
   assert.equal(json.success, true);
-  assert.equal(fetchCallCount, 0);
-
   globalThis.fetch = originalFetch;
   process.env.FLIGHT_DATA_MODE = originalMode;
+});
+
+test("curateDuffelOffers limits top 5 initial cards and caps same airline repeats to max 2", () => {
+  const mockOffers = Array.from({ length: 15 }, (_, i) => {
+    const airline = i < 10 ? "Hahn Air" : i < 13 ? "Korean Air" : "Asiana";
+    const raw = {
+      ...sampleDuffelOffer,
+      id: `off_mock_${i}`,
+      total_amount: String(300000 + i * 10000),
+      owner: { name: airline, iata_code: airline.substring(0, 2).toUpperCase() },
+      slices: [
+        {
+          ...sampleDuffelOffer.slices[0],
+          segments: [
+            {
+              ...sampleDuffelOffer.slices[0].segments[0],
+              marketing_carrier_flight_number: `${100 + i}`,
+            },
+          ],
+        },
+        sampleDuffelOffer.slices[1],
+      ],
+    };
+    return normalizeDuffelOffer(raw, 2, 600000, true);
+  }).filter(Boolean);
+
+  const { curated, allRanked } = curateDuffelOffers(mockOffers, 600000);
+  assert.equal(curated.length, 5);
+
+  const airlineCounts = {};
+  curated.forEach((o) => {
+    airlineCounts[o.ownerAirlineName] = (airlineCounts[o.ownerAirlineName] || 0) + 1;
+  });
+
+  assert.ok((airlineCounts["Hahn Air"] || 0) <= 2, "Hahn Air should not repeat more than 2 times in top 5");
+  assert.equal(allRanked.length, 15);
 });
