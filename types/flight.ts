@@ -164,6 +164,7 @@ export type RawOfferSummary = {
 export type TravelBudgetSummary = {
   totalBudget: number;
   passengerCount: number;
+  lodgingBudgetThreshold?: number;
 
   selectedFlightTotal: number | null;
   selectedHotelTotal: number | null;

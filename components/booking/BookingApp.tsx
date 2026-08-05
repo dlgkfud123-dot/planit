@@ -152,6 +152,7 @@ export default function BookingApp() {
   const [flightRetryAt, setFlightRetryAt] = useState<number | null>(null);
   const [flightRetrySeconds, setFlightRetrySeconds] = useState(0);
   const [sellerOptionStates, setSellerOptionStates] = useState<Record<string, { status: "idle" | "loading" | "loaded" | "empty" | "error"; message?: string }>>({});
+  const [flightsTestNotice, setFlightsTestNotice] = useState<{ title: string; notice: string } | null>(null);
 
   const [requeryStatus, setRequeryStatus] = useState<string | null>(null);
   const [requeryMessage, setRequeryMessage] = useState<string | null>(null);
@@ -482,6 +483,16 @@ export default function BookingApp() {
           const exceeded = exceededSource.filter((offer) => isSelectableRoundTrip(offer) && offer.price.payableTotal !== null && offer.price.payableTotal > flightBudgetThreshold);
           setBudgetMatchedFlights(matched);
           setBudgetExceededFlights(exceeded);
+          if (data.testNotice) {
+            setFlightsTestNotice(data.testNotice);
+          } else if (data.isTestMode) {
+            setFlightsTestNotice({
+              title: "항공권 검색 결과",
+              notice: "현재 항공편 정보는 Duffel 테스트 환경에서 제공됩니다. 실제 운임·재고와 다를 수 있습니다.",
+            });
+          } else {
+            setFlightsTestNotice(null);
+          }
 
           const allFlights = [...matched, ...exceeded];
           if (allFlights.length > 0) {
@@ -858,8 +869,13 @@ export default function BookingApp() {
             </span>
           )}
           <span style={{ background: "#EFF6FF", color: "#1D4ED8", fontSize: "11px", fontWeight: 700, padding: "3px 8px", borderRadius: "4px" }}>
-            Google Flights Live Search · SerpAPI
+            {flight.provider === "Duffel" ? "Duffel API (v2)" : "Google Flights Live Search · SerpAPI"}
           </span>
+          {(flight.isExpired || (flight.expiresAt && Date.now() >= Date.parse(flight.expiresAt))) && (
+            <span style={{ background: "#FEF2F2", color: "#991B1B", fontSize: "11px", fontWeight: 800, padding: "3px 8px", borderRadius: "4px", border: "1px solid #FCA5A5" }}>
+              ⚠️ 가격 유효시간 만료
+            </span>
+          )}
         </div>
 
         <div className="flightMainInfo">
@@ -1043,16 +1059,24 @@ export default function BookingApp() {
           </div>
 
           <div className="flightBtns" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <button
-              type="button"
-              className={`selectFlightBtn ${isSelected ? "selected" : ""}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSelectFlight(flight.providerOfferId);
-              }}
-            >
-              {isSelected ? "항공편 선택됨" : "항공편 선택"}
-            </button>
+            {(() => {
+              const isOfferExpired = flight.isExpired || (flight.expiresAt ? Date.now() >= Date.parse(flight.expiresAt) : false);
+              return (
+                <button
+                  type="button"
+                  className={`selectFlightBtn ${isSelected ? "selected" : ""}`}
+                  disabled={isOfferExpired}
+                  style={isOfferExpired ? { opacity: 0.6, cursor: "not-allowed", background: "#94A3B8" } : undefined}
+                  onClick={(e) => {
+                    if (isOfferExpired) return;
+                    e.stopPropagation();
+                    handleSelectFlight(flight.providerOfferId);
+                  }}
+                >
+                  {isOfferExpired ? "유효시간 만료됨" : isSelected ? "항공편 선택됨" : "항공편 선택"}
+                </button>
+              );
+            })()}
           </div>
         </div>
 
@@ -1494,6 +1518,17 @@ export default function BookingApp() {
               <p className="comparisonAirportScope">비교 대상: {DEFAULT_FLIGHT_COMPARISON_AIRPORTS.join(" · ")}</p>
             )}
           </div>
+
+          {flightsTestNotice && (
+            <div style={{ background: "#EFF6FF", border: "1px solid #93C5FD", borderRadius: "10px", padding: "12px 16px", marginTop: "12px", marginBottom: "16px" }}>
+              <h4 style={{ margin: 0, fontSize: "14px", fontWeight: 800, color: "#1E40AF" }}>
+                [테스트 환경] {flightsTestNotice.title}
+              </h4>
+              <p style={{ margin: "4px 0 0 0", fontSize: "12.5px", color: "#1E3A8A", fontWeight: 600 }}>
+                {flightsTestNotice.notice}
+              </p>
+            </div>
+          )}
 
           {departureMode === "compare" && comparisonMessage && !flightsLoading && (
             <p className="flightComparisonMessage">{comparisonMessage}</p>

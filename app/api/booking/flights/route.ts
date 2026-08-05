@@ -18,6 +18,8 @@ import { getCanonicalArrivalAirportCandidates, getCityAirportGroup, getCityAirpo
 import { validateFlightInput } from "../../../../utils/bookingValidation.ts";
 import { ApiHttpError, ROUTE_DEADLINE_MS, apiErrorResponse, fetchWithTimeout, providerErrorFromStatus } from "../../../../utils/apiRuntime.ts";
 import { calculateFlightTimeScore } from "../../../../utils/flightRuntime.ts";
+import { getFlightDataMode, getReplayFlightSearchResponse, getReplayBookingOptions } from "../../../../utils/flightReplay.ts";
+import { getFlightProvider } from "../../../../utils/flightProvider.ts";
 
 type SerpApiFlightLegRaw = {
   departure_airport?: { time?: string; id?: string };
@@ -382,7 +384,32 @@ async function runFlightSearch(request: Request) {
       { status: 400 }
     );
   }
+
+  const dataMode = getFlightDataMode();
+  if (dataMode === "replay") {
+    const replayResponse = getReplayFlightSearchResponse(city, departureAirport, checkIn, checkOut, adults, flightBudget);
+    return NextResponse.json(replayResponse);
+  }
+
   const routeSignal = AbortSignal.timeout(ROUTE_DEADLINE_MS);
+  const provider = getFlightProvider();
+
+  if (provider.name === "Duffel") {
+    const duffelResponse = await provider.searchFlights({
+      city,
+      departureAirport,
+      destinationAirport: arrivalAirportCandidates[0] || destinationAirport,
+      checkIn,
+      checkOut,
+      adults,
+      flightBudget,
+      travelClass,
+      currency,
+      comparisonSearch,
+    }, routeSignal);
+    return NextResponse.json(duffelResponse);
+  }
+
   const serpApiKey = process.env.SERPAPI_API_KEY || "";
   const hasSerpKey = Boolean(serpApiKey);
   let providerCallCount = 0;
@@ -761,6 +788,12 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const dataMode = getFlightDataMode();
+  if (dataMode === "replay") {
+    const options = getReplayBookingOptions();
+    return NextResponse.json({ success: true, bookingOptions: options, cached: true });
+  }
+
   const serpApiKey = process.env.SERPAPI_API_KEY || "";
   if (!serpApiKey) {
     return NextResponse.json({ success: false, providerStatus: "UNAVAILABLE", message: "항공 판매처 정보를 불러올 수 없습니다." }, { status: 503 });

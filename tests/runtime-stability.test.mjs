@@ -67,6 +67,8 @@ test("provider timeout maps to HTTP 504 semantics", async () => {
 test("SerpAPI auth, rate-limit, and empty-result branches preserve HTTP semantics", async () => {
   const originalFetch = globalThis.fetch;
   const originalKey = process.env.SERPAPI_API_KEY;
+  const originalMode = process.env.FLIGHT_DATA_MODE;
+  process.env.FLIGHT_DATA_MODE = "live";
   process.env.SERPAPI_API_KEY = "test-key";
   const url = `http://localhost/api/booking/flights?city=도쿄&departureAirport=ICN&checkIn=${futureDates.checkIn}&checkOut=${futureDates.checkOut}&adults=1`;
   try {
@@ -86,12 +88,16 @@ test("SerpAPI auth, rate-limit, and empty-result branches preserve HTTP semantic
     globalThis.fetch = originalFetch;
     if (originalKey === undefined) delete process.env.SERPAPI_API_KEY;
     else process.env.SERPAPI_API_KEY = originalKey;
+    if (originalMode === undefined) delete process.env.FLIGHT_DATA_MODE;
+    else process.env.FLIGHT_DATA_MODE = originalMode;
   }
 });
 
 test("initial flight search stops after return selection and loads seller options lazily", async () => {
   const originalFetch = globalThis.fetch;
   const originalKey = process.env.SERPAPI_API_KEY;
+  const originalMode = process.env.FLIGHT_DATA_MODE;
+  process.env.FLIGHT_DATA_MODE = "live";
   process.env.SERPAPI_API_KEY = "test-key";
   const calls = [];
   const leg = (origin, destination, number) => ({
@@ -134,12 +140,16 @@ test("initial flight search stops after return selection and loads seller option
     globalThis.fetch = originalFetch;
     if (originalKey === undefined) delete process.env.SERPAPI_API_KEY;
     else process.env.SERPAPI_API_KEY = originalKey;
+    if (originalMode === undefined) delete process.env.FLIGHT_DATA_MODE;
+    else process.env.FLIGHT_DATA_MODE = originalMode;
   }
 });
 
 test("SerpAPI malformed response is mapped to a provider error instead of HTTP 500", async () => {
   const originalFetch = globalThis.fetch;
   const originalKey = process.env.SERPAPI_API_KEY;
+  const originalMode = process.env.FLIGHT_DATA_MODE;
+  process.env.FLIGHT_DATA_MODE = "live";
   process.env.SERPAPI_API_KEY = "test-key";
   globalThis.fetch = async () => Response.json({ unexpected: true });
   try {
@@ -151,6 +161,8 @@ test("SerpAPI malformed response is mapped to a provider error instead of HTTP 5
     globalThis.fetch = originalFetch;
     if (originalKey === undefined) delete process.env.SERPAPI_API_KEY;
     else process.env.SERPAPI_API_KEY = originalKey;
+    if (originalMode === undefined) delete process.env.FLIGHT_DATA_MODE;
+    else process.env.FLIGHT_DATA_MODE = originalMode;
   }
 });
 
@@ -201,6 +213,8 @@ const abortingFetch = (_input, init) => new Promise((_resolve, reject) => {
 test("SerpAPI timeout is returned as HTTP 504", async () => {
   const originalFetch = globalThis.fetch;
   const originalKey = process.env.SERPAPI_API_KEY;
+  const originalMode = process.env.FLIGHT_DATA_MODE;
+  process.env.FLIGHT_DATA_MODE = "live";
   process.env.SERPAPI_API_KEY = "test-key";
   globalThis.fetch = abortingFetch;
   try {
@@ -212,6 +226,8 @@ test("SerpAPI timeout is returned as HTTP 504", async () => {
     globalThis.fetch = originalFetch;
     if (originalKey === undefined) delete process.env.SERPAPI_API_KEY;
     else process.env.SERPAPI_API_KEY = originalKey;
+    if (originalMode === undefined) delete process.env.FLIGHT_DATA_MODE;
+    else process.env.FLIGHT_DATA_MODE = originalMode;
   }
 });
 
@@ -269,12 +285,12 @@ test("routes contain no synthetic fallback offers or hardcoded airport distances
   assert.doesNotMatch(packages, /(?:1\.5|4\.5|18\.2)/);
 });
 
-test("Booking requires a validated draft and has no Tokyo, stale destination, or Duffel fallback", () => {
+test("Booking requires a validated draft and has no Tokyo or stale destination fallback", () => {
   const booking = readSource("components/booking/BookingApp.tsx");
   assert.doesNotMatch(booking, /sessionStorage\.getItem\(["']eyria:destination["']\)/);
   assert.doesNotMatch(booking, /readDraft\(\)/);
   assert.doesNotMatch(booking, /["']도쿄["']/);
-  assert.doesNotMatch(booking, /Duffel/i);
+  assert.match(booking, /flight\.provider === ["']Duffel["']/);
   assert.match(booking, /여행 목적지 정보가 없습니다\. 일정 페이지에서 목적지를 다시 선택해주세요\./);
 });
 
