@@ -492,7 +492,7 @@ export class DuffelFlightProvider implements FlightProvider {
       .map((offer) => normalizeDuffelOffer(offer, params.adults, params.flightBudget, isTestToken))
       .filter((offer): offer is FlightOffer => offer !== null);
 
-    const { curated, allRanked } = curateDuffelOffers(normalizedOffers, params.flightBudget);
+    const { curated, allRanked } = curateDuffelOffers(normalizedOffers, params.flightBudget, isTestToken);
 
     const budgetMatchedOffers = allRanked
       .filter((o) => (o.price.payableTotal ?? 0) <= params.flightBudget);
@@ -575,19 +575,35 @@ export function groupAndDeduplicateOffers(offers: FlightOffer[]): FlightOffer[] 
   return deduplicated;
 }
 
-export function curateDuffelOffers(offers: FlightOffer[], flightBudget: number): {
+export function curateDuffelOffers(
+  offers: FlightOffer[],
+  flightBudget: number,
+  isTestMode: boolean = false
+): {
   curated: FlightOffer[];
   allRanked: FlightOffer[];
 } {
   const grouped = groupAndDeduplicateOffers(offers);
-  grouped.sort((a, b) => b.flightScore - a.flightScore);
+
+  const isDuffelAirways = (o: FlightOffer) =>
+    o.ownerAirlineCode === "ZZ" || o.ownerAirlineName.includes("Duffel Airways");
+
+  let poolForTop5 = grouped;
+  if (isTestMode) {
+    const realAirlineOffers = grouped.filter((o) => !isDuffelAirways(o));
+    if (realAirlineOffers.length >= 5) {
+      poolForTop5 = realAirlineOffers;
+    }
+  }
+
+  poolForTop5.sort((a, b) => b.flightScore - a.flightScore);
 
   const selectedIds = new Set<string>();
   const airlineCounts: Record<string, number> = {};
   const curated: FlightOffer[] = [];
 
   const maxPerAirlineInTop5 = 2;
-  const totalUniqueAirlines = new Set(grouped.map((o) => o.ownerAirlineName)).size;
+  const totalUniqueAirlines = new Set(poolForTop5.map((o) => o.ownerAirlineName)).size;
 
   const tryAddOffer = (offer: FlightOffer, reasonTag: string): boolean => {
     if (selectedIds.has(offer.providerOfferId)) return false;
@@ -608,14 +624,14 @@ export function curateDuffelOffers(offers: FlightOffer[], flightBudget: number):
     return true;
   };
 
-  // 1. Cheapest Offer
-  const cheapestOffer = [...grouped].sort((a, b) => (a.price.payableTotal ?? Infinity) - (b.price.payableTotal ?? Infinity))[0];
+  // 1. Cheapest Offer (from poolForTop5)
+  const cheapestOffer = [...poolForTop5].sort((a, b) => (a.price.payableTotal ?? Infinity) - (b.price.payableTotal ?? Infinity))[0];
   if (cheapestOffer) {
     tryAddOffer(cheapestOffer, "전체 후보 중 최저가 항공권");
   }
 
   // 2. Shortest Duration Offer
-  const fastestOffer = [...grouped].sort((a, b) => {
+  const fastestOffer = [...poolForTop5].sort((a, b) => {
     const durA = a.outbound.durationMinutes + (a.inbound?.durationMinutes || 0);
     const durB = b.outbound.durationMinutes + (b.inbound?.durationMinutes || 0);
     return durA - durB;
@@ -625,34 +641,45 @@ export function curateDuffelOffers(offers: FlightOffer[], flightBudget: number):
   }
 
   // 3. Best Daytime Departure Offer (08:00 ~ 14:00)
-  const daytimeCandidates = grouped.filter((o) => {
+  const daytimeCandidates = poolForTop5.filter((o) => {
     const depHour = parseInt(o.outbound.departureTime.split(":")[0] || "0", 10);
     return depHour >= 8 && depHour <= 14;
   });
-  const bestDaytime = daytimeCandidates[0] || grouped[0];
+  const bestDaytime = daytimeCandidates[0] || poolForTop5[0];
   if (bestDaytime) {
     tryAddOffer(bestDaytime, "편리한 오전/낮 출발 시간대");
   }
 
   // 4. Checked Baggage Included Offer
-  const baggageCandidates = grouped.filter((o) => o.baggageDetails?.status === "explicit" && o.baggageDetails.outbound?.includes("위탁"));
-  const bestBaggage = baggageCandidates[0] || grouped[0];
+  const baggageCandidates = poolForTop5.filter((o) => o.baggageDetails?.status === "explicit" && o.baggageDetails.outbound?.includes("위탁"));
+  const bestBaggage = baggageCandidates[0] || poolForTop5[0];
   if (bestBaggage) {
     tryAddOffer(bestBaggage, "위탁 수하물 기본 포함");
   }
 
   // 5. Best Overall Score Offer
-  for (const offer of grouped) {
+  for (const offer of poolForTop5) {
     if (curated.length >= 5) break;
     tryAddOffer(offer, "종합 만족도 1위 AI 추천");
   }
 
-  // Fill up to 5 if needed from remaining candidates
-  for (const offer of grouped) {
+  // Fill up to 5 if needed from remaining poolForTop5 candidates
+  for (const offer of poolForTop5) {
     if (curated.length >= 5) break;
     if (!selectedIds.has(offer.providerOfferId)) {
       selectedIds.add(offer.providerOfferId);
       curated.push(offer);
+    }
+  }
+
+  // If poolForTop5 had fewer than 5 (in Test Mode), fill from testAirlines as last resort
+  if (curated.length < 5 && isTestMode) {
+    for (const offer of grouped) {
+      if (curated.length >= 5) break;
+      if (!selectedIds.has(offer.providerOfferId)) {
+        selectedIds.add(offer.providerOfferId);
+        curated.push(offer);
+      }
     }
   }
 

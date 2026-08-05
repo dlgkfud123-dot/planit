@@ -235,3 +235,38 @@ test("curateDuffelOffers limits top 5 initial cards and caps same airline repeat
   assert.ok((airlineCounts["Hahn Air"] || 0) <= 2, "Hahn Air should not repeat more than 2 times in top 5");
   assert.equal(allRanked.length, 15);
 });
+
+test("curateDuffelOffers excludes Duffel Airways (ZZ) from top 5 in Test Mode when real airlines >= 5", () => {
+  const mockOffers = Array.from({ length: 10 }, (_, i) => {
+    const isTestAirline = i < 3;
+    const airlineName = isTestAirline ? "Duffel Airways" : `Real Airline ${i}`;
+    const iataCode = isTestAirline ? "ZZ" : `R${i}`;
+    const raw = {
+      ...sampleDuffelOffer,
+      id: `off_test_${i}`,
+      total_amount: String(isTestAirline ? 100000 : 400000 + i * 10000),
+      owner: { name: airlineName, iata_code: iataCode },
+      slices: [
+        {
+          ...sampleDuffelOffer.slices[0],
+          segments: [
+            {
+              ...sampleDuffelOffer.slices[0].segments[0],
+              operating_carrier: { name: airlineName, iata_code: iataCode },
+              marketing_carrier_flight_number: `${200 + i}`,
+            },
+          ],
+        },
+        sampleDuffelOffer.slices[1],
+      ],
+    };
+    return normalizeDuffelOffer(raw, 2, 600000, true);
+  }).filter(Boolean);
+
+  const { curated, allRanked } = curateDuffelOffers(mockOffers, 600000, true);
+
+  assert.equal(curated.length, 5);
+  const hasZZInTop5 = curated.some((o) => o.ownerAirlineCode === "ZZ" || o.ownerAirlineName.includes("Duffel Airways"));
+  assert.equal(hasZZInTop5, false, "Duffel Airways (ZZ) should be excluded from top 5 recommendations in Test Mode when real airlines exist");
+  assert.equal(allRanked.some((o) => o.ownerAirlineCode === "ZZ"), true, "Duffel Airways (ZZ) remains in full candidate list");
+});

@@ -873,6 +873,11 @@ export default function BookingApp() {
           <span style={{ background: "#EFF6FF", color: "#1D4ED8", fontSize: "11px", fontWeight: 700, padding: "3px 8px", borderRadius: "4px" }}>
             {flight.provider === "Duffel" ? "Duffel API (v2)" : "Google Flights Live Search · SerpAPI"}
           </span>
+          {(flight.ownerAirlineCode === "ZZ" || flight.ownerAirlineName.includes("Duffel Airways")) && (
+            <span style={{ background: "#F3E8FF", color: "#6B21A8", fontSize: "11px", fontWeight: 800, padding: "3px 8px", borderRadius: "4px", border: "1px solid #D8B4FE" }}>
+              🧪 테스트 전용 항공편
+            </span>
+          )}
           {(flight.isExpired || (flight.expiresAt && Date.now() >= Date.parse(flight.expiresAt))) && (
             <span style={{ background: "#FEF2F2", color: "#991B1B", fontSize: "11px", fontWeight: 800, padding: "3px 8px", borderRadius: "4px", border: "1px solid #FCA5A5" }}>
               ⚠️ 가격 유효시간 만료
